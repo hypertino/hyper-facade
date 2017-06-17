@@ -1,8 +1,8 @@
 package com.hypertino.facade.modules
 
 import com.hypertino.facade.FacadeConfigPaths
-import com.hypertino.config.ConfigLoader
 import com.hypertino.metrics.modules.MetricsModule
+import com.hypertino.service.config.ConfigLoader
 import scaldi.Injector
 
 import scala.collection.JavaConversions._

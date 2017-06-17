@@ -28,17 +28,17 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
       try {
         val request = contextWithRequest.request
         val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
-        val uriTransformer = chain(removeRootPathPrefix(rootPathPrefix, _), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
+        val uriTransformer = chain(removeRootPathPrefix(rootPathPrefix, _: HRL), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
         val hrl = removeRootPathPrefix(rootPathPrefix, request.headers.hrl)
 
-        val headersBuilder = HeadersMap.builder
+        val headersBuilder = Headers.builder
         var messageIdFound = false
 
         contextWithRequest.context.originalHeaders.foreach {
           case (FacadeHeaders.CLIENT_CONTENT_TYPE, value) ⇒
             headersBuilder += Header.CONTENT_TYPE → JsonContentTypeConverter.universalJsonContentTypeToSimple(value)
 
-          case (FacadeHeaders.CLIENT_MESSAGE_ID, value) if value.nonEmpty ⇒
+          case (FacadeHeaders.CLIENT_MESSAGE_ID, value) if !value.isNull ⇒
             headersBuilder += Header.MESSAGE_ID → value
             messageIdFound = true
 
@@ -55,7 +55,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
         val transformedBodyContent = HalTransformer.transformEmbeddedObject(request.body.content, uriTransformer)
 
         contextWithRequest.copy(
-          request = DynamicRequest(DynamicBody(transformedBodyContent), RequestHeaders(headersBuilder.result()))
+          request = DynamicRequest(DynamicBody(transformedBodyContent), headersBuilder.requestHeaders())
         )
       } catch {
         case e: MalformedURLException ⇒

@@ -50,8 +50,9 @@ object PredicateEvaluator {
         "ip" → context.remoteAddress
       )
       valueMap += ("context" → contextMap)
-      valueMap += ("headers" → Obj(request.headers))
-      valueMap += "resourceLocation" → 
+      valueMap += ("headers" → Obj(request.headers)) // todo: translete 'short' headers!
+      valueMap += "location" → request.headers.hrl.location
+      valueMap += "query" → request.headers.hrl.query
       Obj(valueMap.result())
     }
   }

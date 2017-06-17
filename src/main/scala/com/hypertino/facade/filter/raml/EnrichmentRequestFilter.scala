@@ -6,6 +6,7 @@ import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.PredicateEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.{EnrichAnnotation, Field, RamlAnnotation}
+import com.hypertino.hyperbus.model.DynamicBody
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
@@ -17,9 +18,9 @@ class EnrichRequestFilter(val field: Field) extends RequestFilter {
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
     Future {
       val request = contextWithRequest.request
-      val enrichedFields = enrichFields(field, request.body.asMap, contextWithRequest.context)
+      val enrichedFields = enrichFields(field, request.body.content.toMap, contextWithRequest.context)
       contextWithRequest.copy(
-        request = request.copy(body = Obj(enrichedFields))
+        request = request.copy(body = DynamicBody(Obj(enrichedFields)))
       )
     }
   }
@@ -33,7 +34,7 @@ class EnrichRequestFilter(val field: Field) extends RequestFilter {
 
           case RamlAnnotation.CLIENT_LANGUAGE ⇒
             context.originalHeaders.get(FacadeHeaders.CLIENT_LANGUAGE) match {
-              case Some(value :: _) ⇒
+              case Some(Text(value)) ⇒
                 addField(ramlField.name, Text(value), fields)  // todo: format of header?
 
               case _ ⇒
@@ -53,7 +54,7 @@ class EnrichRequestFilter(val field: Field) extends RequestFilter {
           requestFields.get(leadPathSegment) match {
             case Some(subFields) ⇒
               val tailPath = pathToField.substring(leadPathSegment.length + 1)
-              requestFields + (leadPathSegment → Obj(addField(tailPath, value, subFields.asMap)))
+              requestFields + (leadPathSegment → Obj(addField(tailPath, value, subFields.toMap)))
           }
       }
     else

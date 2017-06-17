@@ -8,7 +8,7 @@ import com.hypertino.facade.model._
 import com.hypertino.facade.utils.FunctionUtils.chain
 import com.hypertino.facade.utils.HalTransformer
 import com.hypertino.facade.utils.HrlTransformer._
-import com.hypertino.hyperbus.model.{DefLink, DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, HeadersBuilder, HeadersMap, Message, RequestHeaders, ResponseBase, ResponseHeaders, StandardResponse}
+import com.hypertino.hyperbus.model.{DefLink, DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, Headers, HeadersBuilder, HeadersMap, Message, RequestHeaders, ResponseBase, ResponseHeaders, StandardResponse}
 import spray.http.HttpHeaders
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,7 +48,7 @@ object HttpWsFilter {
   val directHyperbusToFacade = FacadeHeaders.clientHeaderMapping.map(kv ⇒ kv._2 → kv._1).toMap
 
   def filterMessage(message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (DynamicBody, HeadersMap) = {
-    val headersBuilder = HeadersMap.builder
+    val headersBuilder = Headers.builder
 
     message.headers.foreach {
       // todo: transform?

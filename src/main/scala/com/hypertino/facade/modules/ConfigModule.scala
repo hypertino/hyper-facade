@@ -2,8 +2,8 @@ package com.hypertino.facade.modules
 
 import com.hypertino.facade.ConfigsFactory
 import com.typesafe.config.Config
-import com.hypertino.config.ConfigLoader
 import com.hypertino.facade.raml.{RamlConfiguration, RamlConfigurationReader}
+import com.hypertino.service.config.ConfigLoader
 import scaldi.Module
 
 class ConfigModule extends Module {
