@@ -158,3 +158,5 @@ class FilterInterruptException(val response: DynamicResponse,
                                cause: Throwable = null) extends Exception (message, cause)
 
 class RewriteLimitReachedException(num: Int, max: Int) extends Exception (s"Maximum ($max) restart limits exceeded ($num)")
+
+class RequestFormatException(s: String, cause: Throwable = null) extends Exception(s, cause)

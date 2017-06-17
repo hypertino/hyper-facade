@@ -21,14 +21,14 @@ class RamlConfigurationReaderTest extends TestBase {
   "RamlConfigurationReader" - {
     "missing resource" in {
       intercept[RamlStrictConfigException] {
-        ramlReader.resourceUri(Uri("/missing-resource"), "get")
+        ramlReader.resourceHRL(Uri("/missing-resource"), "get")
       }
     }
 
     "existing resource, not configured method" in {
-      ramlReader.resourceUri(Uri("/resource"), "get")
+      ramlReader.resourceHRL(Uri("/resource"), "get")
       intercept[RamlStrictConfigException] {
-        ramlReader.resourceUri(Uri("/resource"), "post")
+        ramlReader.resourceHRL(Uri("/resource"), "post")
       }
     }
   }

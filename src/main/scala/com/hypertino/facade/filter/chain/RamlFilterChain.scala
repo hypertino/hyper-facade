@@ -3,27 +3,28 @@ package com.hypertino.facade.filter.chain
 import com.hypertino.facade.filter.model.{EventFilter, RequestFilter, ResponseFilter}
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.{ContentType, Method, RamlConfiguration, RamlResourceMethodConfig}
+import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 
 class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
 
   def findRequestFilters(contextWithRequest: ContextWithRequest): Seq[RequestFilter] = {
     val request = contextWithRequest.request
-    val filters = requestOrEventFilters(request.uri.pattern.specific, request.method, request.contentType).requestFilters
+    val filters = requestOrEventFilters(request.headers.hrl.location, request.headers.method, request.headers.contentType).requestFilters
     filters
   }
 
-  def findResponseFilters(context: FacadeRequestContext, response: FacadeResponse): Seq[ResponseFilter] = {
-    context.prepared match {
+  def findResponseFilters(context: FacadeRequestContext, response: DynamicResponse): Seq[ResponseFilter] = {
+    context.preparedHeaders match {
       case Some(r) ⇒
-        val method = r.requestMethod
-        val result = filtersOrMethod(r.requestHRI.pattern.specific, method) match {
+        val method = r.method
+        val result = filtersOrMethod(r.hrl.location, method) match {
           case Left(filters) ⇒
             filters
 
           case Right(resourceMethod) ⇒
-            resourceMethod.responses.get(response.status) match {
+            resourceMethod.responses.get(response.headers.statusCode) match {
               case Some(responses) ⇒
-                responses.ramlContentTypes.get(response.clientContentType.map(ContentType)) match {
+                responses.ramlContentTypes.get(response.headers.contentType.map(ContentType)) match {
                   // todo: test this!
                   case Some(ramlContentType) ⇒
                     ramlContentType.filters
@@ -41,11 +42,11 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
     }
   }
 
-  def findEventFilters(context: FacadeRequestContext, event: FacadeRequest): Seq[EventFilter] = {
-    context.prepared match {
+  def findEventFilters(context: FacadeRequestContext, event: DynamicRequest): Seq[EventFilter] = {
+    context.preparedHeaders match {
       case Some(r) ⇒
-        val uri = r.requestHRI.pattern.specific // event.uri.pattern.specific
-        requestOrEventFilters(uri, event.method, event.contentType).eventFilters
+        val uri = r.hrl.location // event.uri.pattern.specific
+        requestOrEventFilters(uri, event.headers.method, event.headers.contentType).eventFilters
 
       case None ⇒
         Seq.empty

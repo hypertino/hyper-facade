@@ -1,37 +1,41 @@
 package com.hypertino.facade.utils
 
-import com.hypertino.hyperbus.transport.api.uri.{PathMatchType, RegularMatchType, Token, _}
+
+import com.hypertino.binders.value.{Obj, Text}
+import com.hypertino.hyperbus.model.HRL
+import com.hypertino.hyperbus.raml.utils._
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
-object UriMatcher {
+object ResourcePatternMatcher {
 
   /**
-    * Matches uri against sequence of uri templates
-    * @param uri - uri
-    * @param uriTemplates - sequence uri templates
+    * Matches uri against sequence of uri patterns
+    * @param resource - uri
+    * @param resourcePatterns - sequence uri patterns
     * @return
     */
-  def matchUri(uri: Uri, uriTemplates: Seq[String]): Option[Uri] = {
-    var foundUri: Option[Uri] = None
-    for (uriTemplate ← uriTemplates if foundUri.isEmpty) {
-      foundUri = matchUri(uriTemplate, uri)
-    }
-    foundUri
+  def matchResource(resource: String, resourcePatterns: Seq[String]): Option[HRL] = {
+    resourcePatterns
+      .iterator
+      .map(matchResource(resource, _))
+      .find(_.nonEmpty)
+      .flatten
   }
 
   /**
     * Matches URI pattern with request URI
+    * @param resource - request resource
     * @param pattern - URI pattern from RAML configuration
-    * @param uri - request URI
     * @return if request URI matches pattern then Some of constructed URI with parameters will be returned, None otherwise
     */
-  def matchUri(pattern: String, uri: Uri): Option[Uri] = {
-    val requestUriTokens = UriParser.tokens(uri.formatted)
-    var args = Map[String, String]()
+  def matchResource(resource: String, pattern: String): Option[HRL] = {
+    val resourceTokens = UriParser.tokens(resource)
+    var args = mutable.MutableList[(String, String)]()
     val patternTokens = UriParser.tokens(pattern)
     val patternTokenIter = patternTokens.iterator
-    val reqUriTokenIter = requestUriTokens.iterator
+    val reqUriTokenIter = resourceTokens.iterator
     var matchesCorrectly = patternTokenIter.hasNext && reqUriTokenIter.hasNext
     var previousReqUriToken: Option[Token] = None
     while(patternTokenIter.hasNext && reqUriTokenIter.hasNext && matchesCorrectly) {
@@ -63,7 +67,7 @@ object UriMatcher {
       previousReqUriToken = Some(reqUriToken)
     }
     if (!matchesCorrectly) None
-    else Some(Uri(pattern, args))
+    else Some(HRL(pattern, Obj.from(args.map(kv ⇒ kv._1 → Text(kv._2)): _*)))
   }
 
   /**

@@ -3,6 +3,7 @@ package com.hypertino.facade.filter.chain
 import com.hypertino.facade.filter.model.{EventFilter, RequestFilter, ResponseFilter}
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.FutureUtils
+import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -12,19 +13,19 @@ trait FilterChain {
     FutureUtils.chain(contextWithRequest, findRequestFilters(contextWithRequest).map(f ⇒ f.apply(_)))
   }
 
-  def filterResponse(contextWithRequest: ContextWithRequest, response: FacadeResponse)
-                    (implicit ec: ExecutionContext): Future[FacadeResponse] = {
-    FutureUtils.chain(response, findResponseFilters(contextWithRequest.context, response).map(f ⇒ f.apply(contextWithRequest, _ : FacadeResponse)))
+  def filterResponse(contextWithRequest: ContextWithRequest, response: DynamicResponse)
+                    (implicit ec: ExecutionContext): Future[DynamicResponse] = {
+    FutureUtils.chain(response, findResponseFilters(contextWithRequest.context, response).map(f ⇒ f.apply(contextWithRequest, _ : DynamicResponse)))
   }
 
-  def filterEvent(contextWithRequest: ContextWithRequest, event: FacadeRequest)
-                 (implicit ec: ExecutionContext): Future[FacadeRequest] = {
-    FutureUtils.chain(event, findEventFilters(contextWithRequest.context, event).map(f ⇒ f.apply(contextWithRequest, _ : FacadeRequest)))
+  def filterEvent(contextWithRequest: ContextWithRequest, event: DynamicRequest)
+                 (implicit ec: ExecutionContext): Future[DynamicRequest] = {
+    FutureUtils.chain(event, findEventFilters(contextWithRequest.context, event).map(f ⇒ f.apply(contextWithRequest, _ : DynamicRequest)))
   }
 
   def findRequestFilters(contextWithRequest: ContextWithRequest): Seq[RequestFilter]
-  def findResponseFilters(context: FacadeRequestContext, response: FacadeResponse): Seq[ResponseFilter]
-  def findEventFilters(context: FacadeRequestContext, event: FacadeRequest): Seq[EventFilter]
+  def findResponseFilters(context: FacadeRequestContext, response: DynamicResponse): Seq[ResponseFilter]
+  def findEventFilters(context: FacadeRequestContext, event: DynamicRequest): Seq[EventFilter]
 }
 
 object FilterChain {

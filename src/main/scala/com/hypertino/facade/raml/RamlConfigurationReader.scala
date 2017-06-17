@@ -2,8 +2,8 @@ package com.hypertino.facade.raml
 
 import com.hypertino.facade.FacadeConfigPaths
 import com.typesafe.config.Config
-import com.hypertino.facade.utils.UriMatcher
-import com.hypertino.hyperbus.transport.api.uri.Uri
+import com.hypertino.facade.utils.ResourcePatternMatcher
+import com.hypertino.hyperbus.model.HRL
 
 class RamlConfigurationReader(ramlConfiguration: RamlConfiguration, config: Config) {
 
@@ -11,29 +11,26 @@ class RamlConfigurationReader(ramlConfiguration: RamlConfiguration, config: Conf
     traits(uriPattern, method).map(foundTrait ⇒ foundTrait.name).distinct
   }
 
-  def resourceUri(requestUri: Uri, method: String): Uri = {
-    val uri = resourceUri(requestUri)
-    val isStrictRaml = System.getProperty(FacadeConfigPaths.RAML_STRICT_CONFIG, config.getString(FacadeConfigPaths.RAML_STRICT_CONFIG)).toBoolean
-    if (isStrictRaml) {
-      val foundUri = ramlConfiguration.resourcesByUri.get(uri.pattern.specific) match {
-        case Some(resourceConfig) ⇒
-          if(resourceConfig.methods.isEmpty || resourceConfig.methods.contains(Method(method)))
-            Some(uri)
-          else
-            None
-        case None ⇒
-          None
-      }
-      if (foundUri.isEmpty)
-        throw RamlStrictConfigException(s"resource '$requestUri' with method '$method' is not configured in RAML configuration")
-    }
-    uri
-  }
-
-  private def resourceUri(requestUri: Uri): Uri = {
+  def resourceHRL(requestHRL: HRL, method: String): HRL = {
     //todo: lookup in map instead of sequence!
-    val formattedUri = Uri(requestUri.formatted)
-    UriMatcher.matchUri(formattedUri, ramlConfiguration.uris).getOrElse(requestUri)
+    //val formattedUri = Uri(requestUri.formatted)
+
+    val hrlWithoutQuery = ResourcePatternMatcher.matchResource(requestHRL.location, ramlConfiguration.uris) match {
+      case Some(hrl) ⇒ hrl
+      case other ⇒
+        if (config.getBoolean(FacadeConfigPaths.RAML_STRICT_CONFIG)) {
+          throw RamlStrictConfigException(s"resource '$requestHRL' with method '$method' is not configured in RAML configuration")
+        }
+        else {
+          requestHRL
+        }
+    }
+
+    val hrl = hrlWithoutQuery.copy(
+      query = hrlWithoutQuery.query + requestHRL.query
+    )
+
+    hrl
   }
 
   private def traits(uriPattern: String, method: String): Seq[Trait] = {

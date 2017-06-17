@@ -35,6 +35,7 @@ libraryDependencies ++= Seq(
   "com.hypertino"               %% "hyperbus-t-kafka"            % "0.2-SNAPSHOT",
   "com.hypertino"               %% "hyperbus-t-zeromq"           % "0.2-SNAPSHOT",
   "com.hypertino"               % "raml-parser-2"                % "1.0.5-SNAPSHOT",
+  "com.hypertino"               %% "hyperbus-raml-utils"         % "0.1-SNAPSHOT",
   "com.hypertino"               %% "service-control"             % "0.3-SNAPSHOT",
   "com.hypertino"               %% "service-config"              % "0.2-SNAPSHOT",
   "com.hypertino"               %% "service-metrics"             % "0.3-SNAPSHOT",

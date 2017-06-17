@@ -32,7 +32,7 @@ class EnrichRequestFilter(val field: Field) extends RequestFilter {
             addField(ramlField.name, Text(context.remoteAddress), fields)
 
           case RamlAnnotation.CLIENT_LANGUAGE ⇒
-            context.requestHeaders.get(FacadeHeaders.CLIENT_LANGUAGE) match {
+            context.originalHeaders.get(FacadeHeaders.CLIENT_LANGUAGE) match {
               case Some(value :: _) ⇒
                 addField(ramlField.name, Text(value), fields)  // todo: format of header?
 

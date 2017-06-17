@@ -1,9 +1,10 @@
 package com.hypertino.facade.model
 
-import com.hypertino.authentication.AuthUser
+import com.hypertino.facade.filter.http.AuthUser
+
 
 object ContextStorage {
-  val AUTH_USER = "authUser"
+  val AUTH_USER = "authUser" // todo: rename!!!
   val IS_AUTHORIZED = "isAuthorized"
 
   implicit class ExtendFacadeRequestContext(facadeRequestContext: FacadeRequestContext) {

@@ -1,11 +1,12 @@
 package com.hypertino.facade.utils
 
 import com.hypertino.binders.value._
+import com.hypertino.hyperbus.model.HRL
 import com.hypertino.hyperbus.transport.api.uri.{Uri, UriParser}
 
 object HalTransformer {
 
-  def transformEmbeddedObject(obj: Value, transformUri: Uri ⇒ Uri): Value = {
+  def transformEmbeddedObject(obj: Value, transformUri: HRL ⇒ HRL): Value = {
     if (obj.isInstanceOf[Obj]) {
       Obj(obj.asMap.map {
         case ("_links", value) ⇒

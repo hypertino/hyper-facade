@@ -8,6 +8,7 @@ import com.hypertino.parser.ast.Identifier
 import com.hypertino.parser.eval.ValueContext
 import org.slf4j.LoggerFactory
 
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
 class PredicateEvaluator {
@@ -18,12 +19,14 @@ class PredicateEvaluator {
   def evaluate(predicate: String, contextWithRequest: ContextWithRequest): Boolean = {
     val context = new ValueContext(contextWithRequest.toObj) {
       override def binaryOperation: PartialFunction[(Value, Identifier, Value), Value] = IpParser.binaryOperation
+
       override def customOperators = Seq(IpParser.IP_MATCHES)
     }
-    HEval(predicate, context) match {
-      case Success(value: Bool) ⇒
-        value.v
-      case Failure(ex) ⇒
+    try {
+      HEval(predicate, context).toBoolean
+    }
+    catch {
+      case NonFatal(ex) ⇒
         log.error(s"predicate '$predicate' was parsed with error", ex)
         false
     }
@@ -41,26 +44,14 @@ object PredicateEvaluator {
       val context = contextWithRequest.context
       val request = contextWithRequest.request
 
-      val authUserMap = context.authUser match {
-        case Some(authUser) ⇒
-          Map[String, Value](
-            "id" → authUser.id.toValue,
-            "roles" → authUser.roles.toValue
-          )
-        case None ⇒ Map.empty[String, Value]
-      }
       val contextMap = Map[String, Value](
-        ContextStorage.AUTH_USER → authUserMap,
+        ContextStorage.AUTH_USER → context.authUser.toValue,
         ContextStorage.IS_AUTHORIZED → context.isAuthorized.toValue,
         "ip" → context.remoteAddress
       )
       valueMap += ("context" → contextMap)
-
-      val uriMap = request.uri.args.foldLeft(Map.newBuilder[String, Value]) { (acc, kv) ⇒
-        val (key, value) = kv
-        acc += (key → value.specific.toValue)
-      }.result()
-      valueMap += ("uri" → uriMap)
+      valueMap += ("headers" → Obj(request.headers))
+      valueMap += "resourceLocation" → 
       Obj(valueMap.result())
     }
   }

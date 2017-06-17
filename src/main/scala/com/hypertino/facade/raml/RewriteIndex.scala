@@ -1,63 +1,56 @@
 package com.hypertino.facade.raml
 
-import com.hypertino.facade.utils.UriMatcher
-import com.hypertino.hyperbus.transport.api.matchers.Specific
-import com.hypertino.hyperbus.transport.api.uri.{Uri, UriParser}
+import com.hypertino.facade.utils.ResourcePatternMatcher
+import com.hypertino.hyperbus.model.HRL
+import com.hypertino.hyperbus.raml.utils.UriParser
 
 import scala.collection.immutable.SortedMap
 
-case class IndexKey(uri: String, method: Option[Method])
+// todo: naming uri vs hrl
+case class IndexKey(hrl: HRL, method: Option[Method])
 
 case class RewriteIndex(inverted: Map[IndexKey, String], forward: Map[IndexKey, String]) {
-  def findRewriteForward(uri: Uri, requestMethod: Option[String]): Option[Uri] = {
-    findRewrite(uri, requestMethod, forward)
+  def findRewriteForward(hrl: HRL, requestMethod: Option[String]): Option[HRL] = {
+    findRewrite(hrl, requestMethod, forward)
   }
 
-  def findRewriteBackward(uri: Uri, requestMethod: Option[String]): Option[Uri] = {
-    findRewrite(uri, requestMethod, inverted)
+  def findRewriteBackward(hrl: HRL, requestMethod: Option[String]): Option[HRL] = {
+    findRewrite(hrl, requestMethod, inverted)
   }
 
-  private def findRewrite(uri: Uri, requestMethod: Option[String], index: Map[IndexKey, String]): Option[Uri] = {
+  private def findRewrite(hrl: HRL, requestMethod: Option[String], index: Map[IndexKey, String]): Option[HRL] = {
     val method = requestMethod.map(m ⇒ Method(m))
-    findMostSpecificRewriteRule(index, method, uri)
+    findMostSpecificRewriteRule(index, method, hrl)
   }
 
-  private def findMostSpecificRewriteRule(index: Map[IndexKey, String], method: Option[Method], originalUri: Uri): Option[Uri] = {
-    exactMatch(index, method, originalUri.formatted) orElse
-      exactMatch(index, method, originalUri.pattern.specific) orElse
-      patternMatch(index, method, originalUri) match {
-      case Some(matchedUri) ⇒
-        val newArgs = originalUri.args ++ matchedUri.args
-        Some(matchedUri.copy(
-          args = newArgs
+  private def findMostSpecificRewriteRule(index: Map[IndexKey, String], method: Option[Method], originalHRL: HRL): Option[HRL] = {
+    exactMatch(index, method, originalHRL) orElse
+      patternMatch(index, method, originalHRL) match {
+      case Some(matchedHRL) ⇒
+        val newQuery = originalHRL.query + matchedHRL.query
+        Some(matchedHRL.copy(
+          query = newQuery
         ))
       case None ⇒
         None
     }
   }
 
-  private def exactMatch(index: Map[IndexKey, String], method: Option[Method], originalUri: String): Option[Uri] = {
-    index.get(IndexKey(originalUri, method)) orElse
-      index.get(IndexKey(originalUri, None)) match {
+  private def exactMatch(index: Map[IndexKey, String], method: Option[Method], originalHRL: HRL): Option[HRL] = {
+    index.get(IndexKey(originalHRL, method)) orElse
+      index.get(IndexKey(originalHRL, None)) match {
       case Some(uri) ⇒
-        Some(Uri(uri))
+        Some(HRL(uri))
       case None ⇒ None
     }
   }
 
-  private def patternMatch(index: Map[IndexKey, String], method: Option[Method], originalUri: Uri): Option[Uri] = {
-    var found: Option[Uri] = None
-    index.foreach {
-      case (key, indexUri) ⇒
-        if (found.isEmpty) {
-          UriMatcher.matchUri(key.uri, Uri(originalUri.formatted)) match {
-            case Some(matchedUri) ⇒
-              found = Some(Uri(Specific(indexUri), matchedUri.args))
-            case None ⇒
-          }
-        }
-    }
-    found
+  private def patternMatch(index: Map[IndexKey, String], method: Option[Method], originalHRL: HRL): Option[HRL] = {
+    index
+      .iterator
+      .map(i ⇒ ResourcePatternMatcher.matchResource(i._1.hrl.location, originalHRL.location))
+      .find(_.nonEmpty)
+      .flatten
   }
 }
 
@@ -67,13 +60,13 @@ object RewriteIndex {
     override def compare(left: IndexKey, right: IndexKey): Int = {
       if (left.method.isDefined) {
         if (right.method.isDefined)
-          compareUriTemplates(left.uri, right.uri)
+          compareUriTemplates(left.hrl.location, right.hrl.location)
         else
           1
       } else if (right.method.isDefined) {
         -1
       } else {
-        compareUriTemplates(left.uri, right.uri)
+        compareUriTemplates(left.hrl.location, right.hrl.location)
       }
     }
 

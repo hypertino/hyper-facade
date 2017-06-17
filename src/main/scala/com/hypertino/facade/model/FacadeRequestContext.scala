@@ -1,44 +1,53 @@
 package com.hypertino.facade.model
 
-import com.hypertino.hyperbus.model.{HRI, MessagingContext}
+import com.hypertino.binders.value.Text
+import com.hypertino.hyperbus.model.{DynamicRequest, MessagingContext, RequestHeaders}
 import com.hypertino.hyperbus.util.IdGenerator
-import spray.http.{HttpHeader, HttpRequest}
 
 case class FacadeRequestContext(
                                  remoteAddress: String,
                                  httpUri: spray.http.Uri,
-                                 pathAndQuery: String,
-                                 method: String,
-                                 requestHeaders: Map[String, Seq[String]],
-                                 prepared: Option[PreparedRequestContext],
+                                 //                                 pathAndQuery: String,
+                                 //method: String,
+                                 originalHeaders: RequestHeaders,
+                                 preparedHeaders: Option[RequestHeaders],
                                  contextStorage: Map[String, Any]
-                               )
-{
-  def clientCorrelationId: Option[String] = {
-    val messageId = requestHeaders.getOrElse(FacadeHeaders.CLIENT_MESSAGE_ID, Seq.empty)
-    requestHeaders.getOrElse(FacadeHeaders.CLIENT_CORRELATION_ID, messageId).headOption
+                               ) {
+  lazy val clientCorrelationId: Option[String] = {
+    originalHeaders
+      .get(FacadeHeaders.CLIENT_CORRELATION_ID)
+      .orElse {
+        originalHeaders
+          .get(FacadeHeaders.CLIENT_MESSAGE_ID)
+      } match {
+      case Some(Text(s)) ⇒ Some(s)
+      case other ⇒
+        throw new RequestFormatException(s"Request doesn't contains correlation information for the reply: '$other'")
+    }
   }
 
   def clientMessagingContext() = {
     MessagingContext(clientCorrelationId.getOrElse(IdGenerator.create()))
   }
-
-  def prepare(request: FacadeRequest) = copy(
-    prepared = Some(PreparedRequestContext(request.uri, request.method, request.headers))
-  )
 }
 
+/*  def prepare(requestHeaders: RequestHeaders) = copy(
+    preparedHeaders = Some(requestHeaders)
+  )
+}*/
+
+/*
 object FacadeRequestContext {
 
-  def create(remoteAddress: String, httpRequest: HttpRequest, facadeRequest: FacadeRequest) = {
+  def create(remoteAddress: String, httpRequest: HttpRequest, parsedRequest: DynamicRequest) = {
     FacadeRequestContext(
       remoteAddress,
       httpRequest.uri,
-      facadeRequest.uri.pattern.specific,
-      facadeRequest.method,
+      //parsedRequest.uri.pattern.specific,
+      parsedRequest.method,
       // http headers always override request headers
       // this could be important for WS request
-      facadeRequest.headers ++ normalizeHeaders(httpRequest.headers),
+      parsedRequest.headers ++ normalizeHeaders(httpRequest.headers),
       None,
       Map.empty
     )
@@ -51,29 +60,25 @@ object FacadeRequestContext {
   }
 
 }
+*/
 
-// todo: better name?
-case class PreparedRequestContext(
-                                   requestHRI: HRI,
-                                   requestMethod: String,
-                                   requestHeaders: Map[String, Seq[String]]
-                                 )
-
-// todo: better name?
+/*// todo: better name?
 case class RequestStage(
                          requestHRI: HRI,
                          requestMethod: String
                        )
+*/
 
 // todo: better name?
-case class ContextWithRequest(context: FacadeRequestContext, stages: Seq[RequestStage], request: FacadeRequest) {
-  def withNextStage(nextRequest: FacadeRequest): ContextWithRequest = copy(
-    context = context.prepare(nextRequest),
-    stages = Seq(RequestStage(nextRequest.hri, nextRequest.method)) ++ stages,
+case class ContextWithRequest(context: FacadeRequestContext, request: DynamicRequest, stages: Seq[RequestHeaders]) {
+  def withNextStage(nextRequest: DynamicRequest): ContextWithRequest = copy(
+    context = context.copy(preparedHeaders = Some(nextRequest.headers)),
+    stages = Seq(request.headers) ++ stages,
     request = nextRequest
   )
 }
-
+/*
 object ContextWithRequest {
   def apply(context: FacadeRequestContext, request: FacadeRequest): ContextWithRequest = new ContextWithRequest(context, Seq.empty, request)
 }
+*/

@@ -101,7 +101,7 @@ class WsRestWorker(val serverConnection: ActorRef,
           httpRequest match {
             case Some(h) ⇒
               val requestContext = FacadeRequestContext.create(remoteAddress, h, originalRequest)
-              processRequest(requestContext, originalRequest.copy(headers = requestContext.requestHeaders))
+              processRequest(requestContext, originalRequest.copy(headers = requestContext.originalHeaders))
 
             case None ⇒
               throw new RuntimeException(s"httpRequest is empty while processing frame.")

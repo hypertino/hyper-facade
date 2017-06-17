@@ -3,6 +3,7 @@ package com.hypertino.facade.filter.model
 import com.hypertino.facade.filter.parser.PredicateEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlAnnotation
+import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -23,8 +24,8 @@ case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: Req
 }
 
 case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: ResponseFilter, predicateEvaluator: PredicateEvaluator) extends ResponseFilter {
-  override def apply(contextWithRequest: ContextWithRequest, response: FacadeResponse)
-                    (implicit ec: ExecutionContext): Future[FacadeResponse] = {
+  override def apply(contextWithRequest: ContextWithRequest, response: DynamicResponse)
+                    (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     annotation.predicate match {
       case Some(p) ⇒
         if (predicateEvaluator.evaluate(p, contextWithRequest))
@@ -39,8 +40,8 @@ case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: Re
 }
 
 case class ConditionalEventFilterProxy(annotation: RamlAnnotation, filter: EventFilter, predicateEvaluator: PredicateEvaluator) extends EventFilter {
-  override def apply(contextWithRequest: ContextWithRequest, event: FacadeRequest)
-                    (implicit ec: ExecutionContext): Future[FacadeRequest] = {
+  override def apply(contextWithRequest: ContextWithRequest, event: DynamicRequest)
+                    (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     annotation.predicate match {
       case Some(p) ⇒
         if (predicateEvaluator.evaluate(p, contextWithRequest))

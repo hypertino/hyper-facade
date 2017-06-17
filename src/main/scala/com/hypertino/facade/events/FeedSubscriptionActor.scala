@@ -7,8 +7,8 @@ import akka.actor._
 import akka.pattern.pipe
 import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.workers.RequestProcessor
-import com.hypertino.facade.model.{FacadeRequest, FacadeResponse, _}
 import com.hypertino.facade.metrics.MetricKeys
+import com.hypertino.facade.model.ContextWithRequest
 import com.hypertino.facade.raml.Method
 import com.hypertino.facade.utils.FutureUtils
 import com.hypertino.hyperbus.Hyperbus

@@ -7,10 +7,8 @@ import com.hypertino.facade.filter.model.{EventFilter, ResponseFilter}
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.FunctionUtils.chain
 import com.hypertino.facade.utils.HalTransformer
-import com.hypertino.facade.utils.UriTransformer._
-import com.hypertino.hyperbus.model.Links._
-import com.hypertino.hyperbus.model.{DefLink, Header}
-import com.hypertino.hyperbus.transport.api.uri.Uri
+import com.hypertino.facade.utils.HrlTransformer._
+import com.hypertino.hyperbus.model.{DefLink, DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, HeadersBuilder, HeadersMap, Message, RequestHeaders, ResponseBase, ResponseHeaders, StandardResponse}
 import spray.http.HttpHeaders
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -18,57 +16,56 @@ import scala.concurrent.{ExecutionContext, Future}
 class HttpWsResponseFilter(config: Config) extends ResponseFilter {
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
-  override def apply(contextWithRequest: ContextWithRequest, response: FacadeResponse)
-                    (implicit ec: ExecutionContext): Future[FacadeResponse] = {
+  override def apply(contextWithRequest: ContextWithRequest, response: DynamicResponse)
+                    (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     Future {
       val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
-      val uriTransformer = chain(rewriteLinkToOriginal(_: Uri, rewriteCountLimit), addRootPathPrefix(rootPathPrefix))
-      val (newHeaders, newBody) = HttpWsFilter.filterMessage(response, uriTransformer)
-      response.copy(
-        headers = newHeaders,
-        body = newBody
-      )
+      val uriTransformer = chain(rewriteLinkToOriginal(_: HRL, rewriteCountLimit), addRootPathPrefix(rootPathPrefix))
+      val (body, headersObj) = HttpWsFilter.filterMessage(response, uriTransformer)
+      StandardResponse(body, ResponseHeaders(headersObj)).asInstanceOf[DynamicResponse]
     }
   }
 }
 
 class WsEventFilter(config: Config) extends EventFilter {
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
-  override def apply(contextWithRequest: ContextWithRequest, request: FacadeRequest)
-                    (implicit ec: ExecutionContext): Future[FacadeRequest] = {
+  override def apply(contextWithRequest: ContextWithRequest, request: DynamicRequest)
+                    (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     Future {
       val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
-      val uriTransformer = chain(rewriteLinkToOriginal(_: Uri, rewriteCountLimit), addRootPathPrefix(rootPathPrefix))
-      val (newHeaders, newBody) = HttpWsFilter.filterMessage(request, uriTransformer)
-      request.copy(
-        uri = addRootPathPrefix(rootPathPrefix)(Uri(request.uri.formatted)),
-        headers = newHeaders,
-        body = newBody
-      )
+      val uriTransformer = chain(rewriteLinkToOriginal(_: HRL, rewriteCountLimit), addRootPathPrefix(rootPathPrefix))
+      val (newBody, newHeaders) = HttpWsFilter.filterMessage(request, uriTransformer)
+      val n = new HeadersBuilder()
+        .++=(newHeaders)
+        .withHRL(addRootPathPrefix(rootPathPrefix)(request.headers.hrl))
+        .result()
+      DynamicRequest(newBody, RequestHeaders(n))
     }
   }
 }
 
 object HttpWsFilter {
-  val directHyperbusToFacade = FacadeHeaders.directHeaderMapping.map(kv ⇒ kv._2 → kv._1).toMap
+  val directHyperbusToFacade = FacadeHeaders.clientHeaderMapping.map(kv ⇒ kv._2 → kv._1).toMap
 
-  def filterMessage(message: FacadeMessage, uriTransformer: (Uri ⇒ Uri)): (Map[String, Seq[String]], Value) = {
-    val headersBuilder = Map.newBuilder[String, Seq[String]]
+  def filterMessage(message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (DynamicBody, HeadersMap) = {
+    val headersBuilder = HeadersMap.builder
+
     message.headers.foreach {
-      case (Header.CONTENT_TYPE, value :: _) ⇒
-        headersBuilder += FacadeHeaders.CONTENT_TYPE →
-          FacadeHeaders.genericContentTypeToHttp(Some(value)).toSeq
-
+      // todo: transform?
+      //case (Header.LOCATION, v) ⇒
+      //case (Header.HRL, v) ⇒
       case (k, v) ⇒
         if (directHyperbusToFacade.contains(k)) {
           headersBuilder += directHyperbusToFacade(k) → v
         }
     }
 
-    val newBody = HalTransformer.transformEmbeddedObject(message.body, uriTransformer)
-    if (newBody.isInstanceOf[Obj] /* && response.status == 201*/ ) {
+    // todo: move this to HalFilter
+    val newBodyContent = HalTransformer.transformEmbeddedObject(message.body.content, uriTransformer)
+
+    /*if (newBodyContent.isInstanceOf[Obj] /* && response.status == 201*/ ) {
       // Created, set header value
-      newBody.__links.fromValue[Option[LinksMap]].flatMap(_.get(DefLink.LOCATION)) match {
+      newBodyContent.__links.fromValue[Option[LinksMap]].flatMap(_.get(DefLink.LOCATION)) match {
         case Some(Left(l)) ⇒
           val newHref = Uri(l.href).pattern.specific
           headersBuilder += (HttpHeaders.Location.name → Seq(newHref))
@@ -77,8 +74,8 @@ object HttpWsFilter {
           headersBuilder += (HttpHeaders.Location.name → Seq(newHref))
         case _ ⇒
       }
-    }
+    }*/
 
-    (headersBuilder.result(), newBody)
+    (DynamicBody(newBodyContent), headersBuilder.result())
   }
 }

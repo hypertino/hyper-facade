@@ -10,11 +10,12 @@ import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.FunctionUtils.chain
 import com.hypertino.facade.utils.HalTransformer
-import com.hypertino.facade.utils.UriTransformer._
-import com.hypertino.hyperbus.IdGenerator
+import com.hypertino.facade.utils.HrlTransformer._
 import com.hypertino.hyperbus.model._
+import com.hypertino.hyperbus.model.hrl.PlainQueryConverter
+import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.hyperbus.transport.api.matchers.Specific
-import com.hypertino.hyperbus.transport.api.uri.Uri
+import com.hypertino.hyperbus.util.IdGenerator
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -27,19 +28,18 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
       try {
         val request = contextWithRequest.request
         val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
-        val uriTransformer = chain(removeRootPathPrefix(rootPathPrefix), rewriteLinkForward(_: Uri, rewriteCountLimit, ramlConfig))
-        val httpUri = spray.http.Uri(request.uri.pattern.specific)
-        val requestUri = removeRootPathPrefix(rootPathPrefix)(Uri(Specific(httpUri.path.toString)))
+        val uriTransformer = chain(removeRootPathPrefix(rootPathPrefix, _), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
+        val hrl = removeRootPathPrefix(rootPathPrefix, request.headers.hrl)
 
-        val headersBuilder = Map.newBuilder[String, Seq[String]]
+        val headersBuilder = HeadersMap.builder
         var messageIdFound = false
 
-        contextWithRequest.context.requestHeaders.foreach {
-          case (FacadeHeaders.CONTENT_TYPE, value :: _) ⇒
-            headersBuilder += Header.CONTENT_TYPE → FacadeHeaders.httpContentTypeToGeneric(Some(value)).toSeq
+        contextWithRequest.context.originalHeaders.foreach {
+          case (FacadeHeaders.CLIENT_CONTENT_TYPE, value) ⇒
+            headersBuilder += Header.CONTENT_TYPE → JsonContentTypeConverter.universalJsonContentTypeToSimple(value)
 
-          case (FacadeHeaders.CLIENT_MESSAGE_ID, value :: _) if value.nonEmpty ⇒
-            headersBuilder += Header.MESSAGE_ID → Seq(value)
+          case (FacadeHeaders.CLIENT_MESSAGE_ID, value) if value.nonEmpty ⇒
+            headersBuilder += Header.MESSAGE_ID → value
             messageIdFound = true
 
           case (k, v) ⇒
@@ -49,27 +49,20 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
         }
 
         if (!messageIdFound) {
-          headersBuilder += Header.MESSAGE_ID → Seq(IdGenerator.create())
+          headersBuilder += Header.MESSAGE_ID → IdGenerator.create()
         }
 
-        val (newBody, newMethod) = request.method.toLowerCase match {
-          case Method.GET | ClientSpecificMethod.SUBSCRIBE ⇒
-            (QueryBody.fromQueryString(httpUri.query.toMap).content, Method.GET)
-          case Method.DELETE ⇒
-            (Null, Method.DELETE)
-          case other ⇒
-            val transformedBody = HalTransformer.transformEmbeddedObject(request.body, uriTransformer)
-            (transformedBody, other)
-        }
+        val transformedBodyContent = HalTransformer.transformEmbeddedObject(request.body.content, uriTransformer)
 
         contextWithRequest.copy(
-          request = FacadeRequest(requestUri, newMethod, headersBuilder.result(), newBody)
+          request = DynamicRequest(DynamicBody(transformedBodyContent), RequestHeaders(headersBuilder.result()))
         )
       } catch {
         case e: MalformedURLException ⇒
-          val error = NotFound(ErrorBody("not-found")) // todo: + messagingContext!!!
+          implicit val mcx = contextWithRequest.request
+          val error = NotFound(ErrorBody("not-found"))
           throw new FilterInterruptException(
-            FacadeResponse(error),
+            error,
             message = e.getMessage
           )
       }
@@ -78,5 +71,5 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
 }
 
 object HttpWsRequestFilter {
-  val directFacadeToHyperbus =  FacadeHeaders.directHeaderMapping.toMap
+  val directFacadeToHyperbus =  FacadeHeaders.clientHeaderMapping.toMap
 }

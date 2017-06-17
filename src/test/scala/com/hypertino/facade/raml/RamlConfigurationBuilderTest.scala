@@ -68,16 +68,16 @@ class RamlConfigurationBuilderTest extends TestBase {
     }
 
     "request URI substitution" in {
-      val parameterRegularMatch = ramlReader.resourceUri(Uri("/unreliable-feed/someContent"), "get")
+      val parameterRegularMatch = ramlReader.resourceHRL(Uri("/unreliable-feed/someContent"), "get")
       parameterRegularMatch shouldBe Uri("/unreliable-feed/{content}", Map("content" → "someContent"))
 
-      val strictUriMatch = ramlReader.resourceUri(Uri("/unreliable-feed/someContent/someDetails"), "get")
+      val strictUriMatch = ramlReader.resourceHRL(Uri("/unreliable-feed/someContent/someDetails"), "get")
       strictUriMatch shouldBe Uri("/unreliable-feed/someContent/someDetails")
 
-      val parameterPathMatch = ramlReader.resourceUri(Uri("/reliable-feed/someContent/someDetails"), "get")
+      val parameterPathMatch = ramlReader.resourceHRL(Uri("/reliable-feed/someContent/someDetails"), "get")
       parameterPathMatch shouldBe Uri("/reliable-feed/{content:*}", Map("content" → "someContent/someDetails"))
 
-      val parameterArgPathMatch = ramlReader.resourceUri(Uri("/reliable-feed/someContent/{arg}", Map("arg" → "someDetails")), "get")
+      val parameterArgPathMatch = ramlReader.resourceHRL(Uri("/reliable-feed/someContent/{arg}", Map("arg" → "someDetails")), "get")
       parameterArgPathMatch shouldBe Uri("/reliable-feed/{content:*}", Map("content" → "someContent/someDetails"))
     }
 
