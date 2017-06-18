@@ -4,7 +4,8 @@ import com.hypertino.binders.value.Text
 import com.hypertino.hyperbus.model.{DynamicRequest, MessagingContext, RequestHeaders}
 import com.hypertino.hyperbus.util.IdGenerator
 
-case class FacadeRequestContext(
+
+/*case class FacadeRequestContext(
                                  remoteAddress: String,
                                  httpUri: spray.http.Uri,
                                  //                                 pathAndQuery: String,
@@ -29,7 +30,7 @@ case class FacadeRequestContext(
   def clientMessagingContext() = {
     MessagingContext(clientCorrelationId.getOrElse(IdGenerator.create()))
   }
-}
+}*/
 
 /*  def prepare(requestHeaders: RequestHeaders) = copy(
     preparedHeaders = Some(requestHeaders)
@@ -70,15 +71,21 @@ case class RequestStage(
 */
 
 // todo: better name?
-case class ContextWithRequest(context: FacadeRequestContext, request: DynamicRequest, stages: Seq[RequestHeaders]) {
-  def withNextStage(nextRequest: DynamicRequest): ContextWithRequest = copy(
-    context = context.copy(preparedHeaders = Some(nextRequest.headers)),
+case class ContextWithRequest(request: DynamicRequest,
+                              stages: Seq[RequestHeaders],
+                              contextStorage: Map[String, Any]) {
+
+  lazy val originalHeaders: RequestHeaders = stages.reverse.head
+
+  lazy val remoteAddress: String = originalHeaders(FacadeHeaders.REMOTE_ADDRESS).toString
+
+
+  def withNextStage(newRequest: DynamicRequest): ContextWithRequest = copy(
     stages = Seq(request.headers) ++ stages,
-    request = nextRequest
+    request = newRequest
   )
 }
-/*
+
 object ContextWithRequest {
-  def apply(context: FacadeRequestContext, request: FacadeRequest): ContextWithRequest = new ContextWithRequest(context, Seq.empty, request)
+  def apply(request: DynamicRequest): ContextWithRequest = ContextWithRequest(request).withNextStage(request)
 }
-*/

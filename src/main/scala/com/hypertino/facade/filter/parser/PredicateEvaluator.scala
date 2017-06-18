@@ -41,13 +41,12 @@ object PredicateEvaluator {
   implicit class ObjectGenerator(contextWithRequest: ContextWithRequest) {
     def toObj: Obj = {
       val valueMap = Map.newBuilder[String, Value]
-      val context = contextWithRequest.context
       val request = contextWithRequest.request
 
       val contextMap = Map[String, Value](
-        ContextStorage.AUTH_USER → context.authUser.toValue,
-        ContextStorage.IS_AUTHORIZED → context.isAuthorized.toValue,
-        "ip" → context.remoteAddress
+        ContextStorage.AUTH_USER → contextWithRequest.authUser.toValue,
+        ContextStorage.IS_AUTHORIZED → contextWithRequest.isAuthorized.toValue,
+        "ip" → contextWithRequest.remoteAddress
       )
       valueMap += ("context" → contextMap)
       valueMap += ("headers" → Obj(request.headers)) // todo: translete 'short' headers!

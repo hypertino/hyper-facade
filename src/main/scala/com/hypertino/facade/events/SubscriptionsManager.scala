@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props, Terminated}
 import com.hypertino.facade.HyperbusFactory
 import com.typesafe.config.Config
+import monix.execution.Cancelable
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
@@ -33,7 +34,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
 
     class GroupSubscription(groupUri: Uri, initialSubscription: ClientSubscriptionData) {
       val clientSubscriptions = new ConcurrentLinkedQueue[ClientSubscriptionData]()
-      var hyperbusSubscription: Option[Subscription] = None
+      var hyperbusSubscription: Option[Cancelable] = None
       addClient(initialSubscription)
 
       val methodFilter = Map(Header.METHOD → RegexMatcher("^feed:.*$"))

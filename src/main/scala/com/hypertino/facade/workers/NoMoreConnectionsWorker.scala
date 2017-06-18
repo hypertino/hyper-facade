@@ -11,7 +11,7 @@ class NoMoreConnectionsWorker(maxConnectionCount: Int) extends HttpServiceActor 
   def receive: Receive = {
     implicit val refFactory: ActorRefFactory = context
     runRoute {
-      HeaderDirectives.optionalHeaderValueByName(FacadeHeaders.CLIENT_IP) { forwardedFor ⇒
+      HeaderDirectives.optionalHeaderValueByName("X-Forwarded-For") { forwardedFor ⇒
         RouteDirectives.complete {
           log.warning(s"Maximum ($maxConnectionCount) active input connection count is exceed for ${forwardedFor.getOrElse("'address is unknown'")}.")
           HttpResponse(503, HttpEntity(`text/plain`, "Connection/worker limit is exceeded"))

@@ -9,7 +9,6 @@ import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.FunctionUtils.chain
-import com.hypertino.facade.utils.HalTransformer
 import com.hypertino.facade.utils.HrlTransformer._
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.model.hrl.PlainQueryConverter
@@ -34,17 +33,17 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
         val headersBuilder = Headers.builder
         var messageIdFound = false
 
-        contextWithRequest.context.originalHeaders.foreach {
-          case (FacadeHeaders.CLIENT_CONTENT_TYPE, value) ⇒
+        contextWithRequest.originalHeaders.foreach {
+          case (FacadeHeaders.CONTENT_TYPE, value) ⇒
             headersBuilder += Header.CONTENT_TYPE → JsonContentTypeConverter.universalJsonContentTypeToSimple(value)
 
-          case (FacadeHeaders.CLIENT_MESSAGE_ID, value) if !value.isNull ⇒
+          case (Header.MESSAGE_ID, value) if !value.isEmpty ⇒
             headersBuilder += Header.MESSAGE_ID → value
             messageIdFound = true
 
           case (k, v) ⇒
-            if (HttpWsRequestFilter.directFacadeToHyperbus.contains(k)) {
-              headersBuilder += HttpWsRequestFilter.directFacadeToHyperbus(k) → v
+            if (FacadeHeaders.directHeaderMapping.contains(k)) {
+              headersBuilder += k → v
             }
         }
 
@@ -52,10 +51,11 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
           headersBuilder += Header.MESSAGE_ID → IdGenerator.create()
         }
 
-        val transformedBodyContent = HalTransformer.transformEmbeddedObject(request.body.content, uriTransformer)
+        //todo: HAL ?
+        //val transformedBodyContent = HalTransformer.transformEmbeddedObject(request.body.content, uriTransformer)
 
         contextWithRequest.copy(
-          request = DynamicRequest(DynamicBody(transformedBodyContent), headersBuilder.requestHeaders())
+          request = DynamicRequest(request.body, headersBuilder.requestHeaders())
         )
       } catch {
         case e: MalformedURLException ⇒
@@ -68,8 +68,4 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
       }
     }
   }
-}
-
-object HttpWsRequestFilter {
-  val directFacadeToHyperbus =  FacadeHeaders.clientHeaderMapping.toMap
 }

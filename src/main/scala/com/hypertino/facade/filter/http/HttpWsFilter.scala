@@ -6,7 +6,6 @@ import com.hypertino.binders.value._
 import com.hypertino.facade.filter.model.{EventFilter, ResponseFilter}
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.FunctionUtils.chain
-import com.hypertino.facade.utils.HalTransformer
 import com.hypertino.facade.utils.HrlTransformer._
 import com.hypertino.hyperbus.model.{DefLink, DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, Headers, HeadersBuilder, HeadersMap, Message, RequestHeaders, ResponseBase, ResponseHeaders, StandardResponse}
 import spray.http.HttpHeaders
@@ -35,7 +34,8 @@ class WsEventFilter(config: Config) extends EventFilter {
       val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
       val uriTransformer = chain(rewriteLinkToOriginal(_: HRL, rewriteCountLimit), addRootPathPrefix(rootPathPrefix))
       val (newBody, newHeaders) = HttpWsFilter.filterMessage(request, uriTransformer)
-      val n = new HeadersBuilder()
+      val n = Headers
+        .builder
         .++=(newHeaders)
         .withHRL(addRootPathPrefix(rootPathPrefix)(request.headers.hrl))
         .result()
@@ -45,8 +45,6 @@ class WsEventFilter(config: Config) extends EventFilter {
 }
 
 object HttpWsFilter {
-  val directHyperbusToFacade = FacadeHeaders.clientHeaderMapping.map(kv ⇒ kv._2 → kv._1).toMap
-
   def filterMessage(message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (DynamicBody, HeadersMap) = {
     val headersBuilder = Headers.builder
 
@@ -55,13 +53,13 @@ object HttpWsFilter {
       //case (Header.LOCATION, v) ⇒
       //case (Header.HRL, v) ⇒
       case (k, v) ⇒
-        if (directHyperbusToFacade.contains(k)) {
-          headersBuilder += directHyperbusToFacade(k) → v
+        if (FacadeHeaders.directHeaderMapping.contains(k)) {
+          headersBuilder += k → v
         }
     }
 
     // todo: move this to HalFilter
-    val newBodyContent = HalTransformer.transformEmbeddedObject(message.body.content, uriTransformer)
+    //val newBodyContent = HalTransformer.transformEmbeddedObject(message.body.content, uriTransformer)
 
     /*if (newBodyContent.isInstanceOf[Obj] /* && response.status == 201*/ ) {
       // Created, set header value
@@ -76,6 +74,6 @@ object HttpWsFilter {
       }
     }*/
 
-    (DynamicBody(newBodyContent), headersBuilder.result())
+    (message.body, headersBuilder.result())
   }
 }

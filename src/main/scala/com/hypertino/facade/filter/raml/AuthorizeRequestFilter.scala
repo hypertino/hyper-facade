@@ -14,12 +14,9 @@ class AuthorizeRequestFilter extends RequestFilter {
   override def apply(contextWithRequest: ContextWithRequest)
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
     Future {
-      val ctx = contextWithRequest.context
-      val updatedContextStorage = ctx.contextStorage + (ContextStorage.IS_AUTHORIZED → true)
+      val updatedContextStorage = contextWithRequest.contextStorage + (ContextStorage.IS_AUTHORIZED → true)
       contextWithRequest.copy (
-        context = ctx.copy(
-          contextStorage = updatedContextStorage
-        )
+        contextStorage = updatedContextStorage
       )
     }
   }

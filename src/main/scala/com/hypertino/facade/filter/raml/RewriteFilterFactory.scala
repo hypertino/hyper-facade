@@ -5,6 +5,7 @@ import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.PredicateEvaluator
 import com.hypertino.facade.raml._
+import com.hypertino.hyperbus.model.HRL
 import scaldi.{Injectable, Injector}
 
 class RewriteFilterFactory(config: Config)(implicit inj: Injector) extends RamlFilterFactory with Injectable {
@@ -16,7 +17,7 @@ class RewriteFilterFactory(config: Config)(implicit inj: Injector) extends RamlF
       case TargetMethod(uri, method, RewriteAnnotation(_, _, newUri)) ⇒ (newUri, uri, Some(Method(method)))
       case otherTarget ⇒ throw RamlConfigException(s"Annotation 'rewrite' cannot be assigned to $otherTarget")
     }
-    RewriteIndexHolder.updateRewriteIndex(originalUri, rewrittenUri, ramlMethod)
+    RewriteIndexHolder.updateRewriteIndex(HRL(originalUri), HRL(rewrittenUri), ramlMethod)
     SimpleFilterChain(
       requestFilters = Seq(new RewriteRequestFilter(rewrittenUri)),
       responseFilters = Seq.empty,

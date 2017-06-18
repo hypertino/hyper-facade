@@ -18,14 +18,14 @@ class EnrichRequestFilter(val field: Field) extends RequestFilter {
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
     Future {
       val request = contextWithRequest.request
-      val enrichedFields = enrichFields(field, request.body.content.toMap, contextWithRequest.context)
+      val enrichedFields = enrichFields(field, request.body.content.toMap, contextWithRequest)
       contextWithRequest.copy(
         request = request.copy(body = DynamicBody(Obj(enrichedFields)))
       )
     }
   }
 
-  private def enrichFields(ramlField: Field, fields: Map[String, Value], context: FacadeRequestContext): Map[String, Value] = {
+  private def enrichFields(ramlField: Field, fields: Map[String, Value], context: ContextWithRequest): Map[String, Value] = {
       val annotations = ramlField.annotations
       annotations.foldLeft(fields) { (enrichedFields, annotation) ⇒
         annotation.name match {
@@ -33,7 +33,7 @@ class EnrichRequestFilter(val field: Field) extends RequestFilter {
             addField(ramlField.name, Text(context.remoteAddress), fields)
 
           case RamlAnnotation.CLIENT_LANGUAGE ⇒
-            context.originalHeaders.get(FacadeHeaders.CLIENT_LANGUAGE) match {
+            context.originalHeaders.get(FacadeHeaders.ACCEPT_LANGUAGE) match {
               case Some(Text(value)) ⇒
                 addField(ramlField.name, Text(value), fields)  // todo: format of header?
 

@@ -9,8 +9,10 @@ import com.hypertino.facade.FacadeConfigPaths
 import com.typesafe.config.Config
 import com.hypertino.service.config.ConfigExtenders._
 import com.hypertino.hyperbus.Hyperbus
+import com.hypertino.metrics.{MetricsTracker, ProcessMetrics}
 import com.hypertino.metrics.loaders.MetricsReporterLoader
 import com.hypertino.service.control.api.Service
+import monix.execution.Scheduler
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector, TypeTagIdentifier}
 import spray.can.server.ServerSettings
@@ -30,13 +32,14 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
   implicit val timeout = Timeout(10 seconds)
   implicit val actorSystem = inject [ActorSystem]
   implicit val executionContext = inject [ExecutionContext]
+  implicit val scheduler = inject [Scheduler]
 
   private val rootConf = inject [Config]
   val log = LoggerFactory.getLogger(getClass())
 
   val config = inject [Config]
   val restConfig = config.getConfig(FacadeConfigPaths.HTTP)
-  val metrics = inject[Metrics]
+  val metricsTracker = inject[MetricsTracker]
 
   val shutdownTimeout = config.getFiniteDuration(FacadeConfigPaths.SHUTDOWN_TIMEOUT)
 
@@ -51,7 +54,7 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
     inj.getBinding(List(TypeTagIdentifier(typeOf[MetricsReporterLoader]))) match {
       case Some(_) ⇒
         inject[MetricsReporterLoader].run()
-        ProcessMetrics.startReporting(metrics)
+        ProcessMetrics.startReporting(metricsTracker)
 
       case None ⇒
         log.warn("Metric reporter is not configured.")
@@ -84,7 +87,8 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
   override def stopService(controlBreak: Boolean): Unit = {
     log.info("Stopping Hyper-Facade...")
     try {
-      Await.result(hyperBus.shutdown(shutdownTimeout*4/5), shutdownTimeout)
+      // todo: remove Await
+      Await.result(hyperBus.shutdown(shutdownTimeout*4/5).runAsync, shutdownTimeout)
     } catch {
       case t: Throwable ⇒
         log.error("Hyperbus didn't shutdown gracefully", t)

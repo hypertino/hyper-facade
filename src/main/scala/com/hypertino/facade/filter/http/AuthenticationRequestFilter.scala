@@ -24,9 +24,8 @@ class AuthenticationRequestFilter(implicit inj: Injector) extends RequestFilter 
 
   override def apply(contextWithRequest: ContextWithRequest)
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
-    val context = contextWithRequest.context
     implicit val mcx = contextWithRequest.request
-    context.originalHeaders.get(FacadeHeaders.AUTHORIZATION) match {
+    contextWithRequest.originalHeaders.get(FacadeHeaders.AUTHORIZATION) match {
       case Some(Text(credentials)) ⇒
         val authRequest = AuthenticationRequest(AuthenticationRequestBody(credentials))
         val f = hyperbus
@@ -34,11 +33,9 @@ class AuthenticationRequestFilter(implicit inj: Injector) extends RequestFilter 
           .runAsync(scheduler)
 
         f.map { case response: Ok[AuthenticationResponseBody] ⇒
-            val updatedContextStorage = context.contextStorage + (ContextStorage.AUTH_USER → response.body.authUser)
+            val updatedContextStorage = contextWithRequest.contextStorage + (ContextStorage.AUTH_USER → response.body.authUser)
             contextWithRequest.copy(
-              context = context.copy(
-                contextStorage = updatedContextStorage
-              )
+              contextStorage = updatedContextStorage
             )
           } recover handleHyperbusExceptions(authRequest)
 

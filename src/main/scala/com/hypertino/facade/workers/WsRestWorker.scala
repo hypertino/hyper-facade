@@ -1,13 +1,13 @@
 package com.hypertino.facade.workers
 
 import akka.actor._
-import com.hypertino.facade.events.SubscriptionsManager
-import com.hypertino.binders.value.Text
-import com.hypertino.facade.events.FeedSubscriptionActor
+import com.hypertino.facade.events.{FeedSubscriptionActor, SubscriptionsManager}
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
-import com.hypertino.hyperbus.{Hyperbus, IdGenerator}
-import com.hypertino.metrics.Metrics
+import com.hypertino.facade.utils.MessageTransformer
+import com.hypertino.hyperbus.Hyperbus
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, Ok}
+import com.hypertino.metrics.MetricsTracker
 import scaldi.{Injectable, Injector}
 import spray.can.server.UHttp
 import spray.can.websocket.FrameCommandFailed
@@ -29,10 +29,10 @@ class WsRestWorker(val serverConnection: ActorRef,
   with ActorLogging
   with Injectable {
 
-  val metrics = inject[Metrics]
-  val trackWsTimeToLive = metrics.timer(MetricKeys.WS_LIFE_TIME).time()
-  val trackWsMessages = metrics.meter(MetricKeys.WS_MESSAGE_COUNT)
-  val trackHeartbeat = metrics.meter(MetricKeys.HEARTBEAT)
+  val metricsTrcker = inject[MetricsTracker]
+  val trackWsTimeToLive = metricsTrcker.timer(MetricKeys.WS_LIFE_TIME).time()
+  val trackWsMessages = metricsTrcker.meter(MetricKeys.WS_MESSAGE_COUNT)
+  val trackHeartbeat = metricsTrcker.meter(MetricKeys.HEARTBEAT)
   var isConnectionTerminated = false
   var remoteAddress = clientAddress
   var httpRequest: Option[HttpRequest] = None
@@ -60,7 +60,7 @@ class WsRestWorker(val serverConnection: ActorRef,
           httpRequest = Some(wsContext.request)
 
           // todo: support Forwarded & by RFC 7239
-          remoteAddress = wsContext.request.headers.find(_.is(FacadeHeaders.CLIENT_IP)).map(_.value).getOrElse(clientAddress)
+          remoteAddress = wsContext.request.headers.find(_.is("X-Forwarded-For")).map(_.value).getOrElse(clientAddress)
         case _ ⇒
       }
       handshaking(handshakeRequest)
@@ -87,25 +87,18 @@ class WsRestWorker(val serverConnection: ActorRef,
       try {
         trackWsMessages.mark()
         trackHeartbeat.mark()
-        val originalRequest = FacadeRequest(message)
-        val uriPattern = originalRequest.uri.pattern.specific
-        val uri = spray.http.Uri()
-        if (uri.scheme.nonEmpty || uri.authority.nonEmpty) {
-          throw new IllegalArgumentException(s"Uri $uri has invalid format. Only path and query is allowed.")
-        }
-        val method = originalRequest.method
-        if (isPingRequest(uriPattern, method)) {
-          pong(originalRequest)
-        }
-        else {
-          httpRequest match {
-            case Some(h) ⇒
-              val requestContext = FacadeRequestContext.create(remoteAddress, h, originalRequest)
-              processRequest(requestContext, originalRequest.copy(headers = requestContext.originalHeaders))
+        httpRequest match {
+          case Some(h) ⇒
+            val request = MessageTransformer.frameToRequest(message, remoteAddress, h)
+            if (isPingRequest(request)) {
+              pong(request)
+            }
+            else {
+              processRequest(request)
+            }
 
-            case None ⇒
-              throw new RuntimeException(s"httpRequest is empty while processing frame.")
-          }
+          case None ⇒
+            throw new RuntimeException(s"httpRequest is empty while processing frame: $message")
         }
       }
       catch {
@@ -120,7 +113,7 @@ class WsRestWorker(val serverConnection: ActorRef,
     case x: FrameCommandFailed =>
       log.error(s"Frame command $x failed from ${sender()}/$remoteAddress")
 
-    case message: FacadeMessage ⇒
+    case message: DynamicRequest ⇒
       send(message)
   }
 
@@ -131,35 +124,31 @@ class WsRestWorker(val serverConnection: ActorRef,
     }
   }
 
-  def processRequest(requestContext: FacadeRequestContext, facadeRequest: FacadeRequest) = {
-    val key = facadeRequest.clientCorrelationId.get
-    val actorName = "Subscr-" + key
-    val requestWithContext = ContextWithRequest(requestContext, facadeRequest)
+  def processRequest(request: DynamicRequest): Unit = {
+    val actorName = "Subscr-" + request.correlationId.get
+    val contextWithRequest = ContextWithRequest(request)
     context.child(actorName) match {
-      case Some(actor) ⇒ actor.forward(requestWithContext)
-      case None ⇒ context.actorOf(FeedSubscriptionActor.props(self, hyperbus, subscriptionManager), actorName) ! requestWithContext
+      case Some(actor) ⇒ actor.forward(contextWithRequest)
+      case None ⇒ context.actorOf(FeedSubscriptionActor.props(self, hyperbus, subscriptionManager), actorName) ! contextWithRequest
     }
   }
 
-  def isPingRequest(uri: String, method: String): Boolean = {
-    uri == "/meta/ping" && method == "ping"
+  def isPingRequest(request: DynamicRequest): Boolean = {
+    request.headers.hrl.location == "/status" && request.headers.method == "ping"
   }
 
-  def pong(facadeRequest: FacadeRequest) = {
-    val headers = Map(
-      FacadeHeaders.CLIENT_CORRELATION_ID → Seq(facadeRequest.clientCorrelationId.get),
-      FacadeHeaders.CLIENT_MESSAGE_ID → Seq(IdGenerator.create())
-    )
-    send(FacadeResponse(com.hypertino.hyperbus.model.Status.OK, headers, Text("pong")))
+  def pong(implicit request: DynamicRequest): Unit = {
+    val response = Ok(DynamicBody("pong"))
+    send(response)
   }
 
-  def send(message: FacadeMessage): Unit = {
+  def send(message: DynamicMessage): Unit = {
     if (isConnectionTerminated) {
       log.warning(s"Can't send message $message to $serverConnection/$remoteAddress: connection was terminated")
     }
     else {
       try {
-        send(message.toFrame)
+        send(MessageTransformer.messageToFrame(message))
       } catch {
         case t: Throwable ⇒
           log.error(t, s"Can't serialize $message to $serverConnection/$remoteAddress")

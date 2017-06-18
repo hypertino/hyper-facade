@@ -9,7 +9,7 @@ import scala.collection.immutable.SortedMap
 // todo: naming uri vs hrl
 case class IndexKey(hrl: HRL, method: Option[Method])
 
-case class RewriteIndex(inverted: Map[IndexKey, String], forward: Map[IndexKey, String]) {
+case class RewriteIndex(inverted: Map[IndexKey, HRL], forward: Map[IndexKey, HRL]) {
   def findRewriteForward(hrl: HRL, requestMethod: Option[String]): Option[HRL] = {
     findRewrite(hrl, requestMethod, forward)
   }
@@ -18,12 +18,12 @@ case class RewriteIndex(inverted: Map[IndexKey, String], forward: Map[IndexKey, 
     findRewrite(hrl, requestMethod, inverted)
   }
 
-  private def findRewrite(hrl: HRL, requestMethod: Option[String], index: Map[IndexKey, String]): Option[HRL] = {
+  private def findRewrite(hrl: HRL, requestMethod: Option[String], index: Map[IndexKey, HRL]): Option[HRL] = {
     val method = requestMethod.map(m ⇒ Method(m))
     findMostSpecificRewriteRule(index, method, hrl)
   }
 
-  private def findMostSpecificRewriteRule(index: Map[IndexKey, String], method: Option[Method], originalHRL: HRL): Option[HRL] = {
+  private def findMostSpecificRewriteRule(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[HRL] = {
     exactMatch(index, method, originalHRL) orElse
       patternMatch(index, method, originalHRL) match {
       case Some(matchedHRL) ⇒
@@ -36,16 +36,11 @@ case class RewriteIndex(inverted: Map[IndexKey, String], forward: Map[IndexKey, 
     }
   }
 
-  private def exactMatch(index: Map[IndexKey, String], method: Option[Method], originalHRL: HRL): Option[HRL] = {
-    index.get(IndexKey(originalHRL, method)) orElse
-      index.get(IndexKey(originalHRL, None)) match {
-      case Some(uri) ⇒
-        Some(HRL(uri))
-      case None ⇒ None
-    }
+  private def exactMatch(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[HRL] = {
+    index.get(IndexKey(originalHRL, method)) orElse index.get(IndexKey(originalHRL, None))
   }
 
-  private def patternMatch(index: Map[IndexKey, String], method: Option[Method], originalHRL: HRL): Option[HRL] = {
+  private def patternMatch(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[HRL] = {
     index
       .iterator
       .map(i ⇒ ResourcePatternMatcher.matchResource(i._1.hrl.location, originalHRL.location))
@@ -82,6 +77,6 @@ object RewriteIndex {
   }
 
   def apply(): RewriteIndex = {
-    RewriteIndex(SortedMap.empty[IndexKey, String], SortedMap.empty[IndexKey, String])
+    RewriteIndex(SortedMap.empty[IndexKey, HRL], SortedMap.empty[IndexKey, HRL])
   }
 }

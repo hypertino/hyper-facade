@@ -13,44 +13,32 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
     filters
   }
 
-  def findResponseFilters(context: FacadeRequestContext, response: DynamicResponse): Seq[ResponseFilter] = {
-    context.preparedHeaders match {
-      case Some(r) ⇒
-        val method = r.method
-        val result = filtersOrMethod(r.hrl.location, method) match {
-          case Left(filters) ⇒
-            filters
+  def findResponseFilters(context: ContextWithRequest, response: DynamicResponse): Seq[ResponseFilter] = {
+    val method = context.originalHeaders.method
+    val result = filtersOrMethod(context.originalHeaders.hrl.location, method) match {
+      case Left(filters) ⇒
+        filters
 
-          case Right(resourceMethod) ⇒
-            resourceMethod.responses.get(response.headers.statusCode) match {
-              case Some(responses) ⇒
-                responses.ramlContentTypes.get(response.headers.contentType.map(ContentType)) match {
-                  // todo: test this!
-                  case Some(ramlContentType) ⇒
-                    ramlContentType.filters
-                  case None ⇒
-                    resourceMethod.methodFilters
-                }
+      case Right(resourceMethod) ⇒
+        resourceMethod.responses.get(response.headers.statusCode) match {
+          case Some(responses) ⇒
+            responses.ramlContentTypes.get(response.headers.contentType.map(ContentType)) match {
+              // todo: test this!
+              case Some(ramlContentType) ⇒
+                ramlContentType.filters
               case None ⇒
                 resourceMethod.methodFilters
             }
+          case None ⇒
+            resourceMethod.methodFilters
         }
-        result.responseFilters
-
-      case None ⇒
-        Seq.empty
     }
+    result.responseFilters
   }
 
-  def findEventFilters(context: FacadeRequestContext, event: DynamicRequest): Seq[EventFilter] = {
-    context.preparedHeaders match {
-      case Some(r) ⇒
-        val uri = r.hrl.location // event.uri.pattern.specific
-        requestOrEventFilters(uri, event.headers.method, event.headers.contentType).eventFilters
-
-      case None ⇒
-        Seq.empty
-    }
+  def findEventFilters(context: ContextWithRequest, event: DynamicRequest): Seq[EventFilter] = {
+    val uri = context.originalHeaders.hrl.location // event.uri.pattern.specific
+    requestOrEventFilters(uri, event.headers.method, event.headers.contentType).eventFilters
   }
 
   private def requestOrEventFilters(uri: String, method: String, contentType: Option[String]): SimpleFilterChain = {

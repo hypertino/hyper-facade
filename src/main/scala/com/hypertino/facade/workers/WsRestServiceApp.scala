@@ -21,8 +21,8 @@ class WsRestServiceApp(implicit inj: Injector)
   extends RestServiceApp
   with Injectable {
 
-  private val trackActiveConnections = metrics.counter(MetricKeys.ACTIVE_CONNECTIONS)
-  private val rejectedConnectionsMeter = metrics.meter(MetricKeys.REJECTED_CONNECTS)
+  private val trackActiveConnections = metricsTracker.counter(MetricKeys.ACTIVE_CONNECTIONS)
+  private val rejectedConnectionsMeter = metricsTracker.meter(MetricKeys.REJECTED_CONNECTS)
 
   val hyperbus = inject [Hyperbus]
   val subscriptionsManager = inject [SubscriptionsManager]

@@ -1,8 +1,8 @@
 package com.hypertino.facade.utils
 
-import com.hypertino.binders.naming._
+import com.hypertino.inflector.naming.{CamelCaseToHyphenCaseConverter, HyphenCaseToCamelCaseConverter}
 
 object NamingUtils {
-  val httpToFacade = new HyphenCaseToCamelCaseConverter
-  val facadeToHttp = new CamelCaseToHyphenCaseConverter
+  val httpToFacade = HyphenCaseToCamelCaseConverter
+  val facadeToHttp = CamelCaseToHyphenCaseConverter
 }

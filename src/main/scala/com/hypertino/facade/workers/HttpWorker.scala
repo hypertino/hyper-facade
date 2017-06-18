@@ -3,18 +3,20 @@ package com.hypertino.facade.workers
 import akka.actor.ActorSystem
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
+import com.hypertino.facade.utils.MessageTransformer
+import monix.execution.Scheduler
 import org.slf4j.LoggerFactory
 import scaldi.Injector
 import spray.http._
 import spray.routing.Directives._
 import spray.routing._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class HttpWorker(implicit val injector: Injector) extends RequestProcessor {
   val log = LoggerFactory.getLogger(getClass.getName)
   implicit val actorSystem = inject[ActorSystem]
-  implicit val executionContext = inject[ExecutionContext]
+  implicit val scheduler = inject[Scheduler]
   val trackHeartbeat = metrics.meter(MetricKeys.HEARTBEAT)
 
   val restRoutes = new RestRoutes {
@@ -31,14 +33,9 @@ class HttpWorker(implicit val injector: Injector) extends RequestProcessor {
 
   def processRequest(request: HttpRequest, remoteAddress: String): Future[HttpResponse] = {
     trackHeartbeat.mark()
-    val facadeRequest = FacadeRequest(request)
-    val requestContext = FacadeRequestContext.create(
-        remoteAddress,
-        request,
-        facadeRequest
-      )
-    processRequestToFacade(ContextWithRequest(requestContext, facadeRequest)) map { response ⇒
-      response.toHttpResponse
+    val dynamicRequest = MessageTransformer.httpToRequest(request, remoteAddress)
+    processRequestToFacade(ContextWithRequest(dynamicRequest)) map { response ⇒
+      MessageTransformer.messageToHttpResponse(response)
     }
   }
 }

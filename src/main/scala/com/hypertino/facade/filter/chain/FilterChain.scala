@@ -15,17 +15,17 @@ trait FilterChain {
 
   def filterResponse(contextWithRequest: ContextWithRequest, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
-    FutureUtils.chain(response, findResponseFilters(contextWithRequest.context, response).map(f ⇒ f.apply(contextWithRequest, _ : DynamicResponse)))
+    FutureUtils.chain(response, findResponseFilters(contextWithRequest, response).map(f ⇒ f.apply(contextWithRequest, _ : DynamicResponse)))
   }
 
   def filterEvent(contextWithRequest: ContextWithRequest, event: DynamicRequest)
                  (implicit ec: ExecutionContext): Future[DynamicRequest] = {
-    FutureUtils.chain(event, findEventFilters(contextWithRequest.context, event).map(f ⇒ f.apply(contextWithRequest, _ : DynamicRequest)))
+    FutureUtils.chain(event, findEventFilters(contextWithRequest, event).map(f ⇒ f.apply(contextWithRequest, _ : DynamicRequest)))
   }
 
   def findRequestFilters(contextWithRequest: ContextWithRequest): Seq[RequestFilter]
-  def findResponseFilters(context: FacadeRequestContext, response: DynamicResponse): Seq[ResponseFilter]
-  def findEventFilters(context: FacadeRequestContext, event: DynamicRequest): Seq[EventFilter]
+  def findResponseFilters(context: ContextWithRequest, response: DynamicResponse): Seq[ResponseFilter]
+  def findEventFilters(context: ContextWithRequest, event: DynamicRequest): Seq[EventFilter]
 }
 
 object FilterChain {
