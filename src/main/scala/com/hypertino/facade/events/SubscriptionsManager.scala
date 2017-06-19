@@ -57,7 +57,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
               if (matched) {
                 val request = elem.copy(
                   headers = Headers.builder
-                      .withCorrelation(Some(consumer.correlationId))
+                      .withCorrelation(consumer.correlationId)
                       .requestHeaders()
                 )
                 // todo: back pressure!

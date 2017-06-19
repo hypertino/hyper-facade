@@ -125,7 +125,7 @@ class WsRestWorker(val serverConnection: ActorRef,
   }
 
   def processRequest(request: DynamicRequest): Unit = {
-    val actorName = "Subscr-" + request.correlationId.get
+    val actorName = "Subscr-" + request.correlationId
     val contextWithRequest = ContextWithRequest(request)
     context.child(actorName) match {
       case Some(actor) ⇒ actor.forward(contextWithRequest)

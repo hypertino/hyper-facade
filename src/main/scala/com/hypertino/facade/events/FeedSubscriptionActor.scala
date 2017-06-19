@@ -6,21 +6,22 @@ import java.util.concurrent.atomic.AtomicReference
 import akka.actor._
 import akka.pattern.pipe
 import com.hypertino.facade.FacadeConfigPaths
-import com.hypertino.facade.workers.RequestProcessor
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.{ClientSpecificMethod, ContextWithRequest}
 import com.hypertino.facade.raml.Method
 import com.hypertino.facade.utils.FutureUtils
+import com.hypertino.facade.workers.RequestProcessor
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
-import com.hypertino.hyperbus.transport.api.matchers.{RegexMatcher, TextMatcher}
+import monix.execution
 import monix.execution.Ack
-import monix.reactive.{Observer, OverflowStrategy}
+import monix.execution.Ack.Continue
 import monix.reactive.observers.{BufferedSubscriber, Subscriber}
+import monix.reactive.{Observer, OverflowStrategy}
 import org.slf4j.LoggerFactory
 import scaldi.Injector
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class FeedSubscriptionActor(websocketWorker: ActorRef,
                             hyperbus: Hyperbus,
@@ -33,9 +34,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
   val maxStashedEventsCount = config.getInt(FacadeConfigPaths.FEED_MAX_STASHED_EVENTS_COUNT)
 
   val log = LoggerFactory.getLogger(getClass)
-  val scheduler = inject[Scheduler] // don't make this implicit
-
-  import context._
+  val scheduler = inject[monix.execution.Scheduler] // don't make this implicit
 
   def receive: Receive = stopStartSubscription orElse {
     case cwr: ContextWithRequest ⇒
@@ -167,7 +166,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
     val trackRequestTime = metrics.timer(MetricKeys.REQUEST_PROCESS_TIME).time()
     processRequestWithRaml(cwr) flatMap { cwrRaml ⇒
-      val correlationId = cwrRaml.request.correlationId.get
+      val correlationId = cwrRaml.request.correlationId
       val subscriptionUri = getSubscriptionUri(cwrRaml.request)
       subscriptionManager.off(self)
       subscriptionManager.subscribe(self, subscriptionUri, correlationId)
@@ -190,7 +189,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
   def processEventWhileSubscribing(cwr: ContextWithRequest, event: DynamicRequest, subscriptionSyncTries: Int, stashedEvents: Vector[StashedEvent]): Unit = {
     if (log.isTraceEnabled) {
-      log.trace(s"Processing event while subscribing $event for ${cwr.context.pathAndQuery}")
+      log.trace(s"Processing event while subscribing $event for ${cwr.originalHeaders.hrl}")
     }
 
     event.headers.get(Header.REVISION) match {
@@ -208,25 +207,24 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     }
   }
 
-  def processResourceState(cwr: ContextWithRequest, resourceState: Response[DynamicBody], subscriptionSyncTries: Int) = {
-    val facadeResponse = FacadeResponse(resourceState)
+  def processResourceState(cwr: ContextWithRequest, resourceState: DynamicResponse, subscriptionSyncTries: Int) = {
     if (log.isTraceEnabled) {
-      log.trace(s"Processing resource state $resourceState for ${cwr.context.pathAndQuery}")
+      log.trace(s"Processing resource state $resourceState for ${cwr.originalHeaders.hrl}")
     }
 
-    implicit val ec = executionContext
-    FutureUtils.chain(facadeResponse, cwr.stages.map { _ ⇒
-      ramlFilterChain.filterResponse(cwr, _ : FacadeResponse)
+    implicit val ec = scheduler
+    FutureUtils.chain(resourceState, cwr.stages.map { _ ⇒
+      ramlFilterChain.filterResponse(cwr, _ : DynamicResponse)
     }) flatMap { filteredResponse ⇒
       afterFilterChain.filterResponse(cwr, filteredResponse) map { finalResponse ⇒
         websocketWorker ! finalResponse
-        if (finalResponse.status > 399) { // failed
+        if (finalResponse.headers.statusCode > 399) { // failed
           PoisonPill
         }
         else {
-          finalResponse.headers.get(FacadeHeaders.CLIENT_REVISION) match {
+          finalResponse.headers.get(Header.REVISION) match {
             // reliable feed
-            case Some(revision :: _) ⇒
+            case Some(revision) ⇒
               BecomeReliable(revision.toLong)
 
             // unreliable feed
@@ -243,19 +241,19 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
   def processUnreliableEvent(cwr: ContextWithRequest, event: DynamicRequest): Unit = {
     if (log.isTraceEnabled) {
-      log.trace(s"Processing unreliable event $event for ${cwr.context.pathAndQuery}")
+      log.trace(s"Processing unreliable event $event for ${cwr.originalHeaders.hrl}")
     }
-    implicit val ec = executionContext
+    implicit val ec = scheduler
 
-    FutureUtils.chain(FacadeRequest(event), cwr.stages.map { _ ⇒
-      ramlFilterChain.filterEvent(cwr, _ : FacadeRequest)
+    FutureUtils.chain(event, cwr.stages.map { _ ⇒
+      ramlFilterChain.filterEvent(cwr, _ : DynamicRequest)
     }) flatMap { e ⇒
       afterFilterChain.filterEvent(cwr, e) map { filteredRequest ⇒
         websocketWorker ! filteredRequest
       }
     } recover handleFilterExceptions(cwr) { response ⇒
       if (log.isDebugEnabled) {
-        log.debug(s"Event is discarded for ${cwr.context} with filter response $response")
+        log.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
       }
     }
   }
@@ -266,10 +264,10 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
                            subscriptionSyncTries: Int,
                            subscriber: Observer[DynamicRequest]): Unit = {
     event.headers.get(Header.REVISION) match {
-      case Some(revision :: _) ⇒
+      case Some(revision) ⇒
         val revisionId = revision.toLong
         if (log.isTraceEnabled) {
-          log.trace(s"Processing reliable event #$revisionId $event for ${cwr.context.pathAndQuery}")
+          log.trace(s"Processing reliable event #$revisionId $event for ${cwr.originalHeaders.hrl}")
         }
 
         if (revisionId == lastRevisionId + 1) {
@@ -280,29 +278,31 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
         if (revisionId > lastRevisionId + 1) {
           // we lost some events, start from the beginning
           self ! RestartSubscription
-          log.info(s"Subscription on ${cwr.context.pathAndQuery} lost events from $lastRevisionId to $revisionId. Restarting...")
+          log.info(s"Subscription on ${cwr.originalHeaders.hrl} lost events from $lastRevisionId to $revisionId. Restarting...")
         }
         // if revisionId <= lastRevisionId -- just ignore this event
 
       case _ ⇒
-        log.error(s"Received event: $event without revisionId for reliable feed: ${cwr.context}")
+        log.error(s"Received event: $event without revisionId for reliable feed: ${cwr.originalHeaders.hrl}")
     }
   }
 
   //  todo: this method seems hacky
   //  in this case we allow regular expression in URL
-  def getSubscriptionUri(filteredRequest: FacadeRequest): HRL = {
-    val uri = filteredRequest.uri
-    val newArgs: Map[String, TextMatcher] = UriParser.tokens(uri.pattern.specific).flatMap {
+  // todo: somethingssss!!!!
+  def getSubscriptionUri(filteredRequest: DynamicRequest): HRL = {
+    val hrl = filteredRequest.headers.hrl
+    /*val newArgs: Map[String, TextMatcher] = UriParser.tokens(hrl.location).flatMap {
       case ParameterToken(name, PathMatchType) ⇒
-        Some(name → RegexMatcher(uri.args(name).specific + "/.*"))
+        Some(name → RegexMatcher(hrl.query(name).toString + "/.*"))
 
       case ParameterToken(name, RegularMatchType) ⇒
-        Some(name → uri.args(name))
+        Some(name → hrl.query(name))
 
       case _ ⇒ None
-    }.toMap
-    Uri(uri.pattern, newArgs)
+    }.toMap*/
+    //Uri(uri.pattern, newArgs)
+    hrl
   }
 
   def unstash(event: Option[StashedEvent]): Unit = {
@@ -316,11 +316,14 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
   def reliableEventsObserver(cwr: ContextWithRequest): Observer[DynamicRequest] = BufferedSubscriber.synchronous({
     new Subscriber[DynamicRequest] {
-      val currentFilteringFuture = new AtomicReference[Option[Future[Unit]]](None)
+      override def scheduler: execution.Scheduler = FeedSubscriptionActor.this.scheduler
+
+      val currentFilteringFuture = new AtomicReference[Option[Future[Unit]]](None) // todo: what the hell is this!!!????
 
       override def onNext(event: DynamicRequest): Future[Ack] = {
-        val filteringFuture = FutureUtils.chain(FacadeRequest(event), cwr.stages.map { _ ⇒
-          ramlFilterChain.filterEvent(cwr, _: FacadeRequest)
+        implicit val ec = scheduler
+        val filteringFuture = FutureUtils.chain(event, cwr.stages.map { _ ⇒
+          ramlFilterChain.filterEvent(cwr, _: DynamicRequest)
         }) flatMap { e ⇒
           afterFilterChain.filterEvent(cwr, e)
         }
@@ -329,7 +332,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
             websocketWorker ! filteredRequest
           } recover handleFilterExceptions(cwr) { response ⇒
             if (log.isDebugEnabled) {
-              log.debug(s"Event is discarded for ${cwr.context} with filter response $response")
+              log.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
             }
           }
           currentFilteringFuture.set(Some(newCurrentFilteringFuture))
@@ -340,12 +343,13 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
                 websocketWorker ! filteredRequest
               } recover handleFilterExceptions(cwr) { response ⇒
                 if (log.isDebugEnabled) {
-                  log.debug(s"Event is discarded for ${cwr.context} with filter response $response")
+                  log.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
                 }
               }
           }
           currentFilteringFuture.set(Some(newCurrentFilteringFuture))
         }
+        Continue
       }
 
       override def onError(ex: Throwable): Unit = {
