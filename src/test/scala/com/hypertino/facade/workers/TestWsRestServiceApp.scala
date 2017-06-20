@@ -10,7 +10,7 @@ class TestWsRestServiceApp(implicit inj: Injector) extends WsRestServiceApp {
   def shutdown(): Unit = {
     log.info("Stopping Hyper-Facade...")
     try {
-      Await.result(hyperBus.shutdown(shutdownTimeout*4/5), shutdownTimeout)
+      Await.result(hyperBus.shutdown(shutdownTimeout*4/5).runAsync, shutdownTimeout)
     } catch {
       case t: Throwable ⇒
         log.error("Hyperbus didn't shutdown gracefully", t)

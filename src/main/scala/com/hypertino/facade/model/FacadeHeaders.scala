@@ -9,6 +9,8 @@ object FacadeHeaders {
   val AUTHORIZATION           = "Authorization"
 
   val directHeaderMapping = Set(
+    Header.METHOD,
+    Header.STATUS_CODE,
     Header.CORRELATION_ID,
     Header.MESSAGE_ID,
     Header.REVISION,

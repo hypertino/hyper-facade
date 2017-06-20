@@ -31,7 +31,6 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
 
   implicit val timeout = Timeout(10 seconds)
   implicit val actorSystem = inject [ActorSystem]
-  implicit val executionContext = inject [ExecutionContext]
   implicit val scheduler = inject [Scheduler]
 
   private val rootConf = inject [Config]

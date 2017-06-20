@@ -4,7 +4,8 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.hypertino.facade.model.FacadeMessage
+import com.hypertino.facade.utils.MessageTransformer
+import com.hypertino.hyperbus.model.DynamicMessage
 import org.scalatest.concurrent.ScalaFutures
 import spray.can.server.UHttp
 import spray.can.websocket.WebSocketClientWorker
@@ -36,8 +37,8 @@ class WsTestClient(connect: Http.Connect, val upgradeRequest: HttpRequest)
     case frame: TextFrame ⇒
       onMessage(frame)
 
-    case facadeMessage: FacadeMessage ⇒
-      connection ! facadeMessage.toFrame
+    case message: DynamicMessage ⇒
+      connection ! MessageTransformer.messageToFrame(message)
 
     case _: Http.ConnectionClosed | Http.Closed ⇒
       context.stop(self)

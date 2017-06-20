@@ -5,8 +5,9 @@ import java.io.{StringReader, StringWriter}
 import com.hypertino.binders.value.Text
 import com.hypertino.facade.model.FacadeHeaders
 import com.hypertino.hyperbus.model.headers.PlainHeadersConverter
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Headers}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Headers}
 import com.hypertino.hyperbus.serialization.MessageReader
+import com.hypertino.hyperbus.util.IdGenerator
 import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode}
 import spray.can.websocket.frame.{Frame, TextFrame}
 import spray.http.HttpCharsets._
@@ -42,15 +43,36 @@ object MessageTransformer {
 
   def httpToRequest(request: HttpRequest, remoteAddress: String): DynamicRequest = {
     val hrl = HRL.fromURL(request.uri.toString)
-    val body = DynamicBody(new StringReader(request.entity.asString), None) // todo: content type from headers?
+    val body = if (request.entity.isEmpty)
+      EmptyBody
+    else
+      DynamicBody(new StringReader(request.entity.asString), None) // todo: content type from headers?
+
     val headers = Headers
       .builder
       .++=(request.headers.map(kv ⇒ kv.name → Text(kv.value)))
       .+=(FacadeHeaders.REMOTE_ADDRESS → remoteAddress)
       .withHRL(hrl)
+      .withMethod(request.method.value.toLowerCase)
       .requestHeaders()
 
-    DynamicRequest(body, headers)
+    val headersWithContext = headers
+      .get(Header.CORRELATION_ID)
+      .orElse(headers.get(Header.MESSAGE_ID))
+      .map { _ ⇒
+        headers
+      }
+      .getOrElse {
+        val messageId = IdGenerator.create()
+        Headers
+          .builder
+          .++=(headers)
+          .withMessageId(messageId)
+          .requestHeaders()
+      }
+
+
+    DynamicRequest(body, headersWithContext)
   }
 
 

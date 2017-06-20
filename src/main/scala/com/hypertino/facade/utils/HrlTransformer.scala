@@ -71,17 +71,14 @@ object HrlTransformer {
 
   def removeRootPathPrefix(rootPathPrefix: String, hrl: HRL): HRL = {
     val normalizedUri = spray.http.Uri(hrl.location)
-    if (normalizedUri.scheme.isEmpty) {
-      if (normalizedUri.path.startsWith(Path(rootPathPrefix + "/"))) {
-        val pathOffset = rootPathPrefix.length
-        val oldPattern = hrl.location
-        val newPattern = oldPattern.substring(pathOffset)
-        HRL(newPattern, hrl.query)
-      } else {
-        throw new MalformedURLException(s"$hrl doesn't contain prefix $rootPathPrefix")
-      }
+    // todo: check scheme, server for http?
+    if (normalizedUri.path.startsWith(Path(rootPathPrefix + "/"))) {
+      val pathOffset = rootPathPrefix.length
+      val oldPattern = hrl.location
+      val newPattern = oldPattern.substring(pathOffset)
+      HRL(newPattern, hrl.query)
     } else {
-      throw new MalformedURLException(s"$hrl contains scheme!")
+      throw new MalformedURLException(s"$hrl doesn't contain prefix $rootPathPrefix")
     }
   }
 

@@ -87,5 +87,6 @@ case class ContextWithRequest(request: DynamicRequest,
 }
 
 object ContextWithRequest {
-  def apply(request: DynamicRequest): ContextWithRequest = ContextWithRequest(request).withNextStage(request)
+  def apply(request: DynamicRequest): ContextWithRequest = ContextWithRequest(request, stages=Seq.empty, contextStorage=Map.empty)
+    .withNextStage(request)
 }

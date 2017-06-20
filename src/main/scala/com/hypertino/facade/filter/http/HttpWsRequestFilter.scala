@@ -4,7 +4,7 @@ import java.net.MalformedURLException
 
 import com.hypertino.facade.FacadeConfigPaths
 import com.typesafe.config.Config
-import com.hypertino.binders.value.Null
+import com.hypertino.binders.value.{Null, Text}
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
@@ -27,7 +27,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
       try {
         val request = contextWithRequest.request
         val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
-        val uriTransformer = chain(removeRootPathPrefix(rootPathPrefix, _: HRL), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
+        // val uriTransformer = chain(removeRootPathPrefix(rootPathPrefix, _: HRL), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
         val hrl = removeRootPathPrefix(rootPathPrefix, request.headers.hrl)
 
         val headersBuilder = Headers.builder
@@ -35,10 +35,12 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
 
         contextWithRequest.originalHeaders.foreach {
           case (FacadeHeaders.CONTENT_TYPE, value) ⇒
-            headersBuilder += Header.CONTENT_TYPE → JsonContentTypeConverter.universalJsonContentTypeToSimple(value)
+            JsonContentTypeConverter.universalJsonContentTypeToSimple(value) match {
+              case Text(contentType) ⇒ headersBuilder.withContentType(Some(contentType))
+            }
 
           case (Header.MESSAGE_ID, value) if !value.isEmpty ⇒
-            headersBuilder += Header.MESSAGE_ID → value
+            headersBuilder.withMessageId(value.toString)
             messageIdFound = true
 
           case (k, v) ⇒
@@ -50,6 +52,8 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
         if (!messageIdFound) {
           headersBuilder += Header.MESSAGE_ID → IdGenerator.create()
         }
+
+        headersBuilder.withHRL(hrl)
 
         //todo: HAL ?
         //val transformedBodyContent = HalTransformer.transformEmbeddedObject(request.body.content, uriTransformer)
