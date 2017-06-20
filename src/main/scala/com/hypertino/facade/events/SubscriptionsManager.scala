@@ -57,6 +57,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
               if (matched) {
                 val request = elem.copy(
                   headers = Headers.builder
+                      .++=(elem.headers)
                       .withCorrelation(consumer.correlationId)
                       .requestHeaders()
                 )

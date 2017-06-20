@@ -21,8 +21,8 @@ class IntegrationTestBase(val configFileName: String, val ramlFilePath: String) 
 
   implicit val injector = TestInjectors(configFileName)
   implicit val actorSystem = inject[ActorSystem]
-  implicit val patience = PatienceConfig(scaled(Span(10, Seconds)))
-  implicit val timeout = akka.util.Timeout(10.seconds)
+  implicit val patience = PatienceConfig(scaled(Span(60, Seconds)))
+  implicit val timeout = akka.util.Timeout(30.seconds)
   implicit val scheduler = inject[Scheduler]
 
   val httpWorker = inject[HttpWorker]

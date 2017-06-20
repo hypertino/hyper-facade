@@ -5,7 +5,8 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.hypertino.facade.utils.MessageTransformer
-import com.hypertino.hyperbus.model.DynamicMessage
+import com.hypertino.hyperbus.model.{DynamicMessage, DynamicRequest, DynamicResponse, StandardResponse}
+import com.hypertino.hyperbus.serialization.MessageReader
 import org.scalatest.concurrent.ScalaFutures
 import spray.can.server.UHttp
 import spray.can.websocket.WebSocketClientWorker
@@ -93,6 +94,8 @@ trait WsTestClientHelper extends ScalaFutures {
 }
 
 class TestQueue(implicit actorSystem: ActorSystem, timeout: Timeout) {
+  import actorSystem.dispatcher
+
   val actorRef = actorSystem.actorOf(Props(new Actor {
     val q = mutable.Queue[String]()
     override def receive: Receive = {
@@ -115,6 +118,14 @@ class TestQueue(implicit actorSystem: ActorSystem, timeout: Timeout) {
 
   def next(): Future[String] = {
     (actorRef ? GetNext).asInstanceOf[Future[String]]
+  }
+
+  def nextResponse(): Future[DynamicResponse] = next() map { s ⇒
+    MessageReader.fromString(s, StandardResponse.dynamicDeserializer)
+  }
+
+  def nextEvent(): Future[DynamicRequest] = next() map { s ⇒
+    MessageReader.fromString(s, DynamicRequest.apply)
   }
 
   def put(s: String): Unit = {

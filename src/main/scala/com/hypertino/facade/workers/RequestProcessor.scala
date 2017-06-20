@@ -19,6 +19,7 @@ import org.slf4j.Logger
 import scaldi.{Injectable, Injector}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Try}
 import scala.util.control.NonFatal
 
 trait RequestProcessor extends Injectable {
@@ -35,23 +36,28 @@ trait RequestProcessor extends Injectable {
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
   def processRequestToFacade(cwr: ContextWithRequest): Future[DynamicResponse] = {
-    metrics.timeOfFuture(MetricKeys.REQUEST_PROCESS_TIME) {
-      beforeFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
-        val cwrBeforeRaml = prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest)
-        processRequestWithRaml(cwrBeforeRaml) flatMap { cwrRaml ⇒
-          hyperbus.ask(cwrRaml.request).runAsync recover {
-            handleHyperbusExceptions(cwrRaml)
-          } flatMap { case response: DynamicResponse ⇒
-            FutureUtils.chain(response, cwrRaml.stages.map { _ ⇒
-              ramlFilterChain.filterResponse(cwrRaml, _: DynamicResponse)
-            }) flatMap { r ⇒
-              afterFilterChain.filterResponse(cwrRaml, r)
+    try {
+      metrics.timeOfFuture(MetricKeys.REQUEST_PROCESS_TIME) {
+        beforeFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
+          val cwrBeforeRaml = prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest)
+          processRequestWithRaml(cwrBeforeRaml) flatMap { cwrRaml ⇒
+            hyperbus.ask(cwrRaml.request).runAsync recover {
+              handleHyperbusExceptions(cwrRaml)
+            } flatMap { case response: DynamicResponse ⇒
+              FutureUtils.chain(response, cwrRaml.stages.map { _ ⇒
+                ramlFilterChain.filterResponse(cwrRaml, _: DynamicResponse)
+              }) flatMap { r ⇒
+                afterFilterChain.filterResponse(cwrRaml, r)
+              }
             }
           }
+        } recover handleFilterExceptions(cwr) { response ⇒
+          response
         }
-      } recover handleFilterExceptions(cwr) { response ⇒
-        response
       }
+    } catch {
+      case NonFatal(ex) ⇒
+        Future.failed(ex)
     }
   }
 

@@ -113,7 +113,7 @@ class WsRestWorker(val serverConnection: ActorRef,
     case x: FrameCommandFailed =>
       log.error(s"Frame command $x failed from ${sender()}/$remoteAddress")
 
-    case message: DynamicRequest ⇒
+    case message: DynamicMessage ⇒
       send(message)
   }
 

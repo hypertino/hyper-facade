@@ -8,7 +8,7 @@ import monix.execution.Ack.Continue
 import scala.io.Source
 import scala.util.Success
 
-class SimpleTest extends IntegrationTestBase("inproc-test.conf", "raml-configs/integration/http.raml") {
+class SimpleHttpTest extends IntegrationTestBase("inproc-test.conf", "raml-configs/integration/http.raml") {
 
   "Integration. HTTP" - {
     "get resource" in {
@@ -23,8 +23,6 @@ class SimpleTest extends IntegrationTestBase("inproc-test.conf", "raml-configs/i
           Continue
         }
       }
-
-      Thread.sleep(1000)
 
       Source.fromURL("http://localhost:54321/inproc-test/simple-service", "UTF-8").mkString shouldBe """{"integerField":100500,"textField":"Yey"}"""
     }
