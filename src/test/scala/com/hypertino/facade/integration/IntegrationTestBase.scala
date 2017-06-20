@@ -8,7 +8,7 @@ import com.hypertino.facade.workers.{HttpWorker, TestWsRestServiceApp, WsTestCli
 import com.hypertino.facade.{FacadeConfigPaths, TestBase}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.service.control.api.Service
-import monix.execution.Cancelable
+import monix.execution.{Cancelable, Scheduler}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.time.{Seconds, Span}
 
@@ -23,6 +23,7 @@ class IntegrationTestBase(val configFileName: String, val ramlFilePath: String) 
   implicit val actorSystem = inject[ActorSystem]
   implicit val patience = PatienceConfig(scaled(Span(10, Seconds)))
   implicit val timeout = akka.util.Timeout(10.seconds)
+  implicit val scheduler = inject[Scheduler]
 
   val httpWorker = inject[HttpWorker]
 

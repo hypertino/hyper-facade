@@ -36,6 +36,12 @@ types:
         (deny):
         type: string
 
+  SimpleService:
+    type: object
+    properties:
+      integerField: integer
+      textField: string
+
 annotationTypes:
   x-client-ip: nil | Conditional
   x-client-language: nil | Conditional
@@ -66,3 +72,8 @@ annotationTypes:
       200:
         body:
           type: User
+
+/simple-service:
+  get:
+    body:
+      type: SimpleService
