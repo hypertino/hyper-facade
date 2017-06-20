@@ -45,7 +45,7 @@ trait RequestProcessor extends Injectable {
             FutureUtils.chain(response, cwrRaml.stages.map { _ ⇒
               ramlFilterChain.filterResponse(cwrRaml, _: DynamicResponse)
             }) flatMap { r ⇒
-              afterFilterChain.filterResponse(cwrRaml, r.asInstanceOf[DynamicResponse])
+              afterFilterChain.filterResponse(cwrRaml, r)
             }
           }
         }
@@ -96,8 +96,9 @@ trait RequestProcessor extends Injectable {
     case hyperbusError: HyperbusError[ErrorBody] ⇒
       hyperbusError
 
-    case _: NoTransportRouteException ⇒
+    case e: NoTransportRouteException ⇒
       implicit val mcf = cwr.request
+      e.printStackTrace()
       NotFound(ErrorBody("not-found", Some(s"'${cwr.originalHeaders.hrl.location}' is not found.")))
 
     case _: AskTimeoutException ⇒

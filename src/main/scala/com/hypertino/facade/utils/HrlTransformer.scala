@@ -74,9 +74,7 @@ object HrlTransformer {
     // todo: check scheme, server for http?
     if (normalizedUri.path.startsWith(Path(rootPathPrefix + "/"))) {
       val pathOffset = rootPathPrefix.length
-      val oldPattern = hrl.location
-      val newPattern = oldPattern.substring(pathOffset)
-      HRL(newPattern, hrl.query)
+      HRL(normalizedUri.path.toString.substring(pathOffset), hrl.query)
     } else {
       throw new MalformedURLException(s"$hrl doesn't contain prefix $rootPathPrefix")
     }
