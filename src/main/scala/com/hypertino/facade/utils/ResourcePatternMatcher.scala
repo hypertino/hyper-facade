@@ -16,7 +16,7 @@ object ResourcePatternMatcher {
     * @param resourcePatterns - sequence uri patterns
     * @return
     */
-  def matchResource(resource: String, resourcePatterns: Seq[String]): Option[HRL] = {
+  def matchResource(resource: String, resourcePatterns: Set[String]): Option[HRL] = {
     resourcePatterns
       .iterator
       .map(matchResource(resource, _))
@@ -31,53 +31,68 @@ object ResourcePatternMatcher {
     * @return if request URI matches pattern then Some of constructed URI with parameters will be returned, None otherwise
     */
   def matchResource(resource: String, pattern: String): Option[HRL] = {
-    val resourceTokens = UriParser.tokens(resource)
-    var args = mutable.MutableList[(String, String)]()
-    val patternTokens = UriParser.tokens(pattern)
-    val patternTokenIter = patternTokens.iterator
-    val reqUriTokenIter = resourceTokens.iterator
-    var matchesCorrectly = patternTokenIter.hasNext && reqUriTokenIter.hasNext
-    var previousReqUriToken: Option[Token] = None
-    while(patternTokenIter.hasNext && reqUriTokenIter.hasNext && matchesCorrectly) {
-      val reqUriToken = getRequestUriToken(reqUriTokenIter, previousReqUriToken)
-      patternTokenIter.next() match {
-        case patternToken @ (TextToken(_) | SlashToken) ⇒
-          matchesCorrectly = (patternToken == reqUriToken) &&
-                 (patternTokenIter.hasNext == reqUriTokenIter.hasNext)
+    val resourceUri = spray.http.Uri(resource)
+    val prefix = resourceUri.scheme + ":" + resourceUri.authority
 
-        case ParameterToken(patternParamName, RegularMatchType) ⇒
-          reqUriToken match {
-            case TextToken(value) ⇒
-              args += patternParamName → value
-              matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
-            case _ ⇒
-              matchesCorrectly = false
-          }
+    if (pattern.startsWith(prefix)) {
+      val patternPathUri = pattern.substring(prefix.length)
+      val resourceTokens = UriParser.tokens(resource.substring(prefix.length))
+      var args = mutable.MutableList[(String, String)]()
+      val patternTokens = UriParser.tokens(patternPathUri)
+      val patternTokenIter = patternTokens.iterator
+      val reqUriTokenIter = resourceTokens.iterator
+      var matchesCorrectly = patternTokenIter.hasNext && reqUriTokenIter.hasNext
+      var previousReqUriToken: Option[Token] = None
+      while (patternTokenIter.hasNext && reqUriTokenIter.hasNext && matchesCorrectly) {
+        val resUriToken = normalizePath(reqUriTokenIter, previousReqUriToken)
+        val nextPatternToken = patternTokenIter.next()
+        nextPatternToken match {
+          case SlashToken ⇒
+            matchesCorrectly = (SlashToken == resUriToken) &&
+              (patternTokenIter.hasNext == reqUriTokenIter.hasNext)
 
-        case ParameterToken(paramName, PathMatchType) ⇒
-          reqUriToken match {
-            case TextToken(value) ⇒
-              args += paramName → foldUriTail(value, reqUriTokenIter)
-            case ParameterToken(_, PathMatchType) ⇒
-              matchesCorrectly = true
-            case _ ⇒
-              matchesCorrectly = false
-          }
+          case t: TextToken ⇒
+            matchesCorrectly = (t == resUriToken) &&
+              (patternTokenIter.hasNext == reqUriTokenIter.hasNext)
+
+          case ParameterToken(patternParamName, RegularMatchType) ⇒
+            resUriToken match {
+              case TextToken(value) ⇒
+                args += patternParamName → value
+                matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
+              case _ ⇒
+                matchesCorrectly = false
+            }
+
+          case ParameterToken(paramName, PathMatchType) ⇒
+            resUriToken match {
+              case TextToken(value) ⇒
+                args += paramName → foldUriTail(value, reqUriTokenIter)
+              case ParameterToken(_, PathMatchType) ⇒
+                matchesCorrectly = true
+              case _ ⇒
+                matchesCorrectly = false
+            }
+        }
+        previousReqUriToken = Some(resUriToken)
       }
-      previousReqUriToken = Some(reqUriToken)
+      if (!matchesCorrectly) None
+      else
+        Some(HRL(pattern, Obj.from(args.map(kv ⇒ kv._1 → Text(kv._2)): _*)))
     }
-    if (!matchesCorrectly) None
-    else Some(HRL(pattern, Obj.from(args.map(kv ⇒ kv._1 → Text(kv._2)): _*)))
+    else {
+      None
+    }
   }
 
   /**
     * This method removes multiple slashes in request
     */
-  def getRequestUriToken(iter: Iterator[Token], previousToken: Option[Token]): Token = {
+  def normalizePath(iter: Iterator[Token], previousToken: Option[Token]): Token = {
     iter.next() match {
       case SlashToken ⇒ previousToken match {
         case Some(SlashToken) ⇒
-          if (iter.hasNext) getRequestUriToken(iter, previousToken)
+          if (iter.hasNext) normalizePath(iter, previousToken)
           else SlashToken
         case Some(_) ⇒ SlashToken
         case None ⇒ SlashToken

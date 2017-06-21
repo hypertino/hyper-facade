@@ -12,8 +12,8 @@ class RewriteRequestFilter(val uri: String) extends RequestFilter {
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
     Future {
       val request = contextWithRequest.request
-      // todo: test!
-      val rewrittenUri = HrlTransformer.rewrite(request.headers.hrl, HRL(uri))
+      // todo: should we preserve all query fields???
+      val rewrittenUri = HrlTransformer.rewrite(request.headers.hrl, HRL(uri, request.headers.hrl.query))
       contextWithRequest.copy(
         request = RequestUtils.copyWithNewHRL(request, rewrittenUri)
       )

@@ -19,25 +19,20 @@ import scala.collection.mutable
 import scala.util.control.NonFatal
 
 class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Injectable {
-  val log = LoggerFactory.getLogger(getClass)
-
-  var dataTypes: Map[String, TypeDefinition] = parseTypeDefinitions
+  private val log = LoggerFactory.getLogger(getClass)
+  private val baseUri = api.baseUri().value
+  private val dataTypes: Map[String, TypeDefinition] = parseTypeDefinitions
 
   def build: RamlConfiguration = {
     val resourcesByUriAcc = Map.newBuilder[String, ResourceConfig]
-    val urisAcc = Seq.newBuilder[String]
     api.resources()
-      .foldLeft((resourcesByUriAcc, urisAcc)) { (accumulator, resource) ⇒
-        val (resourceMap, uris) = accumulator
+      .foreach { resource ⇒
         val currentRelativeUri = resource.relativeUri().value()
         val resourceData = parseResource(currentRelativeUri, resource, Seq.empty)
-        (resourceMap ++= resourceData,
-          uris += currentRelativeUri)
+        resourcesByUriAcc ++= resourceData
     }
     val resourceMapWithFilters = new RamlConfigFiltersInjector(resourcesByUriAcc.result()).withResourceFilters()
-    RamlConfiguration(
-      resourceMapWithFilters,
-      urisAcc.result())
+    RamlConfiguration(baseUri, resourceMapWithFilters.map(kv ⇒ (baseUri + kv._1, kv._2)))
   }
 
   private def parseTypeDefinitions: Map[String, TypeDefinition] = {

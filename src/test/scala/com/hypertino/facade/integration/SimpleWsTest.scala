@@ -9,7 +9,7 @@ import monix.execution.Ack.Continue
 
 import scala.util.Success
 
-class SimpleWebsocketTest extends IntegrationTestBase("inproc-test.conf", "raml-configs/integration/websocket.raml") {
+class SimpleWebsocketTest extends IntegrationTestBase("inproc-test.conf") {
 
   "Integration. Websockets" - {
     "simple event feed" in {

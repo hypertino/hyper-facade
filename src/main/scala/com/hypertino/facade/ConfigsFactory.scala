@@ -10,28 +10,45 @@ import scaldi.Injector
 object ConfigsFactory {
 
   def ramlConfig(appConfig: Config)(implicit inj: Injector): RamlConfiguration = {
-    val ramlConfigPath = ramlFilePath(appConfig)
-    val apiFile = new File(ramlConfigPath)
-    if (!apiFile.exists()) {
-      throw new FileNotFoundException(s"File ${apiFile.getAbsolutePath} doesn't exists")
+    ramlFilesPaths(appConfig).map { ramlConfigPath ⇒
+      val apiFile = new File(ramlConfigPath)
+      if (!apiFile.exists()) {
+        throw new FileNotFoundException(s"File ${apiFile.getAbsolutePath} doesn't exists")
+      }
+      val api = new RamlModelBuilder().buildApi(ramlConfigPath).getApiV10
+      RamlConfigurationBuilder(api).build
+    }.foldLeft(RamlConfiguration("", Map.empty)){ (set: RamlConfiguration, i: RamlConfiguration) ⇒
+      RamlConfiguration(mergeBaseUri(set.baseUri, i.baseUri), set.resourcesByPattern ++ i.resourcesByPattern)
     }
-    val api = new RamlModelBuilder().buildApi(ramlConfigPath).getApiV10
-    RamlConfigurationBuilder(api).build
   }
 
-  private def ramlFilePath(config: Config): String = {
-    val filePath = System.getProperty(FacadeConfigPaths.RAML_FILE, config.getString(FacadeConfigPaths.RAML_FILE))
-
-    // it means that config contains absolute file path
-    if (filePath.startsWith("/"))
-      filePath
-    // otherwise treat it as relative file path
+  private def mergeBaseUri(left: String, right: String): String = {
+    if (right.startsWith("http://") || right.startsWith("https://")) {
+      if (left.isEmpty) {
+        right
+      }
+      else {
+        if (left != right) {
+          throw new IllegalArgumentException(s"Two facade RAML files with inconsistent baseUri: $left and $right.")
+        }
+        else {
+          left
+        }
+      }
+    }
     else {
-      val r = Thread.currentThread().getContextClassLoader.getResource(filePath)
-      if (r != null)
-        r.getFile
-      else
-        filePath
+      left
+    }
+  }
+
+  private def ramlFilesPaths(config: Config): Seq[String] = {
+    import scala.collection.JavaConversions._
+    val s = System.getProperty(FacadeConfigPaths.RAML_FILES)
+    if (s != null && s.nonEmpty) {
+      s.split(java.io.File.separator).map(_.trim)
+    }
+    else {
+      config.getStringList(FacadeConfigPaths.RAML_FILES).toSeq
     }
   }
 }
@@ -39,9 +56,9 @@ object ConfigsFactory {
 object FacadeConfigPaths {
   val ROOT = "hyper-facade."
   val LOGGERS = ROOT + "loggers"
-  val RAML_FILE = ROOT + "raml.file"
-  val RAML_ROOT_PATH_PREFIX = ROOT + "raml.root-path"
-  val RAML_STRICT_CONFIG = ROOT + "raml.strict-config"
+  val RAML_FILES = ROOT + "raml.files"
+  //val RAML_ROOT_PATH_PREFIX = ROOT + "raml.root-path"
+  val RAML_STRICT_CONFIG = ROOT + "raml.strict-config" // todo: rename this
   val HYPERBUS_GROUP = ROOT + "hyperbus.group-name"
   val INJECT_MODULES = ROOT + "inject-modules"
   val HTTP = ROOT + "http-transport"

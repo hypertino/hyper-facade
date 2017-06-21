@@ -5,6 +5,7 @@ import com.typesafe.config.Config
 import com.hypertino.binders.value._
 import com.hypertino.facade.filter.model.{EventFilter, ResponseFilter}
 import com.hypertino.facade.model._
+import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.FunctionUtils.chain
 import com.hypertino.facade.utils.HrlTransformer._
 import com.hypertino.hyperbus.model.{DefLink, DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, Headers, HeadersBuilder, HeadersMap, Message, RequestHeaders, ResponseBase, ResponseHeaders, StandardResponse}
@@ -18,26 +19,27 @@ class HttpWsResponseFilter(config: Config) extends ResponseFilter {
   override def apply(contextWithRequest: ContextWithRequest, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     Future {
-      val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
-      val uriTransformer = chain(rewriteLinkToOriginal(_: HRL, rewriteCountLimit), addRootPathPrefix(rootPathPrefix))
-      val (body, headersObj) = HttpWsFilter.filterMessage(response, uriTransformer)
+      //todo: implement rewriting back
+      //val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
+      //val uriTransformer = chain(rewriteLinkToOriginal(_: HRL, rewriteCountLimit), addRootPathPrefix(rootPathPrefix))
+      val (body, headersObj) = HttpWsFilter.filterMessage(response, hrl ⇒ hrl)
       StandardResponse(body, ResponseHeaders(headersObj)).asInstanceOf[DynamicResponse]
     }
   }
 }
 
-class WsEventFilter(config: Config) extends EventFilter {
+class WsEventFilter(config: Config, ramlConfig: RamlConfiguration) extends EventFilter {
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
   override def apply(contextWithRequest: ContextWithRequest, request: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     Future {
-      val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
-      val uriTransformer = chain(rewriteLinkToOriginal(_: HRL, rewriteCountLimit), addRootPathPrefix(rootPathPrefix))
-      val (newBody, newHeaders) = HttpWsFilter.filterMessage(request, uriTransformer)
+      //val uriTransformer = chain(rewriteLinkToOriginal(_: HRL, rewriteCountLimit), addRootPathPrefix(ramlConfig.baseUri))
+      val (newBody, newHeaders) = HttpWsFilter.filterMessage(request, hrl ⇒ hrl) // todo: root/baseUri
       val n = Headers
         .builder
         .++=(newHeaders)
-        .withHRL(addRootPathPrefix(rootPathPrefix)(request.headers.hrl))
+        //.withHRL(addRootPathPrefix(rootPathPrefix)(request.headers.hrl)) // todo: root/baseUri
+        .withHRL(request.headers.hrl)
         .result()
       DynamicRequest(newBody, RequestHeaders(n))
     }

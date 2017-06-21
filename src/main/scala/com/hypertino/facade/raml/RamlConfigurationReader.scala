@@ -15,9 +15,9 @@ class RamlConfigurationReader(ramlConfiguration: RamlConfiguration, config: Conf
     //todo: lookup in map instead of sequence!
     //val formattedUri = Uri(requestUri.formatted)
 
-    val hrlWithoutQuery = ResourcePatternMatcher.matchResource(requestHRL.location, ramlConfiguration.uris) match {
-      case Some(hrl) ⇒ hrl
-      case other ⇒
+    val hrlWithoutQuery = ResourcePatternMatcher.matchResource(requestHRL.location, ramlConfiguration.resourcesByPattern.keySet) match {
+      case Some(h) ⇒ h
+      case _ ⇒
         if (config.getBoolean(FacadeConfigPaths.RAML_STRICT_CONFIG)) {
           throw RamlStrictConfigException(s"resource '$requestHRL' with method '$method' is not configured in RAML configuration")
         }
@@ -34,7 +34,7 @@ class RamlConfigurationReader(ramlConfiguration: RamlConfiguration, config: Conf
   }
 
   private def traits(uriPattern: String, method: String): Seq[Trait] = {
-    ramlConfiguration.resourcesByUri.get(uriPattern) match {
+    ramlConfiguration.resourcesByPattern.get(uriPattern) match {
       case Some(configuration) ⇒
         val traits = configuration.traits
         traits.methodSpecificTraits.getOrElse(Method(method), Seq.empty) ++ traits.commonTraits

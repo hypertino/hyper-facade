@@ -43,7 +43,7 @@ case class RewriteIndex(inverted: Map[IndexKey, HRL], forward: Map[IndexKey, HRL
   private def patternMatch(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[HRL] = {
     index
       .iterator
-      .map(i ⇒ ResourcePatternMatcher.matchResource(i._1.hrl.location, originalHRL.location))
+      .map(i ⇒ ResourcePatternMatcher.matchResource(originalHRL.location, i._1.hrl.location))
       .find(_.nonEmpty)
       .flatten
   }

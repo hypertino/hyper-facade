@@ -1,0 +1,43 @@
+#%RAML 1.0
+title: Facade API
+version: v1
+mediaType: application/json
+baseUri: http://test
+
+types:
+  Conditional:
+    type: object
+    properties:
+      if?:
+
+  WithUri:
+    type: object
+    properties:
+      uri:
+
+  SimpleService:
+    type: object
+    properties:
+      integerField: integer
+      textField: string
+
+annotationTypes:
+  x-client-ip: nil | Conditional
+  x-client-language: nil | Conditional
+  deny: nil | Conditional
+  rewrite: [WithUri, Conditional]
+
+/simple-resource:
+  (rewrite):
+    uri: hb://test-service
+  get:
+    responses:
+      200:
+        body:
+          type: SimpleService
+  /{id}:
+    get:
+      responses:
+        200:
+          body:
+            type: SimpleService

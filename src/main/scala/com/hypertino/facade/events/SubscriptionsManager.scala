@@ -52,7 +52,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
           for (consumer: ClientSubscriptionData ← clientSubscriptions) {
             try {
               // todo: query matching!
-              val matched = ResourcePatternMatcher.matchResource(elem.headers.hrl.location, consumer.uri.location).isDefined
+              val matched = ResourcePatternMatcher.matchResource(consumer.uri.location, elem.headers.hrl.location).isDefined
               log.debug(s"Event #(${elem.headers.messageId}) ${if (matched) "forwarded" else "NOT matched"} to ${consumer.clientActorRef}/${consumer.correlationId}")
               if (matched) {
                 val request = elem.copy(

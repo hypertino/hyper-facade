@@ -14,10 +14,8 @@ import org.scalatest.time.{Seconds, Span}
 
 import scala.concurrent.duration._
 
-class IntegrationTestBase(val configFileName: String, val ramlFilePath: String) extends TestBase
+class IntegrationTestBase(val configFileName: String) extends TestBase
   with BeforeAndAfterEach with WsTestClientHelper {
-
-  System.setProperty(FacadeConfigPaths.RAML_FILE, ramlFilePath)
 
   implicit val injector = TestInjectors(configFileName)
   implicit val actorSystem = inject[ActorSystem]

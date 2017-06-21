@@ -55,7 +55,7 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
   }
 
   private def filtersOrMethod(uri: String, method: String): Either[SimpleFilterChain, RamlResourceMethodConfig] = {
-    ramlConfig.resourcesByUri.get(uri) match {
+    ramlConfig.resourcesByPattern.get(uri) match {
       case Some(resource) ⇒
         resource.methods.get(Method(method)) match {
           case Some(resourceMethod) ⇒

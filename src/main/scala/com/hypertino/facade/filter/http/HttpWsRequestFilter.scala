@@ -26,9 +26,11 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
     Future {
       try {
         val request = contextWithRequest.request
-        val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
-        // val uriTransformer = chain(removeRootPathPrefix(rootPathPrefix, _: HRL), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
-        val hrl = removeRootPathPrefix(rootPathPrefix, request.headers.hrl)
+        //val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
+        // val uriTransformer = chain(removeRootPathPrefix(ramlConfig.baseUri, _: HRL), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
+
+        val uri = spray.http.Uri(request.headers.hrl.location)
+        val hrl = HRL(ramlConfig.baseUri + uri.path, request.headers.hrl.query)
 
         val headersBuilder = Headers.builder
         var messageIdFound = false

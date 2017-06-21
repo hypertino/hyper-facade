@@ -2,7 +2,7 @@ package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 
-case class RamlConfiguration(resourcesByUri: Map[String, ResourceConfig], uris: Seq[String])
+case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, ResourceConfig])
 
 case class ResourceConfig(
                            traits: Traits,

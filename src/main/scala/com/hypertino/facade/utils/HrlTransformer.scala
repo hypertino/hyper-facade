@@ -60,7 +60,7 @@ object HrlTransformer {
     }
   }
 
-  def addRootPathPrefix(rootPathPrefix: String)(hrl: HRL): HRL = {
+  /*def addRootPathPrefix(rootPathPrefix: String)(hrl: HRL): HRL = {
     if (spray.http.Uri(hrl.location).scheme != "hb") { // hb:// scheme
       hrl
     }
@@ -72,13 +72,13 @@ object HrlTransformer {
   def removeRootPathPrefix(rootPathPrefix: String, hrl: HRL): HRL = {
     val normalizedUri = spray.http.Uri(hrl.location)
     // todo: check scheme, server for http?
-    if (normalizedUri.path.startsWith(Path(rootPathPrefix + "/"))) {
+    if (normalizedUri.path.startsWith(Path(rootPathPrefix))) {
       val pathOffset = rootPathPrefix.length
       HRL(normalizedUri.path.toString.substring(pathOffset), hrl.query)
     } else {
-      throw new MalformedURLException(s"$hrl doesn't contain prefix $rootPathPrefix")
+      throw new MalformedURLException(s"$hrl doesn't starts with prefix $rootPathPrefix")
     }
-  }
+  }*/
 
   def rewrite(from: HRL, to: HRL): HRL = {
     to
@@ -86,8 +86,8 @@ object HrlTransformer {
 
   private def linkIsRewriteable(from: HRL, ramlConfig: RamlConfiguration): Boolean = {
     val emptyScheme = spray.http.Uri(from.location).scheme.isEmpty
-    val resourceConfigOpt = ramlConfig.resourcesByUri.get(from.location) orElse
-      ramlConfig.resourcesByUri.get(from.location)
+    val resourceConfigOpt = ramlConfig.resourcesByPattern.get(from.location) orElse
+      ramlConfig.resourcesByPattern.get(from.location)
     val rewriteAllowed = resourceConfigOpt match {
       case Some(resourceConfig) ⇒
         resourceConfig.annotations.exists(_.name == RamlAnnotation.REWRITE)

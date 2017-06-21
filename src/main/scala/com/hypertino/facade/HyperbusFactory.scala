@@ -9,6 +9,7 @@ import scaldi.Injector
 
 import scala.concurrent.ExecutionContext
 
+// todo: make solution with factory in hyperbus (move this to hyperbus?)
 class HyperbusFactory(val config: Config, val inj: Injector) {
   lazy val hyperbus = new Hyperbus(newTransportManager(), HyperbusFactory.defaultHyperbusGroup(config))
 
