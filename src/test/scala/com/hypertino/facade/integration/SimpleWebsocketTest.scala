@@ -14,13 +14,13 @@ class SimpleWebsocketTest extends IntegrationTestBase("inproc-test.conf") {
   "Integration. Websockets" - {
     "simple event feed" in {
       val q = new TestQueue
-      val client = createWsClient("unreliable-feed-client", "/inproc-test/upgrade", q.put)
+      val client = createWsClient("unreliable-feed-client", "/", q.put)
       import MessagingContext.Implicits.emptyContext
 
       register {
         hyperbus.commands[DynamicRequest](
           DynamicRequest.requestMeta,
-          DynamicRequestObservableMeta(RequestMatcher("/resource/unreliable-feed", Method.GET, None))
+          DynamicRequestObservableMeta(RequestMatcher("hb://ws-test-service/unreliable-feed", Method.GET, None))
         ).subscribe { implicit request =>
           request.reply(Success {
             Ok(DynamicBody(Obj.from("integerField" → 100500, "textField" → "Yey")))
@@ -29,7 +29,7 @@ class SimpleWebsocketTest extends IntegrationTestBase("inproc-test.conf") {
         }
       }
 
-      client ! DynamicRequest(HRL("/inproc-test/resource/unreliable-feed"), "subscribe",
+      client ! DynamicRequest(HRL("/simple-resource-with-events/unreliable-feed"), "subscribe",
         EmptyBody,
         Headers.builder
           .withContentType(Some("application/vnd.feed-test+json"))
@@ -42,7 +42,7 @@ class SimpleWebsocketTest extends IntegrationTestBase("inproc-test.conf") {
       resourceState shouldBe a[Ok[_]]
       resourceState.body.content shouldBe Obj.from("integerField" → 100500, "textField" → "Yey")
 
-      hyperbus.publish(DynamicRequest(HRL("/resource/unreliable-feed"), Method.FEED_POST,
+      hyperbus.publish(DynamicRequest(HRL("hb://ws-test-service/unreliable-feed"), Method.FEED_POST,
         DynamicBody(Obj.from("integerField" → 54321, "textField" → "Bye")),
         Headers.builder
           .withContentType(Some("application/vnd.feed-test+json"))
@@ -55,7 +55,7 @@ class SimpleWebsocketTest extends IntegrationTestBase("inproc-test.conf") {
       event1.headers.method shouldBe Method.FEED_POST
       event1.body.content shouldBe Obj.from("integerField" → 54321, "textField" → "Bye")
 
-      client ! DynamicRequest(HRL("/inproc-test/resource/unreliable-feed"), "unsubscribe",
+      client ! DynamicRequest(HRL("/simple-resource-with-events/unreliable-feed"), "unsubscribe",
         EmptyBody,
         Headers.builder
           .withContentType(Some("application/vnd.feed-test+json"))

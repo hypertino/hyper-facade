@@ -41,3 +41,11 @@ annotationTypes:
         200:
           body:
             type: SimpleService
+
+/simple-resource-with-events:
+  (rewrite):
+    uri: hb://ws-test-service
+  /unreliable-feed:
+    get:
+  /reliable-feed:
+    get:
