@@ -7,15 +7,17 @@ import com.hypertino.facade.raml.{RamlConfiguration, RamlConfigurationBuilder}
 import org.raml.v2.api.RamlModelBuilder
 import scaldi.Injector
 
+// todo: rename this
 object ConfigsFactory {
 
   def ramlConfig(appConfig: Config)(implicit inj: Injector): RamlConfiguration = {
     ramlFilesPaths(appConfig).map { ramlConfigPath ⇒
-      val apiFile = new File(ramlConfigPath)
+      val path = resourceFile(ramlConfigPath)
+      val apiFile = new File(path)
       if (!apiFile.exists()) {
         throw new FileNotFoundException(s"File ${apiFile.getAbsolutePath} doesn't exists")
       }
-      val api = new RamlModelBuilder().buildApi(ramlConfigPath).getApiV10
+      val api = new RamlModelBuilder().buildApi(path).getApiV10
       RamlConfigurationBuilder(api).build
     }.foldLeft(RamlConfiguration("", Map.empty)){ (set: RamlConfiguration, i: RamlConfiguration) ⇒
       RamlConfiguration(mergeBaseUri(set.baseUri, i.baseUri), set.resourcesByPattern ++ i.resourcesByPattern)
@@ -49,6 +51,21 @@ object ConfigsFactory {
     }
     else {
       config.getStringList(FacadeConfigPaths.RAML_FILES).toSeq
+    }
+  }
+
+  private def resourceFile(s: String): String = {
+    val prefix = "resources://"
+    if (s.startsWith(prefix)) {
+      val resourcePath = s.substring(prefix.length)
+      val r = Thread.currentThread().getContextClassLoader.getResource(resourcePath)
+      if (r != null)
+        r.getFile
+      else
+        resourcePath
+    }
+    else {
+      s
     }
   }
 }

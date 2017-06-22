@@ -5,6 +5,7 @@ import com.typesafe.config.Config
 import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.model.HRL
 
+// todo: rename this class!!!
 class RamlConfigurationReader(ramlConfiguration: RamlConfiguration, config: Config) {
 
   def traitNames(uriPattern: String, method: String): Seq[String] = {
