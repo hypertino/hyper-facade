@@ -30,7 +30,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
         // val uriTransformer = chain(removeRootPathPrefix(ramlConfig.baseUri, _: HRL), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
 
         val uri = spray.http.Uri(request.headers.hrl.location)
-        val hrl = HRL(ramlConfig.baseUri + uri.path, request.headers.hrl.query)
+        val hrl = HRL(uri.path.toString, request.headers.hrl.query)
 
         val headersBuilder = Headers.builder
         var messageIdFound = false

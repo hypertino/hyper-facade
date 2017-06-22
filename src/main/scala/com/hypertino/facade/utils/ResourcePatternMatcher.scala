@@ -32,7 +32,10 @@ object ResourcePatternMatcher {
     */
   def matchResource(resource: String, pattern: String): Option[HRL] = {
     val resourceUri = spray.http.Uri(resource)
-    val prefix = resourceUri.scheme + ":" + resourceUri.authority
+    val prefix = if (resourceUri.scheme.nonEmpty && resourceUri.authority.nonEmpty)
+      resourceUri.scheme + ":" + resourceUri.authority
+    else
+      "/"
 
     if (pattern.startsWith(prefix)) {
       val patternPathUri = pattern.substring(prefix.length)

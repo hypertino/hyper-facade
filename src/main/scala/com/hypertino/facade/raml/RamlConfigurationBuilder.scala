@@ -32,7 +32,13 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
         resourcesByUriAcc ++= resourceData
     }
     val resourceMapWithFilters = new RamlConfigFiltersInjector(resourcesByUriAcc.result()).withResourceFilters()
-    RamlConfiguration(baseUri, resourceMapWithFilters.map(kv ⇒ (baseUri + kv._1, kv._2)))
+    val prefix = if (baseUri.startsWith("http://") || baseUri.startsWith("https://")) {
+      ""
+    }
+    else {
+      baseUri
+    }
+    RamlConfiguration(baseUri, resourceMapWithFilters.map(kv ⇒ (prefix + kv._1, kv._2)))
   }
 
   private def parseTypeDefinitions: Map[String, TypeDefinition] = {
