@@ -6,7 +6,7 @@ import com.hypertino.binders.value.Text
 import com.hypertino.facade.model.FacadeHeaders
 import com.hypertino.hyperbus.model.headers.PlainHeadersConverter
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Headers}
-import com.hypertino.hyperbus.serialization.MessageReader
+import com.hypertino.hyperbus.serialization.{JsonContentTypeConverter, MessageReader}
 import com.hypertino.hyperbus.util.IdGenerator
 import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode}
 import spray.can.websocket.frame.{Frame, TextFrame}
@@ -45,8 +45,9 @@ object MessageTransformer {
     val hrl = HRL.fromURL(request.uri.toString)
     val body = if (request.entity.isEmpty)
       EmptyBody
-    else
-      DynamicBody(new StringReader(request.entity.asString), None) // todo: content type from headers?
+    else {
+      DynamicBody(new StringReader(request.entity.asString), None) // todo: content type from headers? !!!!
+    }
 
     val headers = Headers
       .builder
@@ -103,7 +104,8 @@ object MessageTransformer {
       case None ⇒
         spray.http.ContentType(`application/json`, `UTF-8`)
 
-      case Some(dynamicContentType) ⇒
+      case Some(localContentType) ⇒
+        val dynamicContentType = JsonContentTypeConverter.localContentTypeToUniversalJson(localContentType).toString
         val indexOfSlash = dynamicContentType.indexOf('/')
         val (mainType, subType) = indexOfSlash match {
           case -1 ⇒
