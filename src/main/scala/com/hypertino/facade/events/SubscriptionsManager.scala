@@ -3,7 +3,6 @@ package com.hypertino.facade.events
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props, Terminated}
-import com.hypertino.facade.HyperbusFactory
 import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.{DynamicRequest, DynamicRequestObservableMeta, HRL, Header, HeaderHRL, Headers}
@@ -33,7 +32,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
   private val subscriptionManager = new Manager
 
   class Manager {
-    val groupName = HyperbusFactory.defaultHyperbusGroup(inject[Config])
+    val groupName = hyperbus.defaultGroupName
     val groupSubscriptions = scala.collection.mutable.Map[HRL,GroupSubscription]()
     val groupSubscriptionById = TrieMap[ActorRef, HRL]()
 

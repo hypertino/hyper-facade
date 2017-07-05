@@ -16,8 +16,7 @@ import scala.concurrent.ExecutionContext
   * Since test suites run one-by-one, we don't need to multiple shutdown hooks triggers on the end of a test run
   */
 class TestServiceModule extends Module {
-  bind [TestHyperbusFactory]    identifiedBy 'hbFactory            toProvider new TestHyperbusFactory(inject [Config], injector)
-  bind [Hyperbus]               identifiedBy 'hyperbus             to inject [TestHyperbusFactory].hyperbus
+  bind [Hyperbus]               identifiedBy 'hyperbus             to injected [Hyperbus]
   bind [ActorSystem]            identifiedBy 'actorSystem          to ActorSystem("facade", inject [Config])
   bind [Scheduler]              identifiedBy 'scheduler            to monix.execution.Scheduler.Implicits.global
   //bind [ExecutionContext]       identifiedBy 'executionContext     to inject[ActorSystem].dispatcher

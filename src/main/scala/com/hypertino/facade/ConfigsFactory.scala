@@ -76,7 +76,6 @@ object FacadeConfigPaths {
   val RAML_FILES = ROOT + "raml.files"
   //val RAML_ROOT_PATH_PREFIX = ROOT + "raml.root-path"
   val RAML_STRICT_CONFIG = ROOT + "raml.strict-config" // todo: rename this
-  val HYPERBUS_GROUP = ROOT + "hyperbus.group-name"
   val INJECT_MODULES = ROOT + "inject-modules"
   val HTTP = ROOT + "http-transport"
   val SHUTDOWN_TIMEOUT = ROOT + "shutdown-timeout"

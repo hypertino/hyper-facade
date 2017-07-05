@@ -39,6 +39,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends
           case (FacadeHeaders.CONTENT_TYPE, value) ⇒
             JsonContentTypeConverter.universalJsonContentTypeToSimple(value) match {
               case Text(contentType) ⇒ headersBuilder.withContentType(Some(contentType))
+              case Null ⇒ // ...
             }
 
           case (Header.MESSAGE_ID, value) if !value.isEmpty ⇒
