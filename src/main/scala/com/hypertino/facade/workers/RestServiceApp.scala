@@ -84,21 +84,7 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
   }
 
   override def stopService(controlBreak: Boolean): Unit = {
-    log.info("Stopping Hyper-Facade...")
-    try {
-      // todo: remove Await
-      Await.result(hyperBus.shutdown(shutdownTimeout*4/5).runAsync, shutdownTimeout)
-    } catch {
-      case t: Throwable ⇒
-        log.error("Hyperbus didn't shutdown gracefully", t)
-    }
-    try {
-      Await.result(actorSystem.terminate(), shutdownTimeout)
-    } catch {
-      case t: Throwable ⇒
-        log.error("ActorSystem wasn't terminated gracefully", t)
-    }
-    log.info("Hyper-Facade stopped")
+    log.info("Hyperfacade is stopped")
   }
 
   private def respondWithCORSHeaders(allowedOrigins: Seq[String], allowedPaths: Seq[Pattern] = Nil): Directive0 =

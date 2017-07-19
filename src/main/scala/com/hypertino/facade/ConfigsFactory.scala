@@ -71,7 +71,7 @@ object ConfigsFactory {
 }
 
 object FacadeConfigPaths {
-  val ROOT = "hyper-facade."
+  val ROOT = "hyperfacade."
   val LOGGERS = ROOT + "loggers"
   val RAML_FILES = ROOT + "raml.files"
   //val RAML_ROOT_PATH_PREFIX = ROOT + "raml.root-path"

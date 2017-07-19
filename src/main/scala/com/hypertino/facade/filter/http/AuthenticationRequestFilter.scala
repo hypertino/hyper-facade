@@ -29,7 +29,7 @@ class AuthenticationRequestFilter(implicit inj: Injector) extends RequestFilter 
       case Some(Text(credentials)) ⇒
         val authRequest = AuthenticationRequest(AuthenticationRequestBody(credentials))
         val f = hyperbus
-          .ask(authRequest)
+          .ask(authRequest)(AuthenticationRequest.meta) // todo: why implicit isn't found?
           .runAsync(scheduler)
 
         f.map { case response: Ok[AuthenticationResponseBody] ⇒
@@ -85,13 +85,18 @@ class AuthenticationRequestFilter(implicit inj: Injector) extends RequestFilter 
 
 case class AuthUser(id: String, roles: Seq[String], extra: Value)
 
-@body("application/vnd.auth+json")
+@body("auth")
 case class AuthenticationRequestBody(credentials: String) extends Body
 
-@body("application/vnd.auth-user+json")
+@body("auth-user")
 case class AuthenticationResponseBody(authUser: AuthUser) extends Body
 
-@request(Method.GET, "/auth")
+@request(Method.GET, "hb://auth")
 case class AuthenticationRequest(body: AuthenticationRequestBody)
-  extends Request[Body]
+  extends Request[AuthenticationRequestBody]
   with DefinedResponse[Ok[AuthenticationResponseBody]]
+
+object AuthenticationRequest extends com.hypertino.hyperbus.model.RequestMetaCompanion[AuthenticationRequest]{
+  implicit val meta = this
+  type ResponseType = Ok[AuthenticationResponseBody]
+}

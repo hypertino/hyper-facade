@@ -4,7 +4,7 @@ scalaVersion in Global := "2.11.8"
 
 organization := "com.hypertino"
 
-name := "hyper-facade"
+name := "hyperfacade"
 
 version := "0.2-SNAPSHOT"
 

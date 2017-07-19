@@ -11,6 +11,6 @@ abstract class TestBase extends FreeSpec with Matchers with ScalaFutures with In
   def app: TestWsRestServiceApp
   override def afterAll(): Unit = {
     RewriteIndexHolder.clearIndex()
-    app.shutdown()
+    app.stopService(true)
   }
 }
