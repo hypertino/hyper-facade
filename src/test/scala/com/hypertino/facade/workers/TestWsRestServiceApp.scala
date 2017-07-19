@@ -2,23 +2,28 @@ package com.hypertino.facade.workers
 
 import scaldi.Injector
 
-import scala.concurrent.Await
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{Await, Future}
+import scala.util.control.NonFatal
 
 class TestWsRestServiceApp(implicit inj: Injector) extends WsRestServiceApp {
 
-  override def stopService(controlBreak: Boolean): Unit = {
-    super.stopService(controlBreak)
-    try {
-      Await.result(hyperBus.shutdown(shutdownTimeout*4/5).runAsync, shutdownTimeout)
-    } catch {
-      case t: Throwable ⇒
-        log.error("Hyperbus didn't shutdown gracefully", t)
-    }
-    try {
-      Await.result(actorSystem.terminate(), shutdownTimeout)
-    } catch {
-      case t: Throwable ⇒
-        log.error("ActorSystem wasn't terminated gracefully", t)
-    }
+  override def stopService(controlBreak: Boolean, timeout: FiniteDuration): Future[Unit] = {
+    // todo: implement real stop
+    super.stopService(controlBreak, timeout)
+      .flatMap { _ ⇒
+        hyperBus.shutdown(timeout * 3 / 5).timeout(timeout * 4 / 5).runAsync
+      }
+      .recover {
+        case NonFatal(e) ⇒ log.error("Hyperbus didn't shutdown gracefully", e)
+      }
+      .flatMap { _ ⇒
+        actorSystem.terminate()
+      }
+      .recover {
+        case NonFatal(e) ⇒ log.error("ActorSystem wasn't terminated gracefully", e)
+      }
+      .map { _ ⇒
+      }
   }
 }

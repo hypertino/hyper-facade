@@ -22,7 +22,7 @@ import spray.routing.directives.LogEntry
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
@@ -83,8 +83,9 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
     }
   }
 
-  override def stopService(controlBreak: Boolean): Unit = {
-    log.info("Hyperfacade is stopped")
+  override def stopService(controlBreak: Boolean, timeout: FiniteDuration): Future[Unit] = {
+    // todo: implement real stop
+    Future.successful(log.info("Hyperfacade is stopped"))
   }
 
   private def respondWithCORSHeaders(allowedOrigins: Seq[String], allowedPaths: Seq[Pattern] = Nil): Directive0 =
