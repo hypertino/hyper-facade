@@ -1,6 +1,7 @@
 package com.hypertino.facade.integration
 
 import com.hypertino.binders.value.Obj
+import com.hypertino.facade.TestBase
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, Method, NoContent, Ok}
 import com.hypertino.hyperbus.transport.api.matchers.RequestMatcher
 import monix.execution.Ack.Continue
@@ -8,7 +9,7 @@ import monix.execution.Ack.Continue
 import scala.io.Source
 import scala.util.Success
 
-class SimpleHttpTest extends IntegrationTestBase("inproc-test.conf") {
+class SimpleHttpTest extends TestBase("inproc-test.conf") {
 
   "Integration. HTTP" - {
     "get resource" in {

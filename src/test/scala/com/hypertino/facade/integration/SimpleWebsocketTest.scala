@@ -1,6 +1,7 @@
 package com.hypertino.facade.integration
 
 import com.hypertino.binders.value.Obj
+import com.hypertino.facade.TestBase
 import com.hypertino.facade.workers.TestQueue
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.transport.api.PublishResult
@@ -9,7 +10,7 @@ import monix.execution.Ack.Continue
 
 import scala.util.Success
 
-class SimpleWebsocketTest extends IntegrationTestBase("inproc-test.conf") {
+class SimpleWebsocketTest extends TestBase("inproc-test.conf") {
 
   "Integration. Websockets" - {
     "simple event feed" in {

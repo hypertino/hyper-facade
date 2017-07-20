@@ -43,7 +43,6 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
   val shutdownTimeout = config.getFiniteDuration(FacadeConfigPaths.SHUTDOWN_TIMEOUT)
 
   val hyperBus = inject [Hyperbus]  // it's time to initialize hyperbus
-  log.info("hyperbus is starting...: {}", hyperBus)
 
   val interface = restConfig.getString("host")
   val port = restConfig.getInt("port")
@@ -86,6 +85,7 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
   override def stopService(controlBreak: Boolean, timeout: FiniteDuration): Future[Unit] = {
     // todo: implement real stop
     Future.successful(log.info("Hyperfacade is stopped"))
+
   }
 
   private def respondWithCORSHeaders(allowedOrigins: Seq[String], allowedPaths: Seq[Pattern] = Nil): Directive0 =
