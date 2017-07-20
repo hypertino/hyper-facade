@@ -3,7 +3,7 @@ package com.hypertino.facade
 import java.io.{File, FileNotFoundException}
 
 import com.typesafe.config.Config
-import com.hypertino.facade.raml.{RamlConfiguration, RamlConfigurationBuilder}
+import com.hypertino.facade.raml.{RamlConfigException, RamlConfiguration, RamlConfigurationBuilder}
 import org.raml.v2.api.RamlModelBuilder
 import scaldi.Injector
 
@@ -17,7 +17,12 @@ object ConfigsFactory {
       if (!apiFile.exists()) {
         throw new FileNotFoundException(s"File ${apiFile.getAbsolutePath} doesn't exists")
       }
-      val api = new RamlModelBuilder().buildApi(path).getApiV10
+      val buildApi = new RamlModelBuilder().buildApi(path)
+      val api = buildApi.getApiV10
+      if (api == null) {
+        import scala.collection.JavaConverters._
+        throw new RamlConfigException(buildApi.getValidationResults.asScala.mkString("\n"))
+      }
       RamlConfigurationBuilder(api).build
     }.foldLeft(RamlConfiguration("", Map.empty)){ (set: RamlConfiguration, i: RamlConfiguration) ⇒
       RamlConfiguration(mergeBaseUri(set.baseUri, i.baseUri), set.resourcesByPattern ++ i.resourcesByPattern)
