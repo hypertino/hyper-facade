@@ -14,7 +14,7 @@ import monix.eval.Task
 import monix.execution.{Cancelable, Scheduler}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FreeSpec, Matchers}
+import org.scalatest._
 import scaldi.Injectable
 
 import scala.concurrent.Await
@@ -34,6 +34,7 @@ abstract class TestBase(val configFileName: String) extends FreeSpec with Matche
   implicit val patience = PatienceConfig(scaled(Span(60, Seconds)))
   implicit val timeout = akka.util.Timeout(30.seconds)
   implicit val scheduler = inject[Scheduler]
+
   val facadeService = inject[FacadeService]
   //  inject[BasicAuthenticationService]
 
