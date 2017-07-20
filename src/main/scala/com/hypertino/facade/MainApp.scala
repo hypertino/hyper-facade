@@ -2,6 +2,7 @@ package com.hypertino.facade
 
 import com.hypertino.facade.modules._
 import com.hypertino.service.config.ConfigModule
+import com.hypertino.service.control.api.ServiceController
 import scaldi.Injectable
 
 object MainApp extends App with Injectable {
@@ -11,5 +12,5 @@ object MainApp extends App with Injectable {
     new RamlConfigModule ::
     ConfigModule()
 
-  inject[FacadeService]
+  inject[ServiceController].run()
 }
