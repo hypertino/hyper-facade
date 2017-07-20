@@ -7,9 +7,10 @@ import scaldi.Injector
 
 import scala.collection.JavaConversions._
 
+/*
 object Injectors {
   def apply(): Injector = {
-    val injector = new ConfigModule :: new FiltersModule :: loadConfigInjectedModules(new ServiceModule) :: new MetricsModule
+    val injector = new RamlConfigModule :: new FiltersModule :: loadConfigInjectedModules(new FacadeServiceModule) :: new MetricsModule
     injector.initNonLazy()
   }
 
@@ -27,3 +28,4 @@ object Injectors {
     }
   }
 }
+*/

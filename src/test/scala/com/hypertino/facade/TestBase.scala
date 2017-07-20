@@ -3,10 +3,12 @@ package com.hypertino.facade
 import java.util.concurrent.{Executor, SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
 import akka.actor.ActorSystem
-import com.hypertino.facade.modules.TestInjectors
+import com.hypertino.facade.modules._
 import com.hypertino.facade.raml.RewriteIndexHolder
 import com.hypertino.facade.workers.WsTestClientHelper
 import com.hypertino.hyperbus.Hyperbus
+import com.hypertino.metrics.modules.MetricsModule
+import com.hypertino.service.config.ConfigModule
 import com.hypertino.service.control.api.Service
 import monix.eval.Task
 import monix.execution.{Cancelable, Scheduler}
@@ -21,12 +23,18 @@ import scala.concurrent.duration._
 abstract class TestBase(val configFileName: String) extends FreeSpec with Matchers with ScalaFutures
   with Injectable with BeforeAndAfterAll with BeforeAndAfterEach with WsTestClientHelper {
 
-  implicit val injector = TestInjectors(configFileName)
+  val fullConfigPath = "./src/test/resources/" + configFileName
+  implicit val injector = new FiltersModule :: new MetricsModule ::
+    new SystemServiceModule :: new FacadeServiceModule :: new RamlConfigModule ::
+    ConfigModule(configFiles=Seq(fullConfigPath), loadDefaults = true)
+
+  injector.initNonLazy()
+
   implicit val actorSystem = inject[ActorSystem]
   implicit val patience = PatienceConfig(scaled(Span(60, Seconds)))
   implicit val timeout = akka.util.Timeout(30.seconds)
   implicit val scheduler = inject[Scheduler]
-  val service = new FacadeService()
+  val facadeService = inject[FacadeService]
   //  inject[BasicAuthenticationService]
 
   val hyperbus = inject[Hyperbus] // initialize hyperbus
@@ -54,7 +62,7 @@ abstract class TestBase(val configFileName: String) extends FreeSpec with Matche
   override def afterAll(): Unit = {
     RewriteIndexHolder.clearIndex()
     Await.result(Task.sequence(Seq(
-      Task.fromFuture(service.stopService(false, 15.seconds)),
+      Task.fromFuture(facadeService.stopService(false, 15.seconds)),
       hyperbus.shutdown(5.seconds),
       Task.fromFuture(actorSystem.terminate())
     )).runAsync, 16.seconds)
