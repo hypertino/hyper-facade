@@ -25,7 +25,7 @@ abstract class TestBase(val configFileName: String) extends FreeSpec with Matche
 
   val fullConfigPath = "./src/test/resources/" + configFileName
   implicit val injector = new FiltersModule :: new MetricsModule ::
-    new SystemServiceModule :: new FacadeServiceModule :: new RamlConfigModule ::
+    new SystemServicesModule :: new FacadeServiceModule :: new RamlConfigModule ::
     ConfigModule(configFiles=Seq(fullConfigPath), loadDefaults = true)
 
   injector.initNonLazy()

@@ -11,11 +11,8 @@ import com.typesafe.config.Config
 import monix.execution.Scheduler
 import scaldi.Module
 
-class SystemServiceModule extends Module {
+class SystemServicesModule extends Module {
   bind [Scheduler]              identifiedBy 'scheduler            to monix.execution.Scheduler.Implicits.global
   bind [Hyperbus]               identifiedBy 'hyperbus             to injected[Hyperbus]
   bind [ActorSystem]            identifiedBy 'actorSystem          to ActorSystem("facade", inject [Config])
-  bind [Console]                identifiedBy 'console              toNonLazy injected[StdConsole]
-  bind [ServiceController]      identifiedBy 'serviceController    toNonLazy injected[ConsoleServiceController]
-  bind [ShutdownMonitor]        identifiedBy 'shutdownMonitor      toNonLazy injected[RuntimeShutdownMonitor]
 }
