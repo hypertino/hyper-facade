@@ -9,7 +9,7 @@ import scaldi.{Injectable, Injector}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthorizeRequestFilter extends RequestFilter {
+class AuthorizeRequestFilter(protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
 
   override def apply(contextWithRequest: ContextWithRequest)
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
@@ -22,22 +22,21 @@ class AuthorizeRequestFilter extends RequestFilter {
   }
 }
 
-class AuthorizeFilterFactory(implicit inj: Injector) extends RamlFilterFactory with Injectable {
-  val log = LoggerFactory.getLogger(getClass)
-  val predicateEvaluator = inject[PredicateEvaluator]
+class AuthorizeFilterFactory(protected val predicateEvaluator: PredicateEvaluator) extends RamlFilterFactory {
+  private val log = LoggerFactory.getLogger(getClass)
 
   override def createFilters(target: RamlTarget): SimpleFilterChain = {
     target match {
       case TargetResource(_, _) ⇒
         SimpleFilterChain(
-          requestFilters = Seq(new AuthorizeRequestFilter),
+          requestFilters = Seq(new AuthorizeRequestFilter(predicateEvaluator)),
           responseFilters = Seq.empty,
           eventFilters = Seq.empty
         )
 
       case TargetMethod(_, _, _) ⇒
         SimpleFilterChain(
-          requestFilters = Seq(new AuthorizeRequestFilter),
+          requestFilters = Seq(new AuthorizeRequestFilter(predicateEvaluator)),
           responseFilters = Seq.empty,
           eventFilters = Seq.empty
         )

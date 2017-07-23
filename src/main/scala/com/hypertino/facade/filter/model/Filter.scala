@@ -1,27 +1,33 @@
 package com.hypertino.facade.filter.model
 
 import com.hypertino.facade.filter.chain.SimpleFilterChain
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.{PredicateEvaluator, PreparedExpression}
+import com.hypertino.facade.model.ContextWithRequest
 import com.hypertino.facade.raml.{Field, RamlAnnotation}
 
-trait Filter
+trait Filter {
+  protected def predicateEvaluator: PredicateEvaluator
+  def evaluatePredicate(contextWithRequest: ContextWithRequest, expression: PreparedExpression): Boolean = {
+    predicateEvaluator.evaluate(contextWithRequest, expression)
+  }
+}
 
 trait RamlFilterFactory {
   import com.hypertino.facade.filter.model.RamlTarget.annotations
 
   def createFilters(target: RamlTarget): SimpleFilterChain
-  def predicateEvaluator: PredicateEvaluator
+  protected def predicateEvaluator: PredicateEvaluator
 
   final def createFilterChain(target: RamlTarget): SimpleFilterChain = {
     val rawFilterChain = createFilters(target)
     SimpleFilterChain (
-      requestFilters = proxifyRequestFilters(rawFilterChain.requestFilters, target, predicateEvaluator),
-      responseFilters = proxifyResponseFilters(rawFilterChain.responseFilters, target, predicateEvaluator),
-      eventFilters = proxifyEventFilters(rawFilterChain.eventFilters, target, predicateEvaluator)
+      requestFilters = proxifyRequestFilters(rawFilterChain.requestFilters, target),
+      responseFilters = proxifyResponseFilters(rawFilterChain.responseFilters, target),
+      eventFilters = proxifyEventFilters(rawFilterChain.eventFilters, target)
     )
   }
 
-  def proxifyRequestFilters(rawFilters: Seq[RequestFilter], ramlTarget: RamlTarget, predicateEvaluator: PredicateEvaluator): Seq[RequestFilter] = {
+  def proxifyRequestFilters(rawFilters: Seq[RequestFilter], ramlTarget: RamlTarget): Seq[RequestFilter] = {
     val l = rawFilters.foldLeft(Seq.newBuilder[RequestFilter]) { (proxifiedFilters, rawFilter) ⇒
       annotations(ramlTarget).foldLeft(proxifiedFilters) { (proxifiedFilters, annotation) ⇒
         proxifiedFilters += ConditionalRequestFilterProxy(annotation, rawFilter, predicateEvaluator)
@@ -30,7 +36,7 @@ trait RamlFilterFactory {
     l
   }
 
-  def proxifyResponseFilters(rawFilters: Seq[ResponseFilter], ramlTarget: RamlTarget, predicateEvaluator: PredicateEvaluator): Seq[ResponseFilter] = {
+  def proxifyResponseFilters(rawFilters: Seq[ResponseFilter], ramlTarget: RamlTarget): Seq[ResponseFilter] = {
     rawFilters.foldLeft(Seq.newBuilder[ResponseFilter]) { (proxifiedFilters, rawFilter) ⇒
       annotations(ramlTarget).foldLeft(proxifiedFilters) { (proxifiedFilters, annotation) ⇒
         proxifiedFilters += ConditionalResponseFilterProxy(annotation, rawFilter, predicateEvaluator)
@@ -38,7 +44,7 @@ trait RamlFilterFactory {
     }.result()
   }
 
-  def proxifyEventFilters(rawFilters: Seq[EventFilter], ramlTarget: RamlTarget, predicateEvaluator: PredicateEvaluator): Seq[EventFilter] = {
+  def proxifyEventFilters(rawFilters: Seq[EventFilter], ramlTarget: RamlTarget): Seq[EventFilter] = {
     rawFilters.foldLeft(Seq.newBuilder[EventFilter]) { (proxifiedFilters, rawFilter) ⇒
       annotations(ramlTarget).foldLeft(proxifiedFilters) { (proxifiedFilters, annotation) ⇒
         proxifiedFilters += ConditionalEventFilterProxy(annotation, rawFilter, predicateEvaluator)

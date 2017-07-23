@@ -3,24 +3,22 @@ package com.hypertino.facade.filter.http
 import akka.pattern.AskTimeoutException
 import com.hypertino.binders.value.{Text, Value}
 import com.hypertino.facade.filter.model.RequestFilter
+import com.hypertino.facade.filter.parser.PredicateEvaluator
 import com.hypertino.facade.model._
+import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.model.annotations.{body, request}
 import com.hypertino.hyperbus.transport.api.NoTransportRouteException
-import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.util.IdGenerator
-import monix.eval.Task
-import monix.execution.{CancelableFuture, Scheduler}
+import monix.execution.Scheduler
 import org.slf4j.LoggerFactory
-import scaldi.{Injectable, Injector}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthenticationRequestFilter(implicit inj: Injector) extends RequestFilter with Injectable {
-
-  val log = LoggerFactory.getLogger(getClass)
-  val hyperbus = inject[Hyperbus]
-  implicit val scheduler = inject[Scheduler]
+class AuthenticationRequestFilter(hyperbus: Hyperbus,
+                                  protected val predicateEvaluator: PredicateEvaluator,
+                                  protected implicit val scheduler: Scheduler) extends RequestFilter {
+  protected val log = LoggerFactory.getLogger(getClass)
 
   override def apply(contextWithRequest: ContextWithRequest)
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {

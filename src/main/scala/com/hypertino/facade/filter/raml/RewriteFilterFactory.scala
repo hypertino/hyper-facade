@@ -8,9 +8,7 @@ import com.hypertino.facade.raml._
 import com.hypertino.hyperbus.model.HRL
 import scaldi.{Injectable, Injector}
 
-class RewriteFilterFactory(config: Config)(implicit inj: Injector) extends RamlFilterFactory with Injectable {
-  val predicateEvaluator = inject[PredicateEvaluator]
-
+class RewriteFilterFactory(config: Config, protected val predicateEvaluator: PredicateEvaluator) extends RamlFilterFactory with Injectable {
   override def createFilters(target: RamlTarget): SimpleFilterChain = {
     val (rewrittenUri, originalUri, ramlMethod) = target match {
       case TargetResource(uri, RewriteAnnotation(_, _, newUri)) ⇒ (newUri, uri, None)
@@ -19,9 +17,9 @@ class RewriteFilterFactory(config: Config)(implicit inj: Injector) extends RamlF
     }
     RewriteIndexHolder.updateRewriteIndex(HRL(originalUri), HRL(rewrittenUri), ramlMethod)
     SimpleFilterChain(
-      requestFilters = Seq(new RewriteRequestFilter(rewrittenUri)),
+      requestFilters = Seq(new RewriteRequestFilter(rewrittenUri, predicateEvaluator)),
       responseFilters = Seq.empty,
-      eventFilters = Seq(new RewriteEventFilter)
+      eventFilters = Seq(new RewriteEventFilter(predicateEvaluator))
     )
   }
 }

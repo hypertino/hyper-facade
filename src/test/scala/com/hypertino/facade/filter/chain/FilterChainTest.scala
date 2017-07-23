@@ -2,6 +2,7 @@ package com.hypertino.facade.filter.chain
 
 import com.hypertino.binders.value.{Null, Text}
 import com.hypertino.facade.filter.model.{RequestFilter, ResponseFilter}
+import com.hypertino.facade.filter.parser.{DefaultPredicateEvaluator, PredicateEvaluator}
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, ErrorBody, Forbidden, HRL, Headers, Method, Ok}
 import org.scalatest.concurrent.ScalaFutures
@@ -20,6 +21,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
   ) // todo: + test eventFilters
 
   class TestRequestFilter extends RequestFilter {
+    override protected def predicateEvaluator: PredicateEvaluator = DefaultPredicateEvaluator
     override def  apply(contextWithRequest: ContextWithRequest)
              (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
       if (contextWithRequest.request.headers.hrl.location != "/interrupted") {
@@ -36,6 +38,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
   }
 
   class TestResponseFilter extends ResponseFilter {
+    override protected def predicateEvaluator: PredicateEvaluator = DefaultPredicateEvaluator
     override def apply(contextWithRequest: ContextWithRequest, output: DynamicResponse)
                       (implicit ec: ExecutionContext): Future[DynamicResponse] = {
       if (contextWithRequest.request.headers.hrl.location != "/interrupted") {

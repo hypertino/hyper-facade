@@ -4,18 +4,17 @@ import com.hypertino.facade.filter.parser.PredicateEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlAnnotation
 import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
-import shapeless.Succ
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-import scala.util.control.NonFatal
 
-case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: RequestFilter, predicateEvaluator: PredicateEvaluator) extends RequestFilter {
+case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: RequestFilter,
+                                         protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
   override def apply(contextWithRequest: ContextWithRequest)
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
     annotation.predicate match {
       case Some(p) ⇒
-        Try(predicateEvaluator.evaluate(p, contextWithRequest)) match {
+        Try(filter.evaluatePredicate(contextWithRequest, p)) match {
           case Success(true) ⇒
             filter.apply(contextWithRequest)
           case Success(false) ⇒
@@ -29,15 +28,20 @@ case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: Req
   }
 }
 
-case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: ResponseFilter, predicateEvaluator: PredicateEvaluator) extends ResponseFilter {
+case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: ResponseFilter,
+                                          protected val predicateEvaluator: PredicateEvaluator) extends ResponseFilter {
   override def apply(contextWithRequest: ContextWithRequest, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     annotation.predicate match {
       case Some(p) ⇒
-        if (predicateEvaluator.evaluate(p, contextWithRequest))
-          filter.apply(contextWithRequest, response)
-        else
-          Future(response)
+        Try(filter.evaluatePredicate(contextWithRequest, p)) match {
+          case Success(true) ⇒
+            filter.apply(contextWithRequest, response)
+          case Success(false) ⇒
+            Future(response)
+          case Failure(ex) ⇒
+            Future.failed(ex)
+        }
 
       case None ⇒
         filter.apply(contextWithRequest, response)
@@ -45,15 +49,20 @@ case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: Re
   }
 }
 
-case class ConditionalEventFilterProxy(annotation: RamlAnnotation, filter: EventFilter, predicateEvaluator: PredicateEvaluator) extends EventFilter {
+case class ConditionalEventFilterProxy(annotation: RamlAnnotation, filter: EventFilter,
+                                       protected val predicateEvaluator: PredicateEvaluator) extends EventFilter {
   override def apply(contextWithRequest: ContextWithRequest, event: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     annotation.predicate match {
       case Some(p) ⇒
-        if (predicateEvaluator.evaluate(p, contextWithRequest))
-          filter.apply(contextWithRequest, event)
-        else
-          Future(event)
+        Try(filter.evaluatePredicate(contextWithRequest, p)) match {
+          case Success(true) ⇒
+            filter.apply(contextWithRequest, event)
+          case Success(false) ⇒
+            Future(event)
+          case Failure(ex) ⇒
+            Future.failed(ex)
+        }
 
       case None ⇒
         filter.apply(contextWithRequest, event)

@@ -7,29 +7,21 @@ import com.hypertino.facade.raml.DenyAnnotation
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
-class DenyFilterFactory(implicit inj: Injector) extends RamlFilterFactory with Injectable {
-  val log = LoggerFactory.getLogger(getClass)
-  val predicateEvaluator = inject[PredicateEvaluator]
+class DenyFilterFactory(protected val predicateEvaluator: PredicateEvaluator) extends RamlFilterFactory with Injectable {
+  private val log = LoggerFactory.getLogger(getClass)
 
   override def createFilters(target: RamlTarget): SimpleFilterChain = {
     target match {
-      case TargetField(_, field) ⇒
-        SimpleFilterChain(
-          requestFilters = Seq.empty,
-          responseFilters = Seq(new DenyResponseFilter(field, predicateEvaluator)),
-          eventFilters = Seq(new DenyEventFilter(field, predicateEvaluator))
-        )
-
       case TargetResource(_, DenyAnnotation(_, _)) ⇒
         SimpleFilterChain(
-          requestFilters = Seq(new DenyRequestFilter),
+          requestFilters = Seq(new DenyRequestFilter(predicateEvaluator)),
           responseFilters = Seq.empty,
           eventFilters = Seq.empty
         )
 
       case TargetMethod(_, _, DenyAnnotation(_, _)) ⇒
         SimpleFilterChain(
-          requestFilters = Seq(new DenyRequestFilter),
+          requestFilters = Seq(new DenyRequestFilter(predicateEvaluator)),
           responseFilters = Seq.empty,
           eventFilters = Seq.empty
         )

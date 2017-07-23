@@ -6,6 +6,7 @@ import com.hypertino.facade.FacadeConfigPaths
 import com.typesafe.config.Config
 import com.hypertino.binders.value.{Null, Text}
 import com.hypertino.facade.filter.model.RequestFilter
+import com.hypertino.facade.filter.parser.PredicateEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.FunctionUtils.chain
@@ -15,11 +16,14 @@ import com.hypertino.hyperbus.model.hrl.PlainQueryConverter
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.hyperbus.transport.api.matchers.Specific
 import com.hypertino.hyperbus.util.IdGenerator
+import monix.execution.Scheduler
+import scaldi.Injector
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration) extends RequestFilter {
-  val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
+class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
+                          protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
+  protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
   override def apply(contextWithRequest: ContextWithRequest)
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {

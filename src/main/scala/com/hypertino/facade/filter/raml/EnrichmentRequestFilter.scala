@@ -13,7 +13,7 @@ import scaldi.{Injectable, Injector}
 import scala.collection.Map
 import scala.concurrent.{ExecutionContext, Future}
 
-class EnrichRequestFilter(val field: Field) extends RequestFilter {
+class EnrichRequestFilter(field: Field, protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
   override def apply(contextWithRequest: ContextWithRequest)
                     (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
     Future {
@@ -62,9 +62,8 @@ class EnrichRequestFilter(val field: Field) extends RequestFilter {
   }
 }
 
-class EnrichmentFilterFactory(implicit inj: Injector) extends RamlFilterFactory with Injectable {
-  val log = LoggerFactory.getLogger(getClass)
-  val predicateEvaluator = inject[PredicateEvaluator]
+class EnrichmentFilterFactory(protected val predicateEvaluator: PredicateEvaluator) extends RamlFilterFactory {
+  private val log = LoggerFactory.getLogger(getClass)
 
   override def createFilters(target: RamlTarget): SimpleFilterChain = {
     target match {
@@ -84,7 +83,7 @@ class EnrichmentFilterFactory(implicit inj: Injector) extends RamlFilterFactory 
     field.annotations.foldLeft(Seq.newBuilder[EnrichRequestFilter]) { (filters, annotation) ⇒
         annotation match {
           case EnrichAnnotation(_, _) ⇒
-            filters += new EnrichRequestFilter(field)
+            filters += new EnrichRequestFilter(field, predicateEvaluator)
           case _ ⇒
             filters
         }

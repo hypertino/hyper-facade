@@ -4,17 +4,20 @@ import com.hypertino.facade.FacadeConfigPaths
 import com.typesafe.config.Config
 import com.hypertino.binders.value._
 import com.hypertino.facade.filter.model.{EventFilter, ResponseFilter}
+import com.hypertino.facade.filter.parser.PredicateEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.FunctionUtils.chain
 import com.hypertino.facade.utils.HrlTransformer._
 import com.hypertino.hyperbus.model.{DefLink, DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, Headers, HeadersBuilder, HeadersMap, Message, RequestHeaders, ResponseBase, ResponseHeaders, StandardResponse}
+import scaldi.Injector
 import spray.http.HttpHeaders
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class HttpWsResponseFilter(config: Config) extends ResponseFilter {
-  val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
+class HttpWsResponseFilter(config: Config,
+                           protected val predicateEvaluator: PredicateEvaluator) extends ResponseFilter {
+  protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
   override def apply(contextWithRequest: ContextWithRequest, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
@@ -28,8 +31,9 @@ class HttpWsResponseFilter(config: Config) extends ResponseFilter {
   }
 }
 
-class WsEventFilter(config: Config, ramlConfig: RamlConfiguration) extends EventFilter {
-  val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
+class WsEventFilter(config: Config, ramlConfig: RamlConfiguration,
+                    protected val predicateEvaluator: PredicateEvaluator) extends EventFilter {
+  protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
   override def apply(contextWithRequest: ContextWithRequest, request: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     Future {

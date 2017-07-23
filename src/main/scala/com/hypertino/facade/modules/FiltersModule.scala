@@ -3,7 +3,7 @@ package com.hypertino.facade.modules
 import com.hypertino.facade.filter.chain.{FilterChain, RamlFilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.http.{AuthenticationRequestFilter, HttpWsRequestFilter, HttpWsResponseFilter, WsEventFilter}
 import com.hypertino.facade.filter.model.RamlFilterFactory
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.{DefaultPredicateEvaluator, PredicateEvaluator}
 import com.hypertino.facade.filter.raml._
 import scaldi.Module
 
@@ -24,5 +24,5 @@ class FiltersModule extends Module {
     eventFilters              = Seq(injected[WsEventFilter])
   )
   bind [FilterChain]                identifiedBy "ramlFilterChain"                      to injected[RamlFilterChain]
-  bind [PredicateEvaluator]         identifiedBy "predicateEvaluator"                   to PredicateEvaluator()
+  bind [PredicateEvaluator]         identifiedBy "predicateEvaluator"                   to DefaultPredicateEvaluator
 }
