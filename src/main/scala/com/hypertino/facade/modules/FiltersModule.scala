@@ -11,6 +11,7 @@ import scaldi.Module
 class FiltersModule extends Module {
 
   bind [RamlFilterFactory]          identifiedBy "deny"                                 to injected[DenyFilterFactory]
+  bind [RamlFilterFactory]          identifiedBy "private"                              to injected[PrivateFilterFactory]
   bind [RamlFilterFactory]          identifiedBy "authorize"                            to injected[AuthorizeFilterFactory]
   bind [RamlFilterFactory]          identifiedBy "x-client-ip" and "x-client-language"  to injected[EnrichmentFilterFactory]
   bind [RamlFilterFactory]          identifiedBy "rewrite"                              to injected[RewriteFilterFactory]
