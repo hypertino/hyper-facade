@@ -7,7 +7,7 @@ import akka.actor._
 import akka.pattern.pipe
 import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.metrics.MetricKeys
-import com.hypertino.facade.model.{ClientSpecificMethod, ContextWithRequest}
+import com.hypertino.facade.model.{ClientSpecificMethod, RequestContext}
 import com.hypertino.facade.raml.Method
 import com.hypertino.facade.utils.FutureUtils
 import com.hypertino.facade.workers.RequestProcessor
@@ -37,7 +37,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
   val scheduler = inject[monix.execution.Scheduler] // don't make this implicit
 
   def receive: Receive = stopStartSubscription orElse {
-    case cwr: ContextWithRequest ⇒
+    case cwr: RequestContext ⇒
       implicit val ec = scheduler
       processRequestToFacade(cwr) pipeTo websocketWorker
   }
@@ -47,7 +47,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       continueSubscription(cwr, subscriptionSyncTries)
   }
 
-  def subscribing(cwr: ContextWithRequest, subscriptionSyncTries: Int, stashedEvents: Vector[StashedEvent]): Receive = {
+  def subscribing(cwr: RequestContext, subscriptionSyncTries: Int, stashedEvents: Vector[StashedEvent]): Receive = {
     case event: DynamicRequest ⇒
       processEventWhileSubscribing(cwr, event, subscriptionSyncTries, stashedEvents)
 
@@ -80,7 +80,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       continueSubscription(cwr, subscriptionSyncTries + 1)
   }
 
-  def waitForUnstash(cwr: ContextWithRequest,
+  def waitForUnstash(cwr: RequestContext,
                      lastRevision: Option[Long],
                      subscriptionSyncTries: Int,
                      stashedEvents: Vector[StashedEvent],
@@ -114,7 +114,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       continueSubscription(cwr, subscriptionSyncTries + 1)
   }
 
-  def subscribedReliable(cwr: ContextWithRequest, lastRevisionId: Long, subscriptionSyncTries: Int, subscriber: Observer[DynamicRequest]): Receive = {
+  def subscribedReliable(cwr: RequestContext, lastRevisionId: Long, subscriptionSyncTries: Int, subscriber: Observer[DynamicRequest]): Receive = {
     case event: DynamicRequest ⇒
       processReliableEvent(cwr, event, lastRevisionId, subscriptionSyncTries, subscriber)
 
@@ -122,20 +122,20 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       continueSubscription(cwr, subscriptionSyncTries + 1)
   }
 
-  def subscribedUnreliable(cwr: ContextWithRequest): Receive = {
+  def subscribedUnreliable(cwr: RequestContext): Receive = {
     case event: DynamicRequest ⇒
       processUnreliableEvent(cwr, event)
   }
 
   def stopStartSubscription: Receive = {
-    case cwr: ContextWithRequest if cwr.originalHeaders.method == ClientSpecificMethod.SUBSCRIBE ⇒
+    case cwr: RequestContext if cwr.originalHeaders.method == ClientSpecificMethod.SUBSCRIBE ⇒
       startSubscription(cwr, 0)
 
-    case cwr: ContextWithRequest if cwr.originalHeaders.method == ClientSpecificMethod.UNSUBSCRIBE ⇒
+    case cwr: RequestContext if cwr.originalHeaders.method == ClientSpecificMethod.UNSUBSCRIBE ⇒
       context.stop(self)
   }
 
-  def startSubscription(cwr: ContextWithRequest, subscriptionSyncTries: Int): Unit = {
+  def startSubscription(cwr: RequestContext, subscriptionSyncTries: Int): Unit = {
     if (log.isTraceEnabled) {
       log.trace(s"Starting subscription #$subscriptionSyncTries for ${cwr.originalHeaders.hrl}") // todo: shortcut to originalHeaders.hrl ?
     }
@@ -157,7 +157,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     } pipeTo self
   }
 
-  def continueSubscription(cwr: ContextWithRequest,
+  def continueSubscription(cwr: RequestContext,
                            subscriptionSyncTries: Int): Unit = {
 
     context.become(subscribing(cwr, subscriptionSyncTries, Vector.empty) orElse stopStartSubscription)
@@ -187,7 +187,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     } pipeTo self
   }
 
-  def processEventWhileSubscribing(cwr: ContextWithRequest, event: DynamicRequest, subscriptionSyncTries: Int, stashedEvents: Vector[StashedEvent]): Unit = {
+  def processEventWhileSubscribing(cwr: RequestContext, event: DynamicRequest, subscriptionSyncTries: Int, stashedEvents: Vector[StashedEvent]): Unit = {
     if (log.isTraceEnabled) {
       log.trace(s"Processing event while subscribing $event for ${cwr.originalHeaders.hrl}")
     }
@@ -207,7 +207,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     }
   }
 
-  def processResourceState(cwr: ContextWithRequest, resourceState: DynamicResponse, subscriptionSyncTries: Int) = {
+  def processResourceState(cwr: RequestContext, resourceState: DynamicResponse, subscriptionSyncTries: Int) = {
     if (log.isTraceEnabled) {
       log.trace(s"Processing resource state $resourceState for ${cwr.originalHeaders.hrl}")
     }
@@ -239,7 +239,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     } pipeTo self
   }
 
-  def processUnreliableEvent(cwr: ContextWithRequest, event: DynamicRequest): Unit = {
+  def processUnreliableEvent(cwr: RequestContext, event: DynamicRequest): Unit = {
     if (log.isTraceEnabled) {
       log.trace(s"Processing unreliable event $event for ${cwr.originalHeaders.hrl}")
     }
@@ -258,7 +258,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     }
   }
 
-  def processReliableEvent(cwr: ContextWithRequest,
+  def processReliableEvent(cwr: RequestContext,
                            event: DynamicRequest,
                            lastRevisionId: Long,
                            subscriptionSyncTries: Int,
@@ -314,7 +314,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     }
   }
 
-  def reliableEventsObserver(cwr: ContextWithRequest): Observer[DynamicRequest] = BufferedSubscriber.synchronous({
+  def reliableEventsObserver(cwr: RequestContext): Observer[DynamicRequest] = BufferedSubscriber.synchronous({
     new Subscriber[DynamicRequest] {
       override def scheduler: execution.Scheduler = FeedSubscriptionActor.this.scheduler
 
@@ -372,7 +372,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 case class BecomeReliable(lastRevision: Long)
 case object BecomeUnreliable
 case object RestartSubscription
-case class BeforeFilterComplete(cwr: ContextWithRequest)
+case class BeforeFilterComplete(cwr: RequestContext)
 case class StashedEvent(event: DynamicRequest)
 case object UnstashingCompleted
 

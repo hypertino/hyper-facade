@@ -9,8 +9,8 @@ import com.hypertino.hyperbus.model.{DynamicRequest, HRL}
 import scala.concurrent.{ExecutionContext, Future}
 
 class RewriteRequestFilter(uri: String, protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
-  override def apply(contextWithRequest: ContextWithRequest)
-                    (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
+  override def apply(contextWithRequest: RequestContext)
+                    (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
       val request = contextWithRequest.request
       // todo: should we preserve all query fields???
@@ -23,7 +23,7 @@ class RewriteRequestFilter(uri: String, protected val predicateEvaluator: Predic
 }
 
 class RewriteEventFilter(protected val predicateEvaluator: PredicateEvaluator) extends EventFilter {
-  override def apply(contextWithRequest: ContextWithRequest, event: DynamicRequest)
+  override def apply(contextWithRequest: RequestContext, event: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     val newHrl = HrlTransformer.rewriteBackward(event.headers.hrl, event.headers.method)
     Future.successful(RequestUtils.copyWithNewHRL(event, newHrl))

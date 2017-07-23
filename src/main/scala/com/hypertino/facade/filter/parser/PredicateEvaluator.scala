@@ -20,8 +20,8 @@ object PreparedExpression {
 trait PredicateEvaluator {
   protected val log = LoggerFactory.getLogger(getClass)
 
-  def evaluate(contextWithRequest: ContextWithRequest, expression: PreparedExpression): Boolean = {
-    val context = new ValueContext(toObj(contextWithRequest)) {
+  def evaluate(contextWithRequest: RequestContext, expression: PreparedExpression): Boolean = {
+    val context = new ValueContext(preparePredicateContext(contextWithRequest)) {
       override def binaryOperation: PartialFunction[(Value, Identifier, Value), Value] = IpParser.binaryOperation
       override def customOperators = Seq(IpParser.IP_MATCHES)
     }
@@ -41,21 +41,16 @@ trait PredicateEvaluator {
     result
   }
 
-  protected def toObj(contextWithRequest: ContextWithRequest): Obj = {
-    val valueMap = Map.newBuilder[String, Value]
+  protected def preparePredicateContext(contextWithRequest: RequestContext): Obj = {
     val request = contextWithRequest.request
-
-    val contextMap = Map[String, Value](
-      ContextStorage.AUTH_USER → contextWithRequest.authUser.toValue,
-      ContextStorage.IS_AUTHORIZED → contextWithRequest.isAuthorized.toValue,
-      "ip" → contextWithRequest.remoteAddress
+    Obj.from(
+      "context" → contextWithRequest.contextStorage,
+      "headers" → Obj(request.headers),
+      "location" → request.headers.hrl.location,
+      "query" → request.headers.hrl.query,
+      "body" → request.body.content,
+      "remote_address" → contextWithRequest.remoteAddress
     )
-    valueMap += ("context" → contextMap)
-    valueMap += ("headers" → Obj(request.headers)) // todo: translate 'short' headers!
-    valueMap += "location" → request.headers.hrl.location
-    valueMap += "query" → request.headers.hrl.query
-    valueMap += "body" → request.body.content
-    Obj(valueMap.result())
   }
 }
 

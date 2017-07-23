@@ -7,7 +7,7 @@ import com.hypertino.facade.model.FacadeHeaders
 import com.hypertino.hyperbus.model.headers.PlainHeadersConverter
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Headers}
 import com.hypertino.hyperbus.serialization.{JsonContentTypeConverter, MessageReader}
-import com.hypertino.hyperbus.util.IdGenerator
+import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode}
 import spray.can.websocket.frame.{Frame, TextFrame}
 import spray.http.HttpCharsets._
@@ -64,7 +64,7 @@ object MessageTransformer {
         headers
       }
       .getOrElse {
-        val messageId = IdGenerator.create()
+        val messageId = SeqGenerator.create()
         Headers
           .builder
           .++=(headers)

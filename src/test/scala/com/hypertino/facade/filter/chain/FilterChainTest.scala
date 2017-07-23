@@ -22,24 +22,21 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
 
   class TestRequestFilter extends RequestFilter {
     override protected def predicateEvaluator: PredicateEvaluator = DefaultPredicateEvaluator
-    override def  apply(contextWithRequest: ContextWithRequest)
-             (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
+    override def  apply(contextWithRequest: RequestContext)
+             (implicit ec: ExecutionContext): Future[RequestContext] = {
       if (contextWithRequest.request.headers.hrl.location != "/interrupted") {
         Future(contextWithRequest)
       }
       else {
         implicit val mcx = contextWithRequest.request
-        Future.failed(new FilterInterruptException(
-          response = Forbidden(ErrorBody("Forbidden")),
-          message = "Forbidden by filter"
-        ))
+        Future.failed(Forbidden(ErrorBody("Forbidden")))
       }
     }
   }
 
   class TestResponseFilter extends ResponseFilter {
     override protected def predicateEvaluator: PredicateEvaluator = DefaultPredicateEvaluator
-    override def apply(contextWithRequest: ContextWithRequest, output: DynamicResponse)
+    override def apply(contextWithRequest: RequestContext, output: DynamicResponse)
                       (implicit ec: ExecutionContext): Future[DynamicResponse] = {
       if (contextWithRequest.request.headers.hrl.location != "/interrupted") {
         Future(output)
@@ -60,17 +57,15 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
     "request filters with interruption" in {
       val request = DynamicRequest(HRL("/interrupted"), Method.GET, DynamicBody(Text("test body")))
 
-      val interrupt = intercept[FilterInterruptException] {
-        filterChain.filterRequest(ContextWithRequest(request)).awaitFuture
+      intercept[Forbidden[ErrorBody]] {
+        filterChain.filterRequest(RequestContext(request)).awaitFuture
       }
-
-      interrupt.response shouldBe a[Forbidden[_]]
     }
 
     "request filters" in {
       val request = DynamicRequest(HRL("/successfull"), Method.GET, DynamicBody(Text("test body")))
 
-      val filteredRequest = filterChain.filterRequest(ContextWithRequest(request)).futureValue.request
+      val filteredRequest = filterChain.filterRequest(RequestContext(request)).futureValue.request
 
       filteredRequest.body shouldBe DynamicBody(Text("test body"))
       filteredRequest.headers.hrl shouldBe HRL("/successfull")
@@ -82,7 +77,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       val response = Created(DynamicBody("response body"))
 
       val interrupt = intercept[FilterInterruptException] {
-        filterChain.filterResponse(ContextWithRequest(request), response).awaitFuture
+        filterChain.filterResponse(RequestContext(request), response).awaitFuture
       }
 
       interrupt.response.body.content shouldBe Null
@@ -94,7 +89,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       val request = DynamicRequest(HRL("/successfull"), Method.GET, DynamicBody(Text("test body")))
       val response = Created(DynamicBody("response body"))
 
-      val filteredResponse = filterChain.filterResponse(ContextWithRequest(request), response).futureValue
+      val filteredResponse = filterChain.filterResponse(RequestContext(request), response).futureValue
 
       filteredResponse.body.content shouldBe Text("response body")
       filteredResponse.headers shouldNot contain("x-http-header" → Text("Accept-Language"))

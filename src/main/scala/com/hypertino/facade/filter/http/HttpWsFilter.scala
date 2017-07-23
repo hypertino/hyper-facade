@@ -19,7 +19,7 @@ class HttpWsResponseFilter(config: Config,
                            protected val predicateEvaluator: PredicateEvaluator) extends ResponseFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
-  override def apply(contextWithRequest: ContextWithRequest, response: DynamicResponse)
+  override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     Future {
       //todo: implement rewriting back
@@ -34,7 +34,7 @@ class HttpWsResponseFilter(config: Config,
 class WsEventFilter(config: Config, ramlConfig: RamlConfiguration,
                     protected val predicateEvaluator: PredicateEvaluator) extends EventFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
-  override def apply(contextWithRequest: ContextWithRequest, request: DynamicRequest)
+  override def apply(contextWithRequest: RequestContext, request: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     Future {
       //val uriTransformer = chain(rewriteLinkToOriginal(_: HRL, rewriteCountLimit), addRootPathPrefix(ramlConfig.baseUri))

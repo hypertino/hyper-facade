@@ -1,9 +1,10 @@
 package com.hypertino.facade.filter.raml
 
+import com.hypertino.binders.value.Obj
 import com.hypertino.facade.filter.chain.{FilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.PredicateEvaluator
-import com.hypertino.facade.model.{ContextStorage, ContextWithRequest}
+import com.hypertino.facade.model.{ContextStorage, RequestContext}
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
@@ -11,10 +12,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class AuthorizeRequestFilter(protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
 
-  override def apply(contextWithRequest: ContextWithRequest)
-                    (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
+  override def apply(contextWithRequest: RequestContext)
+                    (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
-      val updatedContextStorage = contextWithRequest.contextStorage + (ContextStorage.IS_AUTHORIZED → true)
+      val updatedContextStorage = contextWithRequest.contextStorage + Obj.from(ContextStorage.IS_AUTHORIZED → true)
       contextWithRequest.copy (
         contextStorage = updatedContextStorage
       )

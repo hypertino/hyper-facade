@@ -1,9 +1,7 @@
 package com.hypertino.facade.workers
 
 import akka.pattern.AskTimeoutException
-import com.hypertino.binders.value.Obj
 import com.hypertino.facade.FacadeConfigPaths
-import com.typesafe.config.Config
 import com.hypertino.facade.filter.chain.FilterChain
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
@@ -12,14 +10,14 @@ import com.hypertino.facade.utils.FutureUtils
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.transport.api.NoTransportRouteException
-import com.hypertino.hyperbus.util.IdGenerator
+import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import com.hypertino.metrics.MetricsTracker
+import com.typesafe.config.Config
 import monix.execution.Scheduler
 import org.slf4j.Logger
 import scaldi.{Injectable, Injector}
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Try}
+import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 trait RequestProcessor extends Injectable {
@@ -35,7 +33,7 @@ trait RequestProcessor extends Injectable {
   val metrics = inject[MetricsTracker]
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
-  def processRequestToFacade(cwr: ContextWithRequest): Future[DynamicResponse] = {
+  def processRequestToFacade(cwr: RequestContext): Future[DynamicResponse] = {
     try {
       metrics.timeOfFuture(MetricKeys.REQUEST_PROCESS_TIME) {
         beforeFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
@@ -61,7 +59,7 @@ trait RequestProcessor extends Injectable {
     }
   }
 
-  def processRequestWithRaml(cwr: ContextWithRequest): Future[ContextWithRequest] = {
+  def processRequestWithRaml(cwr: RequestContext): Future[RequestContext] = {
     if (cwr.stages.size > rewriteCountLimit) {
       Future.failed(
         new RewriteLimitReachedException(cwr.stages.size, rewriteCountLimit)
@@ -84,7 +82,7 @@ trait RequestProcessor extends Injectable {
     }
   }
 
-  def prepareContextAndRequestBeforeRaml(cwr: ContextWithRequest) = {
+  def prepareContextAndRequestBeforeRaml(cwr: RequestContext) = {
     val facadeRequestWithRamlUri = withRamlResource(cwr.request)
     cwr.withNextStage(facadeRequestWithRamlUri)
   }
@@ -98,7 +96,7 @@ trait RequestProcessor extends Injectable {
     request.copy(headers = RequestHeaders(newHeaders))
   }
 
-  def handleHyperbusExceptions(cwr: ContextWithRequest) : PartialFunction[Throwable, DynamicResponse] = {
+  def handleHyperbusExceptions(cwr: RequestContext) : PartialFunction[Throwable, DynamicResponse] = {
     case hyperbusError: HyperbusError[ErrorBody] ⇒
       hyperbusError
 
@@ -109,7 +107,7 @@ trait RequestProcessor extends Injectable {
 
     case _: AskTimeoutException ⇒
       implicit val mcf = cwr.request
-      val errorId = IdGenerator.create()
+      val errorId = SeqGenerator.create()
       log.error(s"Timeout #$errorId while handling ${cwr.originalHeaders.hrl.location}")
       GatewayTimeout(ErrorBody("service-timeout", Some(s"Timeout while serving '${cwr.originalHeaders.hrl.location}'"), errorId = errorId))
 
@@ -117,7 +115,7 @@ trait RequestProcessor extends Injectable {
       handleInternalError(nonFatal, cwr)
   }
 
-  def handleFilterExceptions[T](cwr: ContextWithRequest)(func: DynamicResponse ⇒ T) : PartialFunction[Throwable, T] = {
+  def handleFilterExceptions[T](cwr: RequestContext)(func: DynamicResponse ⇒ T) : PartialFunction[Throwable, T] = {
     case e: FilterInterruptException ⇒
       if (e.getCause != null) {
         log.error(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
@@ -129,19 +127,15 @@ trait RequestProcessor extends Injectable {
 
     case e: RamlStrictConfigException ⇒
       implicit val mcf = cwr.request
-      val errorId = IdGenerator.create()
+      val errorId = SeqGenerator.create()
       log.info(s"Exception #$errorId while handling ${cwr.originalHeaders.hrl.location}", e)
       func(NotFound(ErrorBody("not-found", Some("Resource is not found"), errorId = errorId)))
 
-    case hyperbusError: HyperbusError[ErrorBody] ⇒
-      func(hyperbusError)
-
-    case NonFatal(nonFatal) ⇒
-      val response = handleInternalError(nonFatal, cwr)
-      func(response)
+    case NonFatal(e) ⇒
+      func(handleHyperbusExceptions(cwr)(e))
   }
 
-  def handleInternalError(exception: Throwable, cwr: ContextWithRequest): DynamicResponse = {
+  def handleInternalError(exception: Throwable, cwr: RequestContext): DynamicResponse = {
     implicit val mcf = cwr.request
     val errorId = IdGenerator.create()
     log.error(s"Exception #$errorId while handling ${cwr.originalHeaders.hrl.location}", exception)

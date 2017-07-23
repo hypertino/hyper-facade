@@ -1,11 +1,11 @@
 package com.hypertino.facade.filter.model
 
-import com.hypertino.facade.model.ContextWithRequest
+import com.hypertino.facade.model.RequestContext
 
 import scala.concurrent.{ExecutionContext, Future}
 
 
 trait RequestFilter extends Filter {
-  def apply(contextWithRequest: ContextWithRequest)
-           (implicit ec: ExecutionContext): Future[ContextWithRequest]
+  def apply(contextWithRequest: RequestContext)
+           (implicit ec: ExecutionContext): Future[RequestContext]
 }

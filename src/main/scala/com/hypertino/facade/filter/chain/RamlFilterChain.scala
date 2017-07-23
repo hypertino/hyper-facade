@@ -7,13 +7,13 @@ import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 
 class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
 
-  def findRequestFilters(contextWithRequest: ContextWithRequest): Seq[RequestFilter] = {
+  def findRequestFilters(contextWithRequest: RequestContext): Seq[RequestFilter] = {
     val request = contextWithRequest.request
     val filters = requestOrEventFilters(request.headers.hrl.location, request.headers.method, request.headers.contentType).requestFilters
     filters
   }
 
-  def findResponseFilters(context: ContextWithRequest, response: DynamicResponse): Seq[ResponseFilter] = {
+  def findResponseFilters(context: RequestContext, response: DynamicResponse): Seq[ResponseFilter] = {
     val method = context.originalHeaders.method
     val result = filtersOrMethod(context.originalHeaders.hrl.location, method) match {
       case Left(filters) ⇒
@@ -36,7 +36,7 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
     result.responseFilters
   }
 
-  def findEventFilters(context: ContextWithRequest, event: DynamicRequest): Seq[EventFilter] = {
+  def findEventFilters(context: RequestContext, event: DynamicRequest): Seq[EventFilter] = {
     val uri = context.originalHeaders.hrl.location // event.uri.pattern.specific
     requestOrEventFilters(uri, event.headers.method, event.headers.contentType).eventFilters
   }

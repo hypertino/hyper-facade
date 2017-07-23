@@ -14,7 +14,7 @@ import scala.util.{Failure, Success, Try}
 
 class PrivateResponseFilter(field: Field, protected val predicateEvaluator: PredicateEvaluator) extends ResponseFilter with PrivateFilter {
 
-  override def apply(contextWithRequest: ContextWithRequest, response: DynamicResponse)
+  override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     Future {
       StandardResponse(body = DynamicBody(filterBody(field, response.body.content, contextWithRequest)), response.headers)
@@ -24,7 +24,7 @@ class PrivateResponseFilter(field: Field, protected val predicateEvaluator: Pred
 }
 
 class PrivateEventFilter(field: Field, protected val predicateEvaluator: PredicateEvaluator) extends EventFilter with PrivateFilter {
-  override def apply(contextWithRequest: ContextWithRequest, event: DynamicRequest)
+  override def apply(contextWithRequest: RequestContext, event: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     Future {
       DynamicRequest(DynamicBody(filterBody(field, event.body.content, contextWithRequest)), contextWithRequest.request.headers)
@@ -33,7 +33,7 @@ class PrivateEventFilter(field: Field, protected val predicateEvaluator: Predica
 }
 
 trait PrivateFilter extends Filter {
-  protected def filterBody(field: Field, body: Value, contextWithRequest: ContextWithRequest): Value = {
+  protected def filterBody(field: Field, body: Value, contextWithRequest: RequestContext): Value = {
     body match {
       case _: Obj ⇒
         val filteredFields = filterFields(field, body.content.toMap, contextWithRequest)
@@ -44,7 +44,7 @@ trait PrivateFilter extends Filter {
     }
   }
 
-  protected def filterFields(ramlField: Field, fields: scala.collection.Map[String, Value], contextWithRequest: ContextWithRequest): scala.collection.Map[String, Value] = {
+  protected def filterFields(ramlField: Field, fields: scala.collection.Map[String, Value], contextWithRequest: RequestContext): scala.collection.Map[String, Value] = {
     if (isPrivateField(ramlField, contextWithRequest))
       erasePrivateField(ramlField.name, fields)
     else
@@ -65,7 +65,7 @@ trait PrivateFilter extends Filter {
   }
 
 
-  protected def isPrivateField(field: Field, contextWithRequest: ContextWithRequest): Boolean = {
+  protected def isPrivateField(field: Field, contextWithRequest: RequestContext): Boolean = {
     field.annotations.find(_.name == RamlAnnotation.DENY) match {
       case Some(DenyAnnotation(_, predicateOpt)) ⇒
         predicateOpt match {

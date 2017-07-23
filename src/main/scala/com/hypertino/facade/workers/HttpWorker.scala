@@ -34,7 +34,7 @@ class HttpWorker(implicit val injector: Injector) extends RequestProcessor {
   def processRequest(request: HttpRequest, remoteAddress: String): Future[HttpResponse] = {
     trackHeartbeat.mark()
     val dynamicRequest = MessageTransformer.httpToRequest(request, remoteAddress)
-    processRequestToFacade(ContextWithRequest(dynamicRequest)) map { response ⇒
+    processRequestToFacade(com.hypertino.facade.model.RequestContext(dynamicRequest)) map { response ⇒
       MessageTransformer.messageToHttpResponse(response)
     }
   }

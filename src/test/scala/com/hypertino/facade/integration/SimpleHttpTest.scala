@@ -25,7 +25,7 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
         }
       }
 
-      Source.fromURL("http://localhost:54321/simple-resource", "UTF-8").mkString shouldBe """{"integerField":100500,"textField":"Yey"}"""
+      Source.fromURL("http://localhost:54321/simple-resource", "UTF-8").mkString shouldBe """{"textField":"Yey","integerField":100500}"""
     }
 
     "get resource with pattern" in {
@@ -41,7 +41,7 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
         }
       }
 
-      Source.fromURL("http://localhost:54321/simple-resource/100500", "UTF-8").mkString shouldBe """{"integerField":100500,"textField":"Yey"}"""
+      Source.fromURL("http://localhost:54321/simple-resource/100500", "UTF-8").mkString shouldBe """{"textField":"Yey","integerField":100500}"""
     }
   }
 }

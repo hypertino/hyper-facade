@@ -2,7 +2,7 @@ package com.hypertino.facade.workers
 
 import akka.actor.ActorRef
 import com.hypertino.facade.filter.chain.FilterChain
-import com.hypertino.facade.model.ContextWithRequest
+import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.utils.MessageTransformer
 import com.hypertino.hyperbus.model.DynamicRequest
 import spray.can.websocket.frame.TextFrame
@@ -26,7 +26,7 @@ abstract class WsTestWorker(filterChain: FilterChain) extends HttpServiceActor w
     case frame: TextFrame =>
       val facadeRequest = MessageTransformer.frameToRequest(frame, "127.0.0.1", null) // todo: http request mock
       // val context = mockContext(facadeRequest)
-      filterChain.filterRequest(ContextWithRequest(facadeRequest)) map { filteredCWR ⇒
+      filterChain.filterRequest(RequestContext(facadeRequest)) map { filteredCWR ⇒
         exposeFacadeRequest(filteredCWR.request)
       }
   }

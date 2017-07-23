@@ -2,12 +2,12 @@ package com.hypertino.facade.filter.model
 
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.parser.{PredicateEvaluator, PreparedExpression}
-import com.hypertino.facade.model.ContextWithRequest
+import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.raml.{Field, RamlAnnotation}
 
 trait Filter {
   protected def predicateEvaluator: PredicateEvaluator
-  def evaluatePredicate(contextWithRequest: ContextWithRequest, expression: PreparedExpression): Boolean = {
+  def evaluatePredicate(contextWithRequest: RequestContext, expression: PreparedExpression): Boolean = {
     predicateEvaluator.evaluate(contextWithRequest, expression)
   }
 }

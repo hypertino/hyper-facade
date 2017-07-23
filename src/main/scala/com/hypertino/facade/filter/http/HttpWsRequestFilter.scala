@@ -15,7 +15,7 @@ import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.model.hrl.PlainQueryConverter
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.hyperbus.transport.api.matchers.Specific
-import com.hypertino.hyperbus.util.IdGenerator
+import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import monix.execution.Scheduler
 import scaldi.Injector
 
@@ -25,8 +25,8 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
                           protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
-  override def apply(contextWithRequest: ContextWithRequest)
-                    (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
+  override def apply(contextWithRequest: RequestContext)
+                    (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
       try {
         val request = contextWithRequest.request
@@ -57,7 +57,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
         }
 
         if (!messageIdFound) {
-          headersBuilder += Header.MESSAGE_ID → IdGenerator.create()
+          headersBuilder += Header.MESSAGE_ID → SeqGenerator.create()
         }
 
         headersBuilder.withHRL(hrl)
@@ -71,11 +71,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
       } catch {
         case e: MalformedURLException ⇒
           implicit val mcx = contextWithRequest.request
-          val error = NotFound(ErrorBody("not-found"))
-          throw new FilterInterruptException(
-            error,
-            message = e.getMessage
-          )
+          throw NotFound(ErrorBody("not-found", Some(e.getMessage)))
       }
     }
   }

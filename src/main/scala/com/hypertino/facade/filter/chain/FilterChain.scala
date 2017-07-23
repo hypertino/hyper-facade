@@ -8,24 +8,24 @@ import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 import scala.concurrent.{ExecutionContext, Future}
 
 trait FilterChain {
-  def filterRequest(contextWithRequest: ContextWithRequest)
-                   (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
+  def filterRequest(contextWithRequest: RequestContext)
+                   (implicit ec: ExecutionContext): Future[RequestContext] = {
     FutureUtils.chain(contextWithRequest, findRequestFilters(contextWithRequest).map(f ⇒ f.apply(_)))
   }
 
-  def filterResponse(contextWithRequest: ContextWithRequest, response: DynamicResponse)
+  def filterResponse(contextWithRequest: RequestContext, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     FutureUtils.chain(response, findResponseFilters(contextWithRequest, response).map(f ⇒ f.apply(contextWithRequest, _ : DynamicResponse)))
   }
 
-  def filterEvent(contextWithRequest: ContextWithRequest, event: DynamicRequest)
+  def filterEvent(contextWithRequest: RequestContext, event: DynamicRequest)
                  (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     FutureUtils.chain(event, findEventFilters(contextWithRequest, event).map(f ⇒ f.apply(contextWithRequest, _ : DynamicRequest)))
   }
 
-  def findRequestFilters(contextWithRequest: ContextWithRequest): Seq[RequestFilter]
-  def findResponseFilters(context: ContextWithRequest, response: DynamicResponse): Seq[ResponseFilter]
-  def findEventFilters(context: ContextWithRequest, event: DynamicRequest): Seq[EventFilter]
+  def findRequestFilters(contextWithRequest: RequestContext): Seq[RequestFilter]
+  def findResponseFilters(context: RequestContext, response: DynamicResponse): Seq[ResponseFilter]
+  def findEventFilters(context: RequestContext, event: DynamicRequest): Seq[EventFilter]
 }
 
 object FilterChain {

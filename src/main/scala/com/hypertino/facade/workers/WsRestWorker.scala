@@ -126,7 +126,7 @@ class WsRestWorker(val serverConnection: ActorRef,
 
   def processRequest(request: DynamicRequest): Unit = {
     val actorName = "Subscr-" + request.correlationId
-    val contextWithRequest = ContextWithRequest(request)
+    val contextWithRequest = RequestContext(request)
     context.child(actorName) match {
       case Some(actor) ⇒ actor.forward(contextWithRequest)
       case None ⇒ context.actorOf(FeedSubscriptionActor.props(self, hyperbus, subscriptionManager), actorName) ! contextWithRequest

@@ -10,8 +10,8 @@ import scala.util.{Failure, Success, Try}
 
 case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: RequestFilter,
                                          protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
-  override def apply(contextWithRequest: ContextWithRequest)
-                    (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
+  override def apply(contextWithRequest: RequestContext)
+                    (implicit ec: ExecutionContext): Future[RequestContext] = {
     annotation.predicate match {
       case Some(p) ⇒
         Try(filter.evaluatePredicate(contextWithRequest, p)) match {
@@ -30,7 +30,7 @@ case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: Req
 
 case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: ResponseFilter,
                                           protected val predicateEvaluator: PredicateEvaluator) extends ResponseFilter {
-  override def apply(contextWithRequest: ContextWithRequest, response: DynamicResponse)
+  override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     annotation.predicate match {
       case Some(p) ⇒
@@ -51,7 +51,7 @@ case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: Re
 
 case class ConditionalEventFilterProxy(annotation: RamlAnnotation, filter: EventFilter,
                                        protected val predicateEvaluator: PredicateEvaluator) extends EventFilter {
-  override def apply(contextWithRequest: ContextWithRequest, event: DynamicRequest)
+  override def apply(contextWithRequest: RequestContext, event: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     annotation.predicate match {
       case Some(p) ⇒

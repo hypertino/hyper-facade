@@ -11,9 +11,9 @@ case class SimpleFilterChain(
                               eventFilters: Seq[EventFilter] = Seq.empty
                        ) extends FilterChain {
 
-  override def findRequestFilters(contextWithRequest: ContextWithRequest): Seq[RequestFilter] = requestFilters
-  override def findResponseFilters(context: ContextWithRequest, response: DynamicResponse): Seq[ResponseFilter] = responseFilters
-  override def findEventFilters(context: ContextWithRequest, event: DynamicRequest): Seq[EventFilter] = eventFilters
+  override def findRequestFilters(contextWithRequest: RequestContext): Seq[RequestFilter] = requestFilters
+  override def findResponseFilters(context: RequestContext, response: DynamicResponse): Seq[ResponseFilter] = responseFilters
+  override def findEventFilters(context: RequestContext, event: DynamicRequest): Seq[EventFilter] = eventFilters
 
   def ++(other: SimpleFilterChain): SimpleFilterChain = {
     SimpleFilterChain(

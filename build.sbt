@@ -1,3 +1,4 @@
+
 crossScalaVersions := Seq(/*"2.12.1", */"2.11.8")
 
 scalaVersion in Global := "2.11.8"
@@ -51,3 +52,16 @@ libraryDependencies ++= Seq(
 fork in Test := true
 
 parallelExecution in Test := false
+
+ramlHyperbusSources := Seq(
+  ramlSource(
+    path = "api/auth-service-api/auth.raml",
+    packageName = "com.hypertino.facade.apiref.auth",
+    isResource = false
+  ),
+  ramlSource(
+    path = "api/user-service-api/user.raml",
+    packageName = "com.hypertino.facade.apiref.user",
+    isResource = false
+  )
+)

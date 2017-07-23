@@ -14,8 +14,8 @@ import scala.collection.Map
 import scala.concurrent.{ExecutionContext, Future}
 
 class EnrichRequestFilter(field: Field, protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
-  override def apply(contextWithRequest: ContextWithRequest)
-                    (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
+  override def apply(contextWithRequest: RequestContext)
+                    (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
       val request = contextWithRequest.request
       val enrichedFields = enrichFields(field, request.body.content.toMap, contextWithRequest)
@@ -25,7 +25,7 @@ class EnrichRequestFilter(field: Field, protected val predicateEvaluator: Predic
     }
   }
 
-  private def enrichFields(ramlField: Field, fields: Map[String, Value], context: ContextWithRequest): Map[String, Value] = {
+  private def enrichFields(ramlField: Field, fields: Map[String, Value], context: RequestContext): Map[String, Value] = {
       val annotations = ramlField.annotations
       annotations.foldLeft(fields) { (enrichedFields, annotation) ⇒
         annotation.name match {

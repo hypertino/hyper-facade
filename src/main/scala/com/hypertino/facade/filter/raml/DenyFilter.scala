@@ -9,15 +9,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class DenyRequestFilter(protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
 
-  override def apply(contextWithRequest: ContextWithRequest)
-                    (implicit ec: ExecutionContext): Future[ContextWithRequest] = {
-    Future {
+  override def apply(contextWithRequest: RequestContext)
+                    (implicit ec: ExecutionContext): Future[RequestContext] = {
+    Future.failed {
       implicit val mcx = contextWithRequest.request
-      val error = Forbidden(ErrorBody("forbidden"))
-      throw new FilterInterruptException(
-        error,
-        s"Access to resource ${contextWithRequest.request.headers.hrl} is forbidden"
-      )
+      Forbidden(ErrorBody("forbidden", Some(s"Access to resource ${contextWithRequest.request.headers.hrl} is forbidden")))
     }
   }
 }
