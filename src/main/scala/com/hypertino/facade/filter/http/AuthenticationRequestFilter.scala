@@ -45,17 +45,17 @@ class AuthenticationRequestFilter(implicit inj: Injector) extends RequestFilter 
   }
 
   def handleHyperbusExceptions(implicit authRequest: AuthenticationRequest): PartialFunction[Throwable, ContextWithRequest] = {
-    case hyperbusException: NotFound[ErrorBody] ⇒
+    case _: NotFound[ErrorBody] ⇒
       val errorId = IdGenerator.create()
       throw new FilterInterruptException(
         Unauthorized(ErrorBody("unauthorized", errorId = errorId)),
         s"User with credentials ${authRequest.body.credentials} is not authorized!"
       )
 
-    case hyperbusException: InternalServerError[ErrorBody] ⇒
+    case hyperbusException: HyperbusError[ErrorBody] ⇒
       throw new FilterInterruptException(
         hyperbusException,
-        s"Internal error in authorization service"
+        s"Unhandled exception in authorization service"
       )
 
     case noRoute: NoTransportRouteException ⇒

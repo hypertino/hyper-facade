@@ -133,6 +133,9 @@ trait RequestProcessor extends Injectable {
       log.info(s"Exception #$errorId while handling ${cwr.originalHeaders.hrl.location}", e)
       func(NotFound(ErrorBody("not-found", Some("Resource is not found"), errorId = errorId)))
 
+    case hyperbusError: HyperbusError[ErrorBody] ⇒
+      func(hyperbusError)
+
     case NonFatal(nonFatal) ⇒
       val response = handleInternalError(nonFatal, cwr)
       func(response)
