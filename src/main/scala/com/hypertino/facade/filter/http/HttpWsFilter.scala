@@ -4,7 +4,7 @@ import com.hypertino.facade.FacadeConfigPaths
 import com.typesafe.config.Config
 import com.hypertino.binders.value._
 import com.hypertino.facade.filter.model.{EventFilter, ResponseFilter}
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.FunctionUtils.chain
@@ -16,7 +16,7 @@ import spray.http.HttpHeaders
 import scala.concurrent.{ExecutionContext, Future}
 
 class HttpWsResponseFilter(config: Config,
-                           protected val predicateEvaluator: PredicateEvaluator) extends ResponseFilter {
+                           protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
   override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
@@ -32,7 +32,7 @@ class HttpWsResponseFilter(config: Config,
 }
 
 class WsEventFilter(config: Config, ramlConfig: RamlConfiguration,
-                    protected val predicateEvaluator: PredicateEvaluator) extends EventFilter {
+                    protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
   override def apply(contextWithRequest: RequestContext, request: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {

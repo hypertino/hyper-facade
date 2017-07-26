@@ -1,14 +1,14 @@
 package com.hypertino.facade.filter.model
 
 import com.hypertino.facade.filter.chain.SimpleFilterChain
-import com.hypertino.facade.filter.parser.{PredicateEvaluator, PreparedExpression}
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.raml.{Field, RamlAnnotation}
 
 trait Filter {
-  protected def predicateEvaluator: PredicateEvaluator
+  protected def expressionEvaluator: ExpressionEvaluator
   def evaluatePredicate(contextWithRequest: RequestContext, expression: PreparedExpression): Boolean = {
-    predicateEvaluator.evaluate(contextWithRequest, expression)
+    expressionEvaluator.evaluatePredicate(contextWithRequest, expression)
   }
 }
 
@@ -16,7 +16,7 @@ trait RamlFilterFactory {
   import com.hypertino.facade.filter.model.RamlTarget.annotations
 
   def createFilters(target: RamlTarget): SimpleFilterChain
-  protected def predicateEvaluator: PredicateEvaluator
+  protected def predicateEvaluator: ExpressionEvaluator
 
   final def createFilterChain(target: RamlTarget): SimpleFilterChain = {
     val rawFilterChain = createFilters(target)

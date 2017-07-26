@@ -3,14 +3,14 @@ package com.hypertino.facade.filter.raml
 import com.hypertino.binders.value.Obj
 import com.hypertino.facade.filter.chain.{FilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.model._
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model.{ContextStorage, RequestContext}
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthorizeRequestFilter(protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
+class AuthorizeRequestFilter(protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
   override def apply(contextWithRequest: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
@@ -23,7 +23,7 @@ class AuthorizeRequestFilter(protected val predicateEvaluator: PredicateEvaluato
   }
 }
 
-class AuthorizeFilterFactory(protected val predicateEvaluator: PredicateEvaluator) extends RamlFilterFactory {
+class AuthorizeFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory {
   private val log = LoggerFactory.getLogger(getClass)
 
   override def createFilters(target: RamlTarget): SimpleFilterChain = {

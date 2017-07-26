@@ -1,13 +1,13 @@
 package com.hypertino.facade.filter.raml
 
 import com.hypertino.facade.filter.model.RequestFilter
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.model.{ErrorBody, Forbidden}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class DenyRequestFilter(protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
+class DenyRequestFilter(protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
   override def apply(contextWithRequest: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {

@@ -1,19 +1,18 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Obj, Text, Value}
+import com.hypertino.binders.value.{Obj, Value}
 import com.hypertino.facade.filter.chain.{FilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.model._
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
-import com.hypertino.facade.raml.{EnrichAnnotation, Field, RamlAnnotation}
+import com.hypertino.facade.raml.{Field, SetAnnotation}
 import com.hypertino.hyperbus.model.DynamicBody
 import org.slf4j.LoggerFactory
-import scaldi.{Injectable, Injector}
 
 import scala.collection.Map
 import scala.concurrent.{ExecutionContext, Future}
 
-class EnrichRequestFilter(field: Field, protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
+class SetFieldRequestFilter(field: Field, protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
   override def apply(contextWithRequest: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
@@ -28,18 +27,9 @@ class EnrichRequestFilter(field: Field, protected val predicateEvaluator: Predic
   private def enrichFields(ramlField: Field, fields: Map[String, Value], context: RequestContext): Map[String, Value] = {
       val annotations = ramlField.annotations
       annotations.foldLeft(fields) { (enrichedFields, annotation) ⇒
-        annotation.name match {
-          case RamlAnnotation.CLIENT_IP ⇒
-            addField(ramlField.name, Text(context.remoteAddress), fields)
-
-          case RamlAnnotation.CLIENT_LANGUAGE ⇒
-            context.originalHeaders.get(FacadeHeaders.ACCEPT_LANGUAGE) match {
-              case Some(Text(value)) ⇒
-                addField(ramlField.name, Text(value), fields)  // todo: format of header?
-
-              case _ ⇒
-                enrichedFields  // do nothing, because header is missing
-            }
+        annotation match {
+          case set: SetAnnotation if set.predicate.forall(expressionEvaluator.evaluatePredicate(context, _)) ⇒
+            addField(ramlField.name, expressionEvaluator.evaluate(context,set.source), fields)
 
           case _ ⇒
             enrichedFields// do nothing, this annotation doesn't belong to enrichment filter
@@ -62,7 +52,7 @@ class EnrichRequestFilter(field: Field, protected val predicateEvaluator: Predic
   }
 }
 
-class EnrichmentFilterFactory(protected val predicateEvaluator: PredicateEvaluator) extends RamlFilterFactory {
+class SetFieldFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory {
   private val log = LoggerFactory.getLogger(getClass)
 
   override def createFilters(target: RamlTarget): SimpleFilterChain = {
@@ -74,16 +64,16 @@ class EnrichmentFilterFactory(protected val predicateEvaluator: PredicateEvaluat
           eventFilters = Seq.empty
         )
       case unknownTarget ⇒
-        log.warn(s"Annotations 'x-client-ip' and 'x-client-language' are not supported for target $unknownTarget. Empty filter chain will be created")
+        log.warn(s"Annotations 'set' is not supported for target $unknownTarget. Empty filter chain will be created")
         FilterChain.empty
     }
   }
 
-  def createRequestFilters(field: Field): Seq[EnrichRequestFilter] = {
-    field.annotations.foldLeft(Seq.newBuilder[EnrichRequestFilter]) { (filters, annotation) ⇒
+  def createRequestFilters(field: Field): Seq[SetFieldRequestFilter] = {
+    field.annotations.foldLeft(Seq.newBuilder[SetFieldRequestFilter]) { (filters, annotation) ⇒
         annotation match {
-          case EnrichAnnotation(_, _) ⇒
-            filters += new EnrichRequestFilter(field, predicateEvaluator)
+          case _: SetAnnotation ⇒
+            filters += new SetFieldRequestFilter(field, predicateEvaluator)
           case _ ⇒
             filters
         }

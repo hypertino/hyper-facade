@@ -4,7 +4,7 @@ import com.hypertino.binders.value.{Null, Obj, Text}
 import com.hypertino.facade.apiref.auth.{Validation, ValidationsPost}
 import com.hypertino.facade.apiref.user.UsersGet
 import com.hypertino.facade.filter.model.RequestFilter
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.{ExecutionContext, Future}
 
 class AuthenticationRequestFilter(hyperbus: Hyperbus,
-                                  protected val predicateEvaluator: PredicateEvaluator,
+                                  protected val expressionEvaluator: ExpressionEvaluator,
                                   protected implicit val scheduler: Scheduler) extends RequestFilter {
   protected val log = LoggerFactory.getLogger(getClass)
 

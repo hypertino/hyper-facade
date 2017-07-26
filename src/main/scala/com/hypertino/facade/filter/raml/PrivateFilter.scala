@@ -2,7 +2,7 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Obj, Value}
 import com.hypertino.facade.filter.model.{EventFilter, Filter, ResponseFilter}
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.{DenyAnnotation, Field, RamlAnnotation}
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, StandardResponse}
@@ -12,7 +12,7 @@ import scala.collection.Map
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-class PrivateResponseFilter(field: Field, protected val predicateEvaluator: PredicateEvaluator) extends ResponseFilter with PrivateFilter {
+class PrivateResponseFilter(field: Field, protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter with PrivateFilter {
 
   override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
@@ -23,7 +23,7 @@ class PrivateResponseFilter(field: Field, protected val predicateEvaluator: Pred
   }
 }
 
-class PrivateEventFilter(field: Field, protected val predicateEvaluator: PredicateEvaluator) extends EventFilter with PrivateFilter {
+class PrivateEventFilter(field: Field, protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter with PrivateFilter {
   override def apply(contextWithRequest: RequestContext, event: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     Future {

@@ -17,28 +17,32 @@ object PreparedExpression {
   def apply(source: String): PreparedExpression = PreparedExpression(source, HParser(source))
 }
 
-trait PredicateEvaluator {
+trait ExpressionEvaluator {
   protected val log = LoggerFactory.getLogger(getClass)
 
-  def evaluate(contextWithRequest: RequestContext, expression: PreparedExpression): Boolean = {
-    val context = new ValueContext(preparePredicateContext(contextWithRequest)) {
-      override def binaryOperation: PartialFunction[(Value, Identifier, Value), Value] = IpParser.binaryOperation
-      override def customOperators = Seq(IpParser.IP_MATCHES)
-    }
+  def evaluatePredicate(requestContext: RequestContext, expression: PreparedExpression): Boolean = {
     val result = try {
-      new HEval(context).eval(expression.ast).toBoolean
+      evaluate(requestContext, expression).toBoolean
     }
     catch {
       case NonFatal(ex) ⇒
-        implicit val mcx = contextWithRequest.request
+        implicit val mcx = requestContext.request
         val errorBody = ErrorBody("condition-check-failure") // todo: add check line num
         log.error(s"Predicate check '${expression.source}' failed #${errorBody.errorId}", ex)
         throw InternalServerError(errorBody)
     }
     if (log.isTraceEnabled) {
-      log.trace(s"Checking ${expression.source} is $result. Context: ${context.obj}")
+      log.trace(s"Checking ${expression.source} is $result. Context: $requestContext")
     }
     result
+  }
+
+  def evaluate(requestContext: RequestContext, expression: PreparedExpression): Value = {
+    val context = new ValueContext(preparePredicateContext(requestContext)) {
+      override def binaryOperation: PartialFunction[(Value, Identifier, Value), Value] = IpParser.binaryOperation
+      override def customOperators = Seq(IpParser.IP_MATCHES)
+    }
+    new HEval(context).eval(expression.ast)
   }
 
   protected def preparePredicateContext(contextWithRequest: RequestContext): Obj = {
@@ -54,4 +58,4 @@ trait PredicateEvaluator {
   }
 }
 
-object DefaultPredicateEvaluator extends PredicateEvaluator
+object DefaultExpressionEvaluator extends ExpressionEvaluator

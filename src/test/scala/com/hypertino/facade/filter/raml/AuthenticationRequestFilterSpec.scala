@@ -1,10 +1,11 @@
-package com.hypertino.facade
+package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Text}
+import com.hypertino.facade.TestBase
 import com.hypertino.facade.apiref.auth.{Validation, ValidationResult}
 import com.hypertino.facade.apiref.user.UsersGet
 import com.hypertino.facade.filter.http.AuthenticationRequestFilter
-import com.hypertino.facade.filter.parser.DefaultPredicateEvaluator
+import com.hypertino.facade.filter.parser.DefaultExpressionEvaluator
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.hyperbus.model.annotations.request
 import com.hypertino.hyperbus.model.{Created, DefinedResponse, DynamicBody, DynamicRequest, EmptyBody, ErrorBody, Forbidden, HRL, HeadersMap, MessagingContext, Method, Ok, Request, ResponseBase}
@@ -50,7 +51,7 @@ class AuthenticationRequestFilterSpec extends TestBase("inproc-test.conf") {
 
   "AuthenticationRequestFilter" - {
     "Set user in context" in {
-      val filter = new AuthenticationRequestFilter(hyperbus, DefaultPredicateEvaluator,scheduler)
+      val filter = new AuthenticationRequestFilter(hyperbus, DefaultExpressionEvaluator,scheduler)
       implicit val mcx = MessagingContext.Implicits.emptyContext
       val rc = RequestContext(
         DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, HeadersMap(

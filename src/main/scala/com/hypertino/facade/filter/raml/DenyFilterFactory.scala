@@ -2,12 +2,12 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.facade.filter.chain.{FilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.model._
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.raml.DenyAnnotation
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
-class DenyFilterFactory(protected val predicateEvaluator: PredicateEvaluator) extends RamlFilterFactory with Injectable {
+class DenyFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable {
   private val log = LoggerFactory.getLogger(getClass)
 
   override def createFilters(target: RamlTarget): SimpleFilterChain = {

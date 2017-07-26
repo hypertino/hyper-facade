@@ -1,14 +1,14 @@
 package com.hypertino.facade.filter.raml
 
 import com.hypertino.facade.filter.model.{EventFilter, RequestFilter}
-import com.hypertino.facade.filter.parser.PredicateEvaluator
+import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.{HrlTransformer, RequestUtils}
 import com.hypertino.hyperbus.model.{DynamicRequest, HRL}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RewriteRequestFilter(uri: String, protected val predicateEvaluator: PredicateEvaluator) extends RequestFilter {
+class RewriteRequestFilter(uri: String, protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
   override def apply(contextWithRequest: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
@@ -22,7 +22,7 @@ class RewriteRequestFilter(uri: String, protected val predicateEvaluator: Predic
   }
 }
 
-class RewriteEventFilter(protected val predicateEvaluator: PredicateEvaluator) extends EventFilter {
+class RewriteEventFilter(protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter {
   override def apply(contextWithRequest: RequestContext, event: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     val newHrl = HrlTransformer.rewriteBackward(event.headers.hrl, event.headers.method)

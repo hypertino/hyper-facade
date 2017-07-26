@@ -9,8 +9,7 @@ trait RamlAnnotation {
 }
 
 object RamlAnnotation {
-  val CLIENT_LANGUAGE = "x-client-language"
-  val CLIENT_IP = "x-client-ip"
+  val SET = "set"
   val REWRITE = "rewrite"
   val DENY = "deny"
   val AUTHORIZE = "authorize"
@@ -22,8 +21,8 @@ object RamlAnnotation {
     name match {
       case DENY ⇒
         DenyAnnotation(predicate = preparedExpression)
-      case annotationName @ (CLIENT_IP | CLIENT_LANGUAGE) ⇒
-        EnrichAnnotation(annotationName, preparedExpression)
+      case SET ⇒
+        SetAnnotation(predicate = preparedExpression, source = PreparedExpression(propMap("source")))
       case REWRITE ⇒
         RewriteAnnotation(predicate = preparedExpression, uri = propMap("uri"))
       case annotationName ⇒
@@ -39,8 +38,10 @@ case class RewriteAnnotation(name: String = RamlAnnotation.REWRITE,
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
                          predicate: Option[PreparedExpression]) extends RamlAnnotation
 
-case class EnrichAnnotation(name: String,
-                            predicate: Option[PreparedExpression]) extends RamlAnnotation
+case class SetAnnotation(name: String = RamlAnnotation.SET,
+                         predicate: Option[PreparedExpression],
+                         source: PreparedExpression
+                        ) extends RamlAnnotation
 
 case class AuthorizeAnnotation(name: String = RamlAnnotation.AUTHORIZE,
                                predicate: Option[PreparedExpression]) extends RamlAnnotation
