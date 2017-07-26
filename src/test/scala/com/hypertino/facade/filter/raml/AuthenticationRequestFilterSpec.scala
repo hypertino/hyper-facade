@@ -50,7 +50,7 @@ class AuthenticationRequestFilterSpec extends TestBase("inproc-test.conf") {
   }
 
   "AuthenticationRequestFilter" - {
-    "Set user in context" in {
+    "Authenticate if header Authorization is set" in {
       val filter = new AuthenticationRequestFilter(hyperbus, DefaultExpressionEvaluator,scheduler)
       implicit val mcx = MessagingContext.Implicits.emptyContext
       val rc = RequestContext(
@@ -61,6 +61,21 @@ class AuthenticationRequestFilterSpec extends TestBase("inproc-test.conf") {
       val result = filter.apply(rc).futureValue
       result.contextStorage.user shouldBe Obj.from("user_id" → "100500")
       result.request.headers.get("Authorization-Result") shouldBe Some(Obj.from("user_id" → "100500"))
+    }
+
+    "Privilege Authorization if header Privilege-Authorization is set" in {
+      val filter = new AuthenticationRequestFilter(hyperbus, DefaultExpressionEvaluator,scheduler)
+      implicit val mcx = MessagingContext.Implicits.emptyContext
+      val rc = RequestContext(
+        DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, HeadersMap(
+          "Privilege-Authorization" → "Test ABC"
+        ))
+      )
+      val result = filter.apply(rc).futureValue
+      result.contextStorage.user shouldBe Null
+      result.request.headers.get("Privilege-Authorization-Result") shouldBe Some(
+        Obj.from("identity_keys" → Obj.from("user_id" → "100500", "email" → "info@example.com"), "extra" → Null)
+      )
     }
   }
 }

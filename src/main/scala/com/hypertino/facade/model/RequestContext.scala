@@ -1,11 +1,11 @@
 package com.hypertino.facade.model
 
 import com.hypertino.binders.value.Obj
-import com.hypertino.hyperbus.model.{DynamicRequest, RequestHeaders}
+import com.hypertino.hyperbus.model.{DynamicRequest, MessagingContext, RequestHeaders}
 
 case class RequestContext(request: DynamicRequest,
                           stages: Seq[RequestHeaders],
-                          contextStorage: Obj) {
+                          contextStorage: Obj) extends MessagingContext {
 
   lazy val originalHeaders: RequestHeaders = stages.reverse.head
   lazy val remoteAddress: String = originalHeaders(FacadeHeaders.REMOTE_ADDRESS).toString
@@ -14,6 +14,8 @@ case class RequestContext(request: DynamicRequest,
     stages = Seq(request.headers) ++ stages,
     request = newRequest
   )
+
+  override def correlationId: String = request.correlationId
 }
 
 object RequestContext {

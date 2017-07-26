@@ -7,6 +7,7 @@ object FacadeHeaders {
   val REMOTE_ADDRESS          = "Remote-Address"
   val ACCEPT_LANGUAGE         = "Accept-Language"
   val AUTHORIZATION           = "Authorization"
+  val PRIVILEGE_AUTHORIZATION = "Privilege-Authorization"
 
   val directHeaderMapping = Set(
     Header.METHOD,
