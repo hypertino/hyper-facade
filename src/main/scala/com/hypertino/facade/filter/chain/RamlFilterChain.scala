@@ -26,8 +26,14 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
               // todo: test this!
               case Some(ramlContentType) ⇒
                 ramlContentType.filters
+
               case None ⇒
-                resourceMethod.methodFilters
+                if (responses.ramlContentTypes.nonEmpty && responses.ramlContentTypes.tail.isEmpty) {
+                  responses.ramlContentTypes.head._2.filters
+                }
+                else {
+                  resourceMethod.methodFilters
+                }
             }
           case None ⇒
             resourceMethod.methodFilters
@@ -49,7 +55,13 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
           case Some(ramlContentType) ⇒
             ramlContentType.filters
           case None ⇒
-            resourceMethod.methodFilters
+            // only one content-type is defined
+            if (resourceMethod.requests.ramlContentTypes.nonEmpty && resourceMethod.requests.ramlContentTypes.tail.isEmpty) {
+              resourceMethod.requests.ramlContentTypes.head._2.filters
+            }
+            else {
+              resourceMethod.methodFilters
+            }
         }
     }
   }

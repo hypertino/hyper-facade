@@ -4,6 +4,7 @@ import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model.{RamlFilterFactory, TargetField}
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
+import com.hypertino.inflector.naming.{CamelCaseToDashCaseConverter, CamelCaseToSnakeCaseConverter}
 import org.raml.v2.api.model.v10.api.Api
 import org.raml.v2.api.model.v10.bodies.Response
 import org.raml.v2.api.model.v10.common.Annotable
@@ -221,8 +222,11 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     else {
       ramlReqRspWrapper.body.foldLeft(Map.newBuilder[Option[String], Option[String]]) { (typeNames, body) ⇒
         val contentType = Option(body.name).map(_.toLowerCase) match {
-          case None | Some("body") | Some("none") ⇒ None
-          case Some(other) ⇒ Some(JsonContentTypeConverter.universalJsonContentTypeToSimple(other).toString)
+          case None | Some("body") | Some("none") | Some("application/json") ⇒
+            Some(CamelCaseToDashCaseConverter.convert(body.`type`)) // todo: is this ok? test it
+
+          case Some(other) ⇒
+            Some(JsonContentTypeConverter.universalJsonContentTypeToSimple(other).toString)
         }
         val typeName = body.`type`
         typeNames += (contentType → Option(typeName))

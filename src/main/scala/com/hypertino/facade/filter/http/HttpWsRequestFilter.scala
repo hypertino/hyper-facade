@@ -39,21 +39,23 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
         val headersBuilder = Headers.builder
         var messageIdFound = false
 
-        contextWithRequest.originalHeaders.foreach {
-          case (FacadeHeaders.CONTENT_TYPE, value) ⇒
-            JsonContentTypeConverter.universalJsonContentTypeToSimple(value) match {
-              case Text(contentType) ⇒ headersBuilder.withContentType(Some(contentType))
-              case Null ⇒ // ...
-            }
+        contextWithRequest.originalHeaders.foreach { kv ⇒
+          (kv._1.toLowerCase, kv._2) match {
+            case (FacadeHeaders.CONTENT_TYPE, value) ⇒
+              JsonContentTypeConverter.universalJsonContentTypeToSimple(value) match {
+                case Text(contentType) ⇒ headersBuilder.withContentType(Some(contentType))
+                case Null ⇒ // ...
+              }
 
-          case (Header.MESSAGE_ID, value) if !value.isEmpty ⇒
-            headersBuilder.withMessageId(value.toString)
-            messageIdFound = true
+            case (Header.MESSAGE_ID, value) if !value.isEmpty ⇒
+              headersBuilder.withMessageId(value.toString)
+              messageIdFound = true
 
-          case (k, v) ⇒
-            if (FacadeHeaders.directHeaderMapping.contains(k)) {
-              headersBuilder += k → v
-            }
+            case (k, v) ⇒
+              if (FacadeHeaders.directHeaderMapping.contains(k)) {
+                headersBuilder += k → v
+              }
+          }
         }
 
         if (!messageIdFound) {

@@ -4,70 +4,53 @@ import com.hypertino.binders.value.{Obj, Value}
 import com.hypertino.facade.filter.model.{EventFilter, Filter, ResponseFilter}
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
-import com.hypertino.facade.raml.{DenyAnnotation, Field, RamlAnnotation}
+import com.hypertino.facade.raml.{Field, PrivateAnnotation, RamlAnnotation}
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, StandardResponse}
-import scaldi.Injector
+import com.hypertino.parser.HParser
+import com.hypertino.parser.ast.Identifier
 
-import scala.collection.Map
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-class PrivateResponseFilter(field: Field, protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter with PrivateFilter {
-
+class PrivateResponseFilter(protected val field: Field, protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter with PrivateFilter {
   override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     Future {
-      StandardResponse(body = DynamicBody(filterBody(field, response.body.content, contextWithRequest)), response.headers)
+      StandardResponse(body = DynamicBody(filterBody(response.body.content, contextWithRequest)), response.headers)
         .asInstanceOf[DynamicResponse]
     }
   }
 }
 
-class PrivateEventFilter(field: Field, protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter with PrivateFilter {
+class PrivateEventFilter(protected val field: Field, protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter with PrivateFilter {
   override def apply(contextWithRequest: RequestContext, event: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     Future {
-      DynamicRequest(DynamicBody(filterBody(field, event.body.content, contextWithRequest)), contextWithRequest.request.headers)
+      DynamicRequest(DynamicBody(filterBody(event.body.content, contextWithRequest)), contextWithRequest.request.headers)
     }
   }
 }
 
 trait PrivateFilter extends Filter {
-  protected def filterBody(field: Field, body: Value, contextWithRequest: RequestContext): Value = {
+  protected  def field: Field
+  protected val fieldSegments = HParser(field.name) match {
+    case Identifier(segments) ⇒ segments
+    case other ⇒ Seq(field.name)
+  }
+
+  protected def filterBody(body: Value, contextWithRequest: RequestContext): Value = {
     body match {
-      case _: Obj ⇒
-        val filteredFields = filterFields(field, body.content.toMap, contextWithRequest)
-        Obj(filteredFields)
+      case obj: Obj if applyPrivateFilter(contextWithRequest) ⇒
+        removeField(fieldSegments, obj)
 
       case other ⇒
         other
     }
   }
 
-  protected def filterFields(ramlField: Field, fields: scala.collection.Map[String, Value], contextWithRequest: RequestContext): scala.collection.Map[String, Value] = {
-    if (isPrivateField(ramlField, contextWithRequest))
-      erasePrivateField(ramlField.name, fields)
-    else
-      fields
-  }
-
-  protected def erasePrivateField(pathToField: String, nonPrivateFields: Map[String, Value]): Map[String, Value] = {
-    if (pathToField.contains("."))
-      pathToField.split(".").toList match {
-        case (leadPathSegment :: tailPath :: Nil) ⇒
-          nonPrivateFields.get(leadPathSegment) match {
-            case Some(subFields) ⇒
-              erasePrivateField(tailPath, subFields.toMap)
-          }
-      }
-    else
-      nonPrivateFields - pathToField
-  }
-
-
-  protected def isPrivateField(field: Field, contextWithRequest: RequestContext): Boolean = {
-    field.annotations.find(_.name == RamlAnnotation.DENY) match {
-      case Some(DenyAnnotation(_, predicateOpt)) ⇒
+  protected def applyPrivateFilter(contextWithRequest: RequestContext): Boolean = {
+    field.annotations.find(_.name == RamlAnnotation.PRIVATE) match {
+      case Some(PrivateAnnotation(_, predicateOpt)) ⇒
         predicateOpt match {
           case Some(predicate) ⇒
             Try(evaluatePredicate(contextWithRequest, predicate)) match {
@@ -79,6 +62,22 @@ trait PrivateFilter extends Filter {
         }
       case None ⇒
         false
+    }
+  }
+
+  def removeField(path: Seq[String], o: Obj): Obj = {
+    if (path.nonEmpty && path.tail.isEmpty) {
+      Obj(o.v.filterNot(_._1 == path.head))
+    } else {
+      if (path.isEmpty) {
+        o
+      }
+      else {
+        Obj(o.v.map {
+          case (k, v: Obj) if k == path.head ⇒ k → removeField(path.tail,v)
+          case el ⇒ el
+        })
+      }
     }
   }
 }

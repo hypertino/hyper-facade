@@ -12,6 +12,7 @@ object RamlAnnotation {
   val SET = "set"
   val REWRITE = "rewrite"
   val DENY = "deny"
+  val PRIVATE = "private"
   val AUTHORIZE = "authorize"
 
   def apply(name: String, properties: Seq[TypeInstanceProperty]): RamlAnnotation = {
@@ -21,6 +22,8 @@ object RamlAnnotation {
     name match {
       case DENY ⇒
         DenyAnnotation(predicate = preparedExpression)
+      case PRIVATE ⇒
+        PrivateAnnotation(predicate = preparedExpression)
       case SET ⇒
         SetAnnotation(predicate = preparedExpression, source = PreparedExpression(propMap("source")))
       case REWRITE ⇒
@@ -37,6 +40,9 @@ case class RewriteAnnotation(name: String = RamlAnnotation.REWRITE,
 
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
                          predicate: Option[PreparedExpression]) extends RamlAnnotation
+
+case class PrivateAnnotation(name: String = RamlAnnotation.PRIVATE,
+                          predicate: Option[PreparedExpression]) extends RamlAnnotation
 
 case class SetAnnotation(name: String = RamlAnnotation.SET,
                          predicate: Option[PreparedExpression],
