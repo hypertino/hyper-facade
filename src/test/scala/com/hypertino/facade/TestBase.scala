@@ -22,7 +22,7 @@ import scala.concurrent.duration._
 
 abstract class TestBase(val configFileName: String, val ramlConfigFiles: Seq[String] = Seq(
   "src/test/resources/raml-configs/simple.raml"
-)) extends FreeSpec with Matchers with ScalaFutures
+)) extends FlatSpec with Matchers with ScalaFutures
   with Injectable with BeforeAndAfterAll with BeforeAndAfterEach with WsTestClientHelper {
 
   System.setProperty(FacadeConfigPaths.RAML_FILES, ramlConfigFiles.mkString(java.io.File.pathSeparator))
