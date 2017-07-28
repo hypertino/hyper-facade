@@ -5,7 +5,7 @@ import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.filter.chain.FilterChain
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
-import com.hypertino.facade.raml.{RamlConfigurationReader, RamlStrictConfigException}
+import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.FutureUtils
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
@@ -25,7 +25,7 @@ trait RequestProcessor extends Injectable {
   implicit def injector: Injector
   implicit def scheduler: Scheduler
   val hyperbus = inject[Hyperbus]
-  val ramlConfig = inject[RamlConfigurationReader]
+  val ramlConfig = inject[RamlConfiguration]
   val beforeFilterChain = inject[FilterChain]("beforeFilterChain")
   val ramlFilterChain = inject[FilterChain]("ramlFilterChain")
   val afterFilterChain = inject[FilterChain]("afterFilterChain")
@@ -87,11 +87,20 @@ trait RequestProcessor extends Injectable {
     cwr.withNextStage(facadeRequestWithRamlUri)
   }
 
-  def withRamlResource(request: DynamicRequest): DynamicRequest = {
-    val ramlHRL = ramlConfig.resourceHRL(request.headers.hrl, request.headers.method)
+  def withRamlResource(implicit request: DynamicRequest): DynamicRequest = {
+    val hrl = ramlConfig.resourceHRL(request.headers.hrl, request.headers.method).getOrElse {
+      val h = request.headers.hrl
+      if (h.scheme.isEmpty) {
+        // didn't rewrite into hb://
+        // which means that resource wasn't found
+        throw NotFound(ErrorBody("resource-not-found", Some(s"${h.location} is not found")))
+      }
+      h
+    }
+
     val newHeaders = new HeadersBuilder()
       .++=(request.headers)
-      .withHRL(ramlHRL)
+      .withHRL(hrl)
       .result()
     request.copy(headers = RequestHeaders(newHeaders))
   }
@@ -103,7 +112,7 @@ trait RequestProcessor extends Injectable {
     case e: NoTransportRouteException ⇒
       implicit val mcf = cwr.request
       e.printStackTrace()
-      NotFound(ErrorBody("not-found", Some(s"'${cwr.originalHeaders.hrl.location}' is not found.")))
+      BadGateway(ErrorBody("service-not-found", Some(s"'${cwr.originalHeaders.hrl.location}' is not found.")))
 
     case _: AskTimeoutException ⇒
       implicit val mcf = cwr.request
@@ -124,12 +133,6 @@ trait RequestProcessor extends Injectable {
         log.debug(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
       }
       func(e.response)
-
-    case e: RamlStrictConfigException ⇒
-      implicit val mcf = cwr.request
-      val errorId = SeqGenerator.create()
-      log.info(s"Exception #$errorId while handling ${cwr.originalHeaders.hrl.location}", e)
-      func(NotFound(ErrorBody("not-found", Some("Resource is not found"), errorId = errorId)))
 
     case NonFatal(e) ⇒
       func(handleHyperbusExceptions(cwr)(e))

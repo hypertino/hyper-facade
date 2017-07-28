@@ -52,7 +52,7 @@ object ConfigsFactory {
     import scala.collection.JavaConversions._
     val s = System.getProperty(FacadeConfigPaths.RAML_FILES)
     if (s != null && s.nonEmpty) {
-      s.split(java.io.File.separator).map(_.trim)
+      s.split(java.io.File.pathSeparator).map(_.trim)
     }
     else {
       config.getStringList(FacadeConfigPaths.RAML_FILES).toSeq
@@ -79,8 +79,6 @@ object FacadeConfigPaths {
   val ROOT = "hyperfacade."
   val LOGGERS = ROOT + "loggers"
   val RAML_FILES = ROOT + "raml.files"
-  //val RAML_ROOT_PATH_PREFIX = ROOT + "raml.root-path"
-  val RAML_STRICT_CONFIG = ROOT + "raml.strict-config" // todo: rename this
   val INJECT_MODULES = ROOT + "inject-modules"
   val HTTP = ROOT + "http-transport"
   val SHUTDOWN_TIMEOUT = ROOT + "shutdown-timeout"
