@@ -10,6 +10,7 @@ import scala.io.Source
 import scala.util.Success
 
 class SimpleHttpTest extends TestBase("inproc-test.conf") {
+  facadeService // initialize
 
   "Facade" should "serve http resource" in {
     register {

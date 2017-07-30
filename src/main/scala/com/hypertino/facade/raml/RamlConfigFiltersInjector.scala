@@ -1,7 +1,7 @@
 package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.chain.{FilterChain, SimpleFilterChain}
-import com.hypertino.facade.filter.model.{RamlFilterFactory, TargetMethod, TargetResource}
+import com.hypertino.facade.filter.model.{RamlFilterFactory, MethodTarget, ResourceTarget}
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector, StringIdentifier}
 
@@ -82,8 +82,8 @@ class RamlConfigFiltersInjector(resourcesByUri: Map[String, ResourceConfig])(imp
   private def createFilters(uri: String, method: Option[String], annotations: Seq[RamlAnnotation]): SimpleFilterChain = {
     annotations.foldLeft(FilterChain.empty) { (filterChain, annotation) ⇒
       val target = method match {
-        case Some(m) ⇒ TargetMethod(uri, m, annotation)
-        case None ⇒ TargetResource(uri, annotation)
+        case Some(m) ⇒ MethodTarget(uri, m, annotation)
+        case None ⇒ ResourceTarget(uri, annotation)
       }
 
       try {

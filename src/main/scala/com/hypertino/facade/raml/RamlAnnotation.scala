@@ -12,9 +12,10 @@ object RamlAnnotation {
   val SET = "set"
   val REWRITE = "rewrite"
   val DENY = "deny"
-  val PRIVATE = "private"
+  val REMOVE = "remove"
   val AUTHORIZE = "authorize"
 
+  // todo: make this injectable
   def apply(name: String, properties: Seq[TypeInstanceProperty]): RamlAnnotation = {
     val propMap = properties.map(property ⇒ property.name() → property.value.value().toString).toMap
     val predicate = propMap.get("if")
@@ -22,8 +23,8 @@ object RamlAnnotation {
     name match {
       case DENY ⇒
         DenyAnnotation(predicate = preparedExpression)
-      case PRIVATE ⇒
-        PrivateAnnotation(predicate = preparedExpression)
+      case REMOVE ⇒
+        RemoveAnnotation(predicate = preparedExpression)
       case SET ⇒
         SetAnnotation(predicate = preparedExpression, source = PreparedExpression(propMap("source")))
       case REWRITE ⇒
@@ -41,8 +42,8 @@ case class RewriteAnnotation(name: String = RamlAnnotation.REWRITE,
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
                          predicate: Option[PreparedExpression]) extends RamlAnnotation
 
-case class PrivateAnnotation(name: String = RamlAnnotation.PRIVATE,
-                          predicate: Option[PreparedExpression]) extends RamlAnnotation
+case class RemoveAnnotation(name: String = RamlAnnotation.REMOVE,
+                            predicate: Option[PreparedExpression]) extends RamlAnnotation
 
 case class SetAnnotation(name: String = RamlAnnotation.SET,
                          predicate: Option[PreparedExpression],

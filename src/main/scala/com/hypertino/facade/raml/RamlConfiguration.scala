@@ -3,6 +3,8 @@ package com.hypertino.facade.raml
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.model.HRL
+import com.hypertino.parser.{HParser, ast}
+import com.hypertino.parser.ast.Identifier
 
 case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, ResourceConfig]) {
   def traitNames(uriPattern: String, method: String): Seq[String] = {
@@ -54,13 +56,6 @@ object Trait {
 }
 
 case class Method(name: String)
-object Method {
-  val POST = "post"
-  val GET = "get"
-  val PUT = "put"
-  val DELETE = "delete"
-  val PATCH = "patch"
-}
 
 case class ContentType(mediaType: String)
 
@@ -77,4 +72,11 @@ object TypeDefinition {
   }
 }
 
-case class Field(name: String, typeName: String, annotations: Seq[RamlAnnotation])
+case class Field(name: String, typeName: String, annotations: Seq[RamlAnnotation]) {
+  val identifier: ast.Identifier = {
+    HParser(name) match {
+      case i: Identifier ⇒ i
+      case other ⇒ Identifier(Seq(name))
+    }
+  }
+}

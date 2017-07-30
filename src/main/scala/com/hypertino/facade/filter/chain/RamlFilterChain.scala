@@ -14,8 +14,8 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
   }
 
   def findResponseFilters(context: RequestContext, response: DynamicResponse): Seq[ResponseFilter] = {
-    val method = context.originalHeaders.method
-    val result = filtersOrMethod(context.originalHeaders.hrl.location, method) match {
+    val method = context.ramlEntryHeaders.get.method
+    val result = filtersOrMethod(context.ramlEntryHeaders.get.hrl.location, method) match {
       case Left(filters) ⇒
         filters
 
@@ -43,7 +43,7 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
   }
 
   def findEventFilters(context: RequestContext, event: DynamicRequest): Seq[EventFilter] = {
-    val uri = context.originalHeaders.hrl.location // event.uri.pattern.specific
+    val uri = context.ramlEntryHeaders.get.hrl.location // event.uri.pattern.specific
     requestOrEventFilters(uri, event.headers.method, event.headers.contentType).eventFilters
   }
 

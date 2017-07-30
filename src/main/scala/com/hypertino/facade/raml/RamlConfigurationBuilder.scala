@@ -1,10 +1,10 @@
 package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.chain.SimpleFilterChain
-import com.hypertino.facade.filter.model.{RamlFilterFactory, TargetField}
-import com.hypertino.facade.model._
+import com.hypertino.facade.filter.model.RamlFilterFactory
+import com.hypertino.facade.filter.raml.FieldFilterAdapterFactory
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
-import com.hypertino.inflector.naming.{CamelCaseToDashCaseConverter, CamelCaseToSnakeCaseConverter}
+import com.hypertino.inflector.naming.CamelCaseToDashCaseConverter
 import org.raml.v2.api.model.v10.api.Api
 import org.raml.v2.api.model.v10.bodies.Response
 import org.raml.v2.api.model.v10.common.Annotable
@@ -172,24 +172,15 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
 
     typeNames.foldLeft(Map.newBuilder[Option[ContentType], RamlContentTypeConfig]) { (ramlContentTypes, typeDefinition) ⇒
       val (contentTypeName, typeName) = typeDefinition
-      val contentType: Option[ContentType] = contentTypeName match {
-        case Some(name) ⇒ Some(ContentType(name))
-        case None ⇒ None
-      }
+      val contentType = contentTypeName.map(ContentType)
+
       val ramlContentType = typeName match {
         case Some(name) ⇒ dataTypes.get(name) match {
           case Some(typeDef) ⇒
-            val filterFactories = typeDef.fields.foldLeft(Seq.newBuilder[RamlFilterFactory]) { (filterFactories, field) ⇒
-              fieldFilters(filterFactories, field)
-            }.result().distinct
-
-            val filterChain = filterFactories.map { factory ⇒
-              typeDef.fields.foldLeft(SimpleFilterChain()) { (chain, field) ⇒
-                val target = TargetField(typeDef.typeName, field) // we should pass all fields to support nested fields filtering
-                chain ++ factory.createFilterChain(target)
-              }
-            }.foldLeft (SimpleFilterChain()) { (filterChain, next) ⇒
-              filterChain ++ next
+            val filterChain = if(typeDef.fields.forall(_.annotations.isEmpty)) {
+              SimpleFilterChain.empty
+            } else {
+              inject[FieldFilterAdapterFactory].createFilters(typeDef)
             }
             RamlContentTypeConfig(headers, typeDef, filterChain)
 

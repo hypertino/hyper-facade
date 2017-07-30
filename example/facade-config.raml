@@ -2,45 +2,27 @@
 title: Facade API
 version: v1
 mediaType: application/json
-baseUri: https://meta.inn.eu/revault
+baseUri: https://example.com/api
+uses:
+  facade: facade-lib.raml
 
 types:
-
   User:
     type: object
     properties:
       fullName: string
       userName: string
       password:
-        (deny):
+        (facade.remove):
         type: string
       clientIp:
-        (x-client-ip):
+        (facade.set):
+          source: remote_address
         type: string
-      clientLanguage:
-        (x-client-language):
-        type: string
-
-  Conditional:
-    type: object
-    properties:
-      if?:
-
-  WithUri:
-    type: object
-    properties:
-      uri:
-
-annotationTypes:
-  authorize: nil | Conditional
-  x-client-ip: nil | Conditional
-  x-client-language: nil | Conditional
-  deny: nil | Conditional
-  rewrite: [WithUri, Conditional]
 
 /users/{userId}:
   get:
-    (authorize):
+    (facade.authorize):
       if: context.authUser.id = "123456"
     responses:
       200:
@@ -53,5 +35,5 @@ annotationTypes:
 
 /events/{path}:
   feed:put:
-    (rewrite):
+    (facade.rewrite):
       uri: /rewritten-events/root/{path}

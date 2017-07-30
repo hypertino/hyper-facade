@@ -2,18 +2,27 @@
 title: Facade API
 version: v1
 mediaType: application/json
-baseUri: https://meta.inn.eu/revault
+baseUri: https://example.com/api
+uses:
+  facade: facade-lib.raml
 
 types:
-  Conditional:
+  TestInnerFields:
     type: object
     properties:
-      if?:
+      mode: string
+      secret:
+        (facade.remove):
+        type: string
 
-  WithUri:
+  TestRequestWithInnerFields:
     type: object
     properties:
-      uri:
+      mode: string
+      password:
+        (facade.remove):
+        type: string
+      inner: TestInnerFields
 
   TestRequest:
     type: object
@@ -21,113 +30,32 @@ types:
       mode: string
       resultType: string
       clientIp:
-        (x-client-ip):
-      clientLanguage:
-        (x-client-language):
-
-  Status:
-    type: object
-    properties:
-      statusCode: number
-      processedBy:
-        (deny):
-
-  ReliableResourceState:
-    type: object
-    properties:
-      revisionId: number
-      content: string
-
-  ReliableResourceUpdate:
-    type: object
-    properties:
-      revisionId: number
-      update: string
-
-  ComplexRequestType:
-      type: object
-      properties:
-        name: string
-        value:
-          type: ComplexValue
-
-  ComplexResponseType:
-    type: object
-    properties:
-      name: string
-      value:
-        type: ComplexValue
-
-  ComplexValue:
-    type: object
-    properties:
-      address:
-        (x-client-ip):
+        (facade.set):
+          source: remote_address
         type: string
-      privateField:
-        (deny):
+      password:
+        (facade.remove):
         type: string
-      publicField: string
 
-  ExtStatus:
-    type: Status
-    properties:
-      timestamp: string
 
-annotationTypes:
-  x-client-ip: nil | Conditional
-  x-client-language: nil | Conditional
-  deny: nil | Conditional
-  rewrite: [WithUri, Conditional]
-
-/status:
+/without-annotations:
   post:
   get:
     responses:
       200:
         body:
-          type: Status
-  /test-service:
-    get:
-      body:
-        type: TestRequest
+          type: object
 
-/reliable-feed/{content:*}:
+/request-annotations:
   post:
+    (facade.rewrite):
+      uri: hb://test
     body:
-      application/json:
-        type: TestRequest
-      application/vnd.app-server-status+json:
-        type: ReliableResourceState
-      application/vnd.app-server-status-update+json:
-        type: ReliableResourceUpdate
+      type: TestRequest
 
-/unreliable-feed/{content}:
-
-/complex-resource:
+/request-inner-annotations:
   post:
+    (facade.rewrite):
+      uri: hb://test
     body:
-      type: ComplexRequestType
-    responses:
-      200:
-        body:
-          type: ComplexResponseType
-
-/parent:
-  (rewrite):
-    uri: /revault/content/some-service
-
-  /child:
-
-/parent/external-child:
-
-/test-rewrite-method:
-  get:
-  put:
-    (rewrite):
-      uri: /revault/content/some-service
-
-/ext-status:
-  post:
-    body:
-      type: ExtStatus
+      type: TestRequestWithInnerFields

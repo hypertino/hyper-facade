@@ -20,12 +20,14 @@ import scaldi.Injectable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-abstract class TestBase(val configFileName: String, val ramlConfigFiles: Seq[String] = Seq(
-  "src/test/resources/raml-configs/simple.raml"
+abstract class TestBase(val configFileName: String = "inproc-test.conf", val ramlConfigFiles: Seq[String] = Seq(
+  "simple.raml"
 )) extends FlatSpec with Matchers with ScalaFutures
   with Injectable with BeforeAndAfterAll with BeforeAndAfterEach with WsTestClientHelper {
 
-  System.setProperty(FacadeConfigPaths.RAML_FILES, ramlConfigFiles.mkString(java.io.File.pathSeparator))
+  System.setProperty(FacadeConfigPaths.RAML_FILES, ramlConfigFiles.map(
+    "src/test/resources/raml-configs/" + _
+  ).mkString(java.io.File.pathSeparator))
   val fullConfigPath = "./src/test/resources/" + configFileName
   implicit val injector = new FiltersModule :: new MetricsModule ::
     new SystemServicesModule :: new FacadeServiceModule :: new RamlConfigModule ::

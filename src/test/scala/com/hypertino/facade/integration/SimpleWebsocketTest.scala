@@ -11,6 +11,7 @@ import monix.execution.Ack.Continue
 import scala.util.Success
 
 class SimpleWebsocketTest extends TestBase("inproc-test.conf") {
+  facadeService // initialize
 
   "Facade" should "serve simple event feed" in {
     val q = new TestQueue

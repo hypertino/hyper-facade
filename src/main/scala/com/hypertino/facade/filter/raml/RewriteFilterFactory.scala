@@ -9,10 +9,10 @@ import com.hypertino.hyperbus.model.HRL
 import scaldi.{Injectable, Injector}
 
 class RewriteFilterFactory(config: Config, protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable {
-  override def createFilters(target: RamlTarget): SimpleFilterChain = {
+  override def createFilters(target: RamlFilterTarget): SimpleFilterChain = {
     val (rewrittenUri, originalUri, ramlMethod) = target match {
-      case TargetResource(uri, RewriteAnnotation(_, _, newUri)) ⇒ (newUri, uri, None)
-      case TargetMethod(uri, method, RewriteAnnotation(_, _, newUri)) ⇒ (newUri, uri, Some(Method(method)))
+      case ResourceTarget(uri, RewriteAnnotation(_, _, newUri)) ⇒ (newUri, uri, None)
+      case MethodTarget(uri, method, RewriteAnnotation(_, _, newUri)) ⇒ (newUri, uri, Some(Method(method)))
       case otherTarget ⇒ throw RamlConfigException(s"Annotation 'rewrite' cannot be assigned to $otherTarget")
     }
     RewriteIndexHolder.updateRewriteIndex(HRL(originalUri), HRL(rewrittenUri), ramlMethod)

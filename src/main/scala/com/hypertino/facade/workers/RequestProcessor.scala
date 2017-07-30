@@ -84,7 +84,7 @@ trait RequestProcessor extends Injectable {
 
   def prepareContextAndRequestBeforeRaml(cwr: RequestContext) = {
     val facadeRequestWithRamlUri = withRamlResource(cwr.request)
-    cwr.withNextStage(facadeRequestWithRamlUri)
+    cwr.withNextStage(facadeRequestWithRamlUri, ramlEntryHeaders=Some(facadeRequestWithRamlUri.headers))
   }
 
   def withRamlResource(implicit request: DynamicRequest): DynamicRequest = {

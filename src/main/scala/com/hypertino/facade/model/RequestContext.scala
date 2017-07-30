@@ -5,14 +5,17 @@ import com.hypertino.hyperbus.model.{DynamicRequest, HeadersMap, MessagingContex
 
 case class RequestContext(request: DynamicRequest,
                           stages: Seq[RequestHeaders],
-                          contextStorage: Obj) extends MessagingContext {
+                          contextStorage: Obj,
+                          ramlEntryHeaders: Option[RequestHeaders] = None) extends MessagingContext {
 
+  // todo: original is http?
   lazy val originalHeaders: RequestHeaders = RequestHeaders(HeadersMap(stages.reverse.head.toSeq.map(kv ⇒ kv._1.toLowerCase → kv._2): _*))
   lazy val remoteAddress: String = originalHeaders(FacadeHeaders.REMOTE_ADDRESS).toString
 
-  def withNextStage(newRequest: DynamicRequest): RequestContext = copy(
+  def withNextStage(newRequest: DynamicRequest, ramlEntryHeaders: Option[RequestHeaders] = None): RequestContext = copy(
     stages = Seq(request.headers) ++ stages,
-    request = newRequest
+    request = newRequest,
+    ramlEntryHeaders=this.ramlEntryHeaders.orElse(ramlEntryHeaders)
   )
 
   override def correlationId: String = request.correlationId

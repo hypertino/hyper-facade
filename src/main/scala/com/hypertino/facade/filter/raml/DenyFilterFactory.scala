@@ -10,16 +10,16 @@ import scaldi.{Injectable, Injector}
 class DenyFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable {
   private val log = LoggerFactory.getLogger(getClass)
 
-  override def createFilters(target: RamlTarget): SimpleFilterChain = {
+  override def createFilters(target: RamlFilterTarget): SimpleFilterChain = {
     target match {
-      case TargetResource(_, DenyAnnotation(_, _)) ⇒
+      case ResourceTarget(_, DenyAnnotation(_, _)) ⇒
         SimpleFilterChain(
           requestFilters = Seq(new DenyRequestFilter(predicateEvaluator)),
           responseFilters = Seq.empty,
           eventFilters = Seq.empty
         )
 
-      case TargetMethod(_, _, DenyAnnotation(_, _)) ⇒
+      case MethodTarget(_, _, DenyAnnotation(_, _)) ⇒
         SimpleFilterChain(
           requestFilters = Seq(new DenyRequestFilter(predicateEvaluator)),
           responseFilters = Seq.empty,

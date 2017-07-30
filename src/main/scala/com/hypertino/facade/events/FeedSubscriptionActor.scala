@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory
 import scaldi.Injector
 
 import scala.concurrent.Future
+import com.hypertino.hyperbus.model
 
 class FeedSubscriptionActor(websocketWorker: ActorRef,
                             hyperbus: Hyperbus,
@@ -175,7 +176,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
         headers = Headers
           .builder
             .++=(cwrRaml.request.headers)
-          .withMethod(Method.GET)
+          .withMethod(model.Method.GET)
           .requestHeaders()
       )
 
