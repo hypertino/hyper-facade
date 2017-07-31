@@ -24,8 +24,9 @@ object ConfigsFactory {
         throw new RamlConfigException(buildApi.getValidationResults.asScala.mkString("\n"))
       }
       RamlConfigurationBuilder(api).build
-    }.foldLeft(RamlConfiguration("", Map.empty)){ (set: RamlConfiguration, i: RamlConfiguration) ⇒
-      RamlConfiguration(mergeBaseUri(set.baseUri, i.baseUri), set.resourcesByPattern ++ i.resourcesByPattern)
+    }.foldLeft(RamlConfiguration("", Map.empty, Map.empty)){ (set: RamlConfiguration, i: RamlConfiguration) ⇒
+      // todo: don't merge RAML configs !!!!
+      RamlConfiguration(mergeBaseUri(set.baseUri, i.baseUri), set.resourcesByPattern ++ i.resourcesByPattern, set.dataTypes ++ i.dataTypes)
     }
   }
 

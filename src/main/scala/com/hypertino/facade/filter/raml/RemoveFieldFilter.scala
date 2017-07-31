@@ -17,5 +17,5 @@ object RemoveFieldFilter extends FieldFilter {
 }
 
 class RemoveFieldFilterFactory extends RamlFieldFilterFactory {
-  override def createFieldFilter(typeName: String, annotation: RamlAnnotation, field: Field): FieldFilter = RemoveFieldFilter
+  def createFieldFilter(typeName: String, fieldName: String, annotation: RamlAnnotation): FieldFilter = RemoveFieldFilter
 }

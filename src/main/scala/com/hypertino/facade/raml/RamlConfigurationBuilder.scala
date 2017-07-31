@@ -1,7 +1,7 @@
 package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.chain.SimpleFilterChain
-import com.hypertino.facade.filter.model.RamlFilterFactory
+import com.hypertino.facade.filter.model.RamlFieldFilterFactory
 import com.hypertino.facade.filter.raml.FieldFilterAdapterFactory
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.inflector.naming.CamelCaseToDashCaseConverter
@@ -16,8 +16,6 @@ import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
-import scala.util.control.NonFatal
 
 class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Injectable {
   private val log = LoggerFactory.getLogger(getClass)
@@ -39,95 +37,41 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     else {
       baseUri
     }
-    RamlConfiguration(baseUri, resourceMapWithFilters.map(kv ⇒ (prefix + kv._1, kv._2)))
+    RamlConfiguration(baseUri, resourceMapWithFilters.map(kv ⇒ (prefix + kv._1, kv._2)), dataTypes)
   }
 
   private def parseTypeDefinitions: Map[String, TypeDefinition] = {
     val typeDefinitions = api.types().map { ramlTypeRaw ⇒
       val ramlType = ramlTypeRaw.asInstanceOf[ObjectTypeDeclaration]
-      val fields = ramlType.properties().foldLeft(Seq.newBuilder[Field]) { (parsedFields, ramlField) ⇒
-        parsedFields += parseField(ramlField)
-      }.result()
-
+      val fields = ramlType.properties().map(parseField).toMap
       val typeName = ramlType.name
       val parentTypeName = ramlType.`type`.isEmpty match {
         case true ⇒ None
         case false ⇒ Some(ramlType.`type`)
       }
       val annotations = extractAnnotations(ramlType)
-      typeName → TypeDefinition(typeName, parentTypeName, annotations, fields, false)
+      typeName → TypeDefinition(typeName, parentTypeName, annotations, fields)
     }.toMap
 
-    withFlattenedFields(typeDefinitions)
+    //withFlattenedFields(typeDefinitions)
+    typeDefinitions
   }
 
-  private def withFlattenedFields(typeDefinitions: Map[String, TypeDefinition]): Map[String, TypeDefinition] = {
-    typeDefinitions.map { case (typeName, typeDef) ⇒
-      val completedTypeDef = typeDef.copy(fields = withFlattenedSubFields(typeDef.fields, None, typeDefinitions))
-      typeName → completedTypeDef
-    }
-  }
-
-  private def withFlattenedSubFields(fields: Seq[Field],
-                                     fieldNamePrefix: Option[String],
-                                     typeDefinitions: Map[String, TypeDefinition]): Seq[Field] = {
-    fields.map { field ⇒
-      fieldNamePrefix.map { prefix ⇒
-        field.copy(name = prefix + "." + field.name)
-      } getOrElse {
-        field
-      }
-    } ++ fields.flatMap { field ⇒
-      val typeDefOpt = getTypeDefinition(field.typeName, typeDefinitions)
-      typeDefOpt match {
-        case Some(typeDef) ⇒
-          val subFieldNamePrefix = updatePrefix(field.name, fieldNamePrefix, typeDef.isCollection)
-          withFlattenedSubFields(typeDef.fields, Some(subFieldNamePrefix), typeDefinitions)
-          //val rawSubFields = withFlattenedSubFields(typeDef.fields, Some(subFieldNamePrefix), typeDefinitions)
-          //withNamePrefix(subFieldNamePrefix, rawSubFields)
-
-        case None ⇒
-          Seq.empty
-      }
-    }
-  }
-
-  private def updatePrefix(fieldName: String, previousPrefix: Option[String], isCollection: Boolean): String = {
-    val collectionSuffix = if (isCollection) {
-      "[]"
-    }
-    else {
-      ""
-    }
-
-    previousPrefix
-      .map(p ⇒ s"$p.`$fieldName$collectionSuffix`")
-      .getOrElse(s"`$fieldName$collectionSuffix`")
-  }
-
-  private def getTypeDefinition(fieldType: String, typeDefinitions: Map[String, TypeDefinition]): Option[TypeDefinition] ={
-    if (fieldType.endsWith("[]")) {
-      val s = fieldType.substring(0, fieldType.length-2)
-      typeDefinitions.get(s).map(_.copy(isCollection = true))
-    }
-    else {
-      typeDefinitions.get(fieldType)
-    }
-  }
-
-//  private def withNamePrefix(fieldNamePrefix: String, rawSubFields: Seq[Field]): Seq[Field] = {
-//    rawSubFields.foldLeft(Seq.newBuilder[Field]) { (renamedSubFields, subField) ⇒
-//      val newName = s"$fieldNamePrefix.${subField.name}"
-//      renamedSubFields += subField.copy(name = newName)
-//    }.result()
+//  private def getTypeDefinition(fieldType: String, typeDefinitions: Map[String, TypeDefinition]): Option[TypeDefinition] ={
+//    if (fieldType.endsWith("[]")) {
+//      val s = fieldType.substring(0, fieldType.length-2)
+//      typeDefinitions.get(s).map(_.copy(isCollection = true))
+//    }
+//    else {
+//      typeDefinitions.get(fieldType)
+//    }
 //  }
 
-  private def parseField(ramlField: TypeDeclaration): Field = {
+  private def parseField(ramlField: TypeDeclaration): (String, Field) = {
     val name = ramlField.name
     val typeName = ramlField.`type`
     val annotations = extractAnnotations(ramlField)
-    val field = Field(name, typeName, annotations)
-    field
+    name → Field(name, typeName, annotations)
   }
 
   private def parseResource(currentUri: String, resource: Resource, parentAnnotations: Seq[RamlAnnotation]): (Map[String, ResourceConfig]) = {
@@ -197,7 +141,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
       val ramlContentType = typeName match {
         case Some(name) ⇒ getTypeDefinition(name, dataTypes) match {
           case Some(typeDef) ⇒
-            val filterChain = if(typeDef.fields.forall(_.annotations.isEmpty)) {
+            val filterChain = if(typeDef.fields.values.forall(_.annotations.isEmpty)) {
               SimpleFilterChain.empty
             } else {
               inject[FieldFilterAdapterFactory].createFilters(typeDef)
@@ -213,19 +157,6 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
       }
       ramlContentTypes += (contentType → ramlContentType)
     }.result()
-  }
-
-  def fieldFilters(filterFactories: mutable.Builder[RamlFilterFactory, Seq[RamlFilterFactory]], field: Field): mutable.Builder[RamlFilterFactory, Seq[RamlFilterFactory]] = {
-    field.annotations.foreach { annotation ⇒
-      try {
-        filterFactories += inject[RamlFilterFactory](annotation.name)
-      }
-      catch {
-        case NonFatal(e) ⇒
-          log.error(s"Can't inject filter for annotation ${annotation.name}", e)
-      }
-    }
-    filterFactories
   }
 
   private def getTypeNamesByContentType(ramlReqRspWrapper: RamlRequestResponseWrapper): Map[Option[String], Option[String]] = {
@@ -257,12 +188,10 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     }
   }
 
-  private def extractAnnotations(ramlField: Annotable): Seq[RamlAnnotation] = {
-    val builder = Seq.newBuilder[RamlAnnotation]
-    ramlField.annotations.foreach { annotation ⇒
-      builder += RamlAnnotation(annotation.annotation.name, annotation.structuredValue.properties)
+  private def extractAnnotations(annotable: Annotable): Seq[RamlAnnotation] = {
+    annotable.annotations.map { annotation ⇒
+      RamlAnnotation(annotation.annotation.name, annotation.structuredValue.properties)
     }
-    builder.result()
   }
 
   private def extractResourceTraits(resource: Resource): Traits = {

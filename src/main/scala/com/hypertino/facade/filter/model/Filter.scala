@@ -39,7 +39,7 @@ trait RamlFilterFactory {
 }
 
 trait RamlFieldFilterFactory {
-  def createFieldFilter(typeName: String, annotation: RamlAnnotation, field: Field): FieldFilter
+  def createFieldFilter(typeName: String, fieldName: String, annotation: RamlAnnotation): FieldFilter
 }
 
 sealed trait RamlFilterTarget {
