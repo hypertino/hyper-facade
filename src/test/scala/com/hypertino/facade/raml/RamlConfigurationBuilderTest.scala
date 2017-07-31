@@ -1,7 +1,7 @@
 package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.model.ConditionalRequestFilterProxy
-import com.hypertino.facade.filter.raml.{RequestFieldFilterAdapter, RewriteRequestFilter}
+import com.hypertino.facade.filter.raml.{RequestFieldFilterAdapter, ResponseFieldFilterAdapter, RewriteRequestFilter}
 import com.hypertino.facade.TestBase
 import com.hypertino.hyperbus.model
 
@@ -14,7 +14,7 @@ class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-co
       .methods(Method(model.Method.POST))
       .requests
       .ramlContentTypes(None)
-      .filters
+      .filterChain
 
     statusFilterChain.requestFilters shouldBe Seq.empty
   }
@@ -25,7 +25,7 @@ class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-co
       .methods(Method(model.Method.POST))
       .requests
       .ramlContentTypes(Some(ContentType("test-request")))
-      .filters
+      .filterChain
 
     statusServiceFilterChain
       .requestFilters
@@ -51,31 +51,31 @@ class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-co
   }
 
   it should "have filters including inner field filters if annotations are applied" in {
-    val statusServiceFilterChain = ramlConfig
+    val filterChain = ramlConfig
       .resourcesByPattern("/request-inner-annotations")
       .methods(Method(model.Method.POST))
       .requests
       .ramlContentTypes(Some(ContentType("test-request-with-inner-fields")))
-      .filters
+      .filterChain
 
-    statusServiceFilterChain
+    filterChain
       .requestFilters
       .size shouldBe 2
 
-    statusServiceFilterChain
+    filterChain
       .requestFilters(0) shouldBe a[RequestFieldFilterAdapter]
 
-    val rffa = statusServiceFilterChain
+    val rffa = filterChain
       .requestFilters(0).asInstanceOf[RequestFieldFilterAdapter]
 
     rffa.fields.size shouldBe 2
     rffa.fields(0).field.name shouldBe "password"
     rffa.fields(0).field.annotations.head shouldBe a[RemoveAnnotation]
 
-    rffa.fields(1).field.name shouldBe "inner.secret"
+    rffa.fields(1).field.name shouldBe "`inner`.secret"
     rffa.fields(1).field.annotations.head shouldBe a[RemoveAnnotation]
 
-    statusServiceFilterChain
+    filterChain
       .requestFilters(1)
       .asInstanceOf[ConditionalRequestFilterProxy]
       .filter shouldBe a[RewriteRequestFilter]

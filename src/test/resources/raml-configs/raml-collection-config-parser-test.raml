@@ -1,0 +1,47 @@
+#%RAML 1.0
+title: Facade API
+version: v1
+mediaType: application/json
+baseUri: https://example.com/api
+uses:
+  facade: facade-lib.raml
+
+types:
+  TestInnerFields:
+    type: object
+    properties:
+      mode: string
+      secret:
+        (facade.remove):
+        type: string
+
+  TestRequest:
+    type: object
+    properties:
+      collection: TestInnerFields[]
+
+  TestNestedRequest:
+    type: object
+    properties:
+      collectionTop: TestRequest[]
+
+/request-collection-annotations:
+  get:
+    responses:
+      200:
+        body:
+          type: TestRequest
+
+/request-top-collection-annotations:
+  get:
+    responses:
+      200:
+        body:
+          type: TestInnerFields[]
+
+/request-nested-collection-annotations:
+  get:
+    responses:
+      200:
+        body:
+          type: TestNestedRequest[]

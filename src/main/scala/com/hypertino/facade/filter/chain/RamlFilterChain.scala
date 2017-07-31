@@ -25,11 +25,11 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
             responses.ramlContentTypes.get(response.headers.contentType.map(ContentType)) match {
               // todo: test this!
               case Some(ramlContentType) ⇒
-                ramlContentType.filters
+                ramlContentType.filterChain
 
               case None ⇒
                 if (responses.ramlContentTypes.nonEmpty && responses.ramlContentTypes.tail.isEmpty) {
-                  responses.ramlContentTypes.head._2.filters
+                  responses.ramlContentTypes.head._2.filterChain
                 }
                 else {
                   resourceMethod.methodFilters
@@ -53,11 +53,11 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
       case Right(resourceMethod) ⇒
         resourceMethod.requests.ramlContentTypes.get(contentType.map(ContentType)) match {
           case Some(ramlContentType) ⇒
-            ramlContentType.filters
+            ramlContentType.filterChain
           case None ⇒
             // only one content-type is defined
             if (resourceMethod.requests.ramlContentTypes.nonEmpty && resourceMethod.requests.ramlContentTypes.tail.isEmpty) {
-              resourceMethod.requests.ramlContentTypes.head._2.filters
+              resourceMethod.requests.ramlContentTypes.head._2.filterChain
             }
             else {
               resourceMethod.methodFilters

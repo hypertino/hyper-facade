@@ -1,6 +1,6 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Obj, Value}
+import com.hypertino.binders.value.{Lst, Obj, Value}
 import com.hypertino.facade.filter.model.FieldFilter
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.raml.Field
@@ -74,5 +74,12 @@ class FieldFilterSpec extends FlatSpec with Matchers with ScalaFutures {
       .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 2)))
       .runAsync
       .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → "Yey"), "c" → Obj.from("y" → Obj.from("z" → 123)))
+  }
+
+  it should "remove values inside collections" in {
+    fieldFilter(Seq(rf("`[]`.b")))
+      .filter(Lst.from(Obj.from("a" → 100500, "b" → "abc")))
+      .runAsync
+      .futureValue shouldBe Lst.from(Obj.from("a" → 100500))
   }
 }

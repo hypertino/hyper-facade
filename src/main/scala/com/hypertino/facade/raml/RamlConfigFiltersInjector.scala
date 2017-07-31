@@ -70,9 +70,9 @@ class RamlConfigFiltersInjector(resourcesByUri: Map[String, ResourceConfig])(imp
     val updatedRequests = Map.newBuilder[Option[ContentType], RamlContentTypeConfig]
     contentTypesConfig.foreach {
       case (contentType, ramlContentTypeConfig) ⇒
-        val updatedFilters = ramlContentTypeConfig.filters ++ parentFilters
+        val updatedFilters = ramlContentTypeConfig.filterChain ++ parentFilters
         val updatedContentTypeConfig = ramlContentTypeConfig.copy(
-          filters = updatedFilters
+          filterChain = updatedFilters
         )
         updatedRequests += contentType → updatedContentTypeConfig
     }

@@ -45,7 +45,7 @@ case class RamlResourceMethodConfig(method: Method,
 
 case class RamlRequests(ramlContentTypes: Map[Option[ContentType], RamlContentTypeConfig])
 case class RamlResponses(ramlContentTypes: Map[Option[ContentType], RamlContentTypeConfig])
-case class RamlContentTypeConfig(headers: Seq[Header], typeDefinition: TypeDefinition, filters: SimpleFilterChain)
+case class RamlContentTypeConfig(headers: Seq[Header], typeDefinition: TypeDefinition, filterChain: SimpleFilterChain)
 
 case class Traits(commonTraits: Seq[Trait], methodSpecificTraits: Map[Method, Seq[Trait]])
 case class Trait(name: String, parameters: Map[String, String])
@@ -65,11 +65,13 @@ object DataType {
   val DEFAULT_TYPE_NAME = "string"
 }
 
-case class TypeDefinition(typeName: String, parentTypeName: Option[String], annotations: Seq[RamlAnnotation], fields: Seq[Field])
+case class TypeDefinition(typeName: String,
+                          parentTypeName: Option[String],
+                          annotations: Seq[RamlAnnotation],
+                          fields: Seq[Field],
+                          isCollection: Boolean)
 object TypeDefinition {
-  def apply(): TypeDefinition = {
-    TypeDefinition(DataType.DEFAULT_TYPE_NAME, None, Seq.empty, Seq.empty)
-  }
+  val empty = TypeDefinition(DataType.DEFAULT_TYPE_NAME, None, Seq.empty, Seq.empty, isCollection = false)
 }
 
 case class Field(name: String, typeName: String, annotations: Seq[RamlAnnotation]) {

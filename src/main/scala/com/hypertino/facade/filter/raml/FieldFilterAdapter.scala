@@ -1,6 +1,6 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Null, Obj, Value}
+import com.hypertino.binders.value.{Lst, Null, Obj, Value}
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
@@ -28,7 +28,7 @@ class RequestFieldFilterAdapter(val fields: Seq[FieldWithFilter],
   }
 }
 
-class ResponseFieldFilterAdapter(protected val fields: Seq[FieldWithFilter],
+class ResponseFieldFilterAdapter(val fields: Seq[FieldWithFilter],
                                  protected val expressionEvaluator: ExpressionEvaluator,
                                  protected implicit val scheduler: Scheduler)
   extends ResponseFilter with FieldFilterBase {
@@ -43,7 +43,7 @@ class ResponseFieldFilterAdapter(protected val fields: Seq[FieldWithFilter],
 }
 
 
-class EventFieldFilterAdapter(protected val fields: Seq[FieldWithFilter],
+class EventFieldFilterAdapter(val fields: Seq[FieldWithFilter],
                               protected val expressionEvaluator: ExpressionEvaluator,
                               protected implicit val scheduler: Scheduler)
   extends EventFilter with FieldFilterBase {
@@ -61,10 +61,15 @@ class FieldFilterAdapterFactory(protected val predicateEvaluator: ExpressionEval
                                 protected implicit val injector: Injector) extends Injectable {
   def createFilters(typeDef: TypeDefinition): SimpleFilterChain = {
     val fieldWithFilter = typeDef.fields.flatMap { field ⇒
-      field.annotations.map { annotation ⇒
+      val fc = if (typeDef.isCollection)
+        field.copy(name = "`[]`." + field.name)
+      else
+        field
+
+      fc.annotations.map { annotation ⇒
         val filterName = annotation.name + "Field"
-        val filter = inject[RamlFieldFilterFactory](filterName).createFieldFilter(typeDef.typeName, annotation, field)
-        FieldWithFilter(field, filter)
+        val filter = inject[RamlFieldFilterFactory](filterName).createFieldFilter(typeDef.typeName, annotation, fc)
+        FieldWithFilter(fc, filter)
       }
     }
 
@@ -142,14 +147,18 @@ trait FieldFilterBase {
   protected val fieldsTree = SegmentFieldsTree(fields)
   protected implicit def scheduler: Scheduler
 
-  //def applyToField(field: Field, annotation: R, value: Value, requestContext: RequestContext): Option[Value]
-
   protected def filterBody(body: Value, requestContext: RequestContext): Task[Value] = {
     recursiveFilterValue(body, body, requestContext, fieldsTree)
   }
 
-  private def recursiveFilterValue(rootValue: Value, value: Value, requestContext: RequestContext, fieldsTree: SegmentFieldsTree): Task[Value] = {
-    val m = value.toMap
+  private def recursiveFilterValue(rootValue: Value,
+                                   value: Value,
+                                   requestContext: RequestContext,
+                                   fieldsTree: SegmentFieldsTree): Task[Value] = {
+    val m: Map[String, Value] = value match {
+      case o: Obj ⇒ o.v.toMap
+      case l: Lst ⇒ Map("[]" → l)
+    }
     Task.gather {
       m.map { case (key, v) ⇒
         {
@@ -176,7 +185,13 @@ trait FieldFilterBase {
       }
 
     } map { i ⇒
-      Obj.from(i.flatten.toSeq: _*)
+      val f = i.flatten
+      if (f.headOption.forall(_._1 == "[]") && f.tail.isEmpty) {
+        f.head._2
+      }
+      else {
+        Obj.from(i.flatten.toSeq: _*)
+      }
     }
   }
 

@@ -27,7 +27,7 @@ case class SimpleFilterChain(
 object SimpleFilterChain {
   val empty = SimpleFilterChain()
   def apply(i: Iterable[SimpleFilterChain]): SimpleFilterChain = {
-    i.foldLeft(SimpleFilterChain()) { (result, current) ⇒
+    i.foldLeft(SimpleFilterChain.empty) { (result, current) ⇒
       result ++ current
     }
   }
