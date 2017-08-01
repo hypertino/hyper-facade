@@ -20,7 +20,7 @@ import scala.collection.JavaConversions._
 class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Injectable {
   private val log = LoggerFactory.getLogger(getClass)
   private val baseUri = api.baseUri().value
-  private val dataTypes: Map[String, TypeDefinition] = parseTypeDefinitions
+  private lazy val dataTypes: Map[String, TypeDefinition] = parseTypeDefinitions
 
   def build: RamlConfiguration = {
     val resourcesByUriAcc = Map.newBuilder[String, ResourceConfig]
@@ -50,27 +50,29 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
         case false ⇒ Some(ramlType.`type`)
       }
       val annotations = extractAnnotations(ramlType)
-      typeName → TypeDefinition(typeName, parentTypeName, annotations, fields)
+      typeName → TypeDefinition(typeName, parentTypeName, annotations, fields, false)
     }.toMap
 
     //withFlattenedFields(typeDefinitions)
     typeDefinitions
   }
 
-//  private def getTypeDefinition(fieldType: String, typeDefinitions: Map[String, TypeDefinition]): Option[TypeDefinition] ={
-//    if (fieldType.endsWith("[]")) {
-//      val s = fieldType.substring(0, fieldType.length-2)
-//      typeDefinitions.get(s).map(_.copy(isCollection = true))
-//    }
-//    else {
-//      typeDefinitions.get(fieldType)
-//    }
-//  }
+  private def getTypeDefinition(fieldType: String, typeDefinitions: Map[String, TypeDefinition]): Option[TypeDefinition] ={
+    if (fieldType.endsWith("[]")) {
+      val s = fieldType.substring(0, fieldType.length-2)
+      typeDefinitions.get(s).map(_.copy(isCollection = true))
+    }
+    else {
+      typeDefinitions.get(fieldType)
+    }
+  }
 
   private def parseField(ramlField: TypeDeclaration): (String, Field) = {
     val name = ramlField.name
     val typeName = ramlField.`type`
-    val annotations = extractAnnotations(ramlField)
+    val annotations = extractAnnotations(ramlField).map { annotation ⇒
+      new FieldAnnotationWithFilter(annotation, name, typeName)
+    }
     name → Field(name, typeName, annotations)
   }
 
@@ -128,6 +130,16 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     adjustedAnnotations.result()
   }
 
+  private def typeHaveFieldAnnotations(typeDef: TypeDefinition): Boolean = {
+    typeDef.fields.values.exists(_.annotations.nonEmpty) ||
+      typeDef.fields.exists { f ⇒
+        getTypeDefinition(f._2.typeName, dataTypes) match {
+          case Some(t) ⇒ typeHaveFieldAnnotations(t)
+          case None ⇒ false
+        }
+      }
+  }
+
   private def extractRamlContentTypes(ramlReqRspWrapper: RamlRequestResponseWrapper): Map[Option[ContentType], RamlContentTypeConfig] = {
     val headers = ramlReqRspWrapper.headers.foldLeft(Seq.newBuilder[Header]) { (headerList, ramlHeader) ⇒
       headerList += Header(ramlHeader.name())
@@ -141,10 +153,10 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
       val ramlContentType = typeName match {
         case Some(name) ⇒ getTypeDefinition(name, dataTypes) match {
           case Some(typeDef) ⇒
-            val filterChain = if(typeDef.fields.values.forall(_.annotations.isEmpty)) {
-              SimpleFilterChain.empty
-            } else {
+            val filterChain = if(typeHaveFieldAnnotations(typeDef)) {
               inject[FieldFilterAdapterFactory].createFilters(typeDef)
+            } else {
+              SimpleFilterChain.empty
             }
             RamlContentTypeConfig(headers, typeDef, filterChain)
 

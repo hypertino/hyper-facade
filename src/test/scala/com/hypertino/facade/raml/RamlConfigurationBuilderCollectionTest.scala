@@ -1,8 +1,7 @@
 package com.hypertino.facade.raml
 
 import com.hypertino.facade.TestBase
-import com.hypertino.facade.filter.model.ConditionalRequestFilterProxy
-import com.hypertino.facade.filter.raml.{RequestFieldFilterAdapter, ResponseFieldFilterAdapter, RewriteRequestFilter}
+import com.hypertino.facade.filter.raml.ResponseFieldFilterAdapter
 import com.hypertino.hyperbus.model
 
 class RamlConfigurationBuilderCollectionTest extends TestBase(ramlConfigFiles=Seq("raml-collection-config-parser-test.raml")) {
@@ -25,9 +24,6 @@ class RamlConfigurationBuilderCollectionTest extends TestBase(ramlConfigFiles=Se
       .size shouldBe 1
 
     val rffa = filterChain
-      .responseFilters(0)
-      .asInstanceOf[ResponseFieldFilterAdapter]
-
-    rffa.typeDef.typeName shouldBe "abc"
+      .responseFilters(0) shouldBe a[ResponseFieldFilterAdapter]
   }
 }

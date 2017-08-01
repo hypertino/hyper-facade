@@ -6,7 +6,6 @@ import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.model.HRL
 import com.hypertino.parser.{HParser, ast}
 import com.hypertino.parser.ast.Identifier
-import org.raml.v2.api.model.v10.datamodel.TypeDeclaration
 import scaldi.{Injectable, Injector}
 
 case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, ResourceConfig], dataTypes: Map[String, TypeDefinition]) {
@@ -71,48 +70,25 @@ object DataType {
 case class TypeDefinition(typeName: String,
                           parentTypeName: Option[String],
                           annotations: Seq[RamlAnnotation],
-                          fields: Map[String, Field]) // todo: isCollection is a hack here, do something!
+                          fields: Map[String, Field],
+                          isCollection: Boolean) // todo: isCollection is a hack here, do something!
 object TypeDefinition {
-  val empty = TypeDefinition(DataType.DEFAULT_TYPE_NAME, None, Seq.empty, Map.empty)
+  val empty = TypeDefinition(DataType.DEFAULT_TYPE_NAME, None, Seq.empty, Map.empty, isCollection = false)
 }
 
-case class Field(name: String, typeName: String, annotations: Seq[RamlAnnotation])
-
-case class TypeDefinitionWithFilters(typeName: String,
-                          parentTypeName: Option[String],
-                          annotations: Seq[RamlAnnotation],
-                          fields: Map[String, FieldWithFilters])
-
-
-object TypeDefinitionWithFilters extends Injectable {
-  def apply(typeDefinition: TypeDefinition)
-           (implicit injector: Injector): TypeDefinitionWithFilters = {
-    TypeDefinitionWithFilters(
-      typeDefinition.typeName,
-      typeDefinition.parentTypeName,
-      typeDefinition.annotations,
-      typeDefinition.fields.map { case (k,f) ⇒
-        val annotations = f.annotations.map { annotation ⇒
-          val filterName = annotation.name + "Field"
-          FieldAnnotationWithFilter(
-            annotation,
-            inject[RamlFieldFilterFactory](filterName).createFieldFilter(f.name, f.typeName, annotation)
-          )
-        }
-
-        k → FieldWithFilters(f.name, f.typeName, annotations)
-      }
-    )
+class FieldAnnotationWithFilter(val annotation: RamlAnnotation, fieldName: String, typeName: String)
+                               (implicit injector: Injector) extends Injectable {
+  lazy val filter: FieldFilter = {
+    val filterName = annotation.name + "Field"
+    inject[RamlFieldFilterFactory](filterName).createFieldFilter(fieldName, typeName, annotation)
   }
 }
 
-case class FieldWithFilters(name: String, typeName: String, annotations: Seq[FieldAnnotationWithFilter]) {
+case class Field(name: String, typeName: String, annotations: Seq[FieldAnnotationWithFilter]) {
   val identifier: ast.Identifier = {
     HParser(name) match {
       case i: Identifier ⇒ i
-      case _ ⇒ Identifier(Seq(name))
+      case other ⇒ Identifier(Seq(name))
     }
   }
 }
-
-case class FieldAnnotationWithFilter(annotation: RamlAnnotation, filter: FieldFilter)

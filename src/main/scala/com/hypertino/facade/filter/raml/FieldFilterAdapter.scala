@@ -5,7 +5,7 @@ import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model.RequestContext
-import com.hypertino.facade.raml.{Field, RamlConfiguration, TypeDefinition}
+import com.hypertino.facade.raml.{Field, FieldAnnotationWithFilter, RamlConfiguration, TypeDefinition}
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, StandardResponse}
 import monix.eval.Task
 import monix.execution.Scheduler
@@ -14,10 +14,12 @@ import scaldi.{Injectable, Injector}
 import scala.concurrent.{ExecutionContext, Future}
 
 class RequestFieldFilterAdapter(val typeDef: TypeDefinition,
-                                protected val ramlConfiguration: RamlConfiguration,
                                 protected val expressionEvaluator: ExpressionEvaluator,
+                                protected implicit val injector: Injector,
                                 protected implicit val scheduler: Scheduler) // todo: remove ec: ExecutionContext
-  extends RequestFilter with FieldFilterBase {
+  extends RequestFilter with FieldFilterBase with Injectable {
+
+  protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
   def apply(contextWithRequest: RequestContext)
            (implicit ec: ExecutionContext): Future[RequestContext] = {
@@ -32,10 +34,12 @@ class RequestFieldFilterAdapter(val typeDef: TypeDefinition,
 }
 
 class ResponseFieldFilterAdapter(val typeDef: TypeDefinition,
-                                 protected val ramlConfiguration: RamlConfiguration,
                                  protected val expressionEvaluator: ExpressionEvaluator,
+                                 protected implicit val injector: Injector,
                                  protected implicit val scheduler: Scheduler)
-  extends ResponseFilter with FieldFilterBase {
+  extends ResponseFilter with FieldFilterBase with Injectable{
+
+  protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
   def apply(contextWithRequest: RequestContext, response: DynamicResponse)
            (implicit ec: ExecutionContext): Future[DynamicResponse] = {
@@ -50,10 +54,12 @@ class ResponseFieldFilterAdapter(val typeDef: TypeDefinition,
 
 
 class EventFieldFilterAdapter(val typeDef: TypeDefinition,
-                              protected val ramlConfiguration: RamlConfiguration,
                               protected val expressionEvaluator: ExpressionEvaluator,
+                              protected implicit val injector: Injector,
                               protected implicit val scheduler: Scheduler)
-  extends EventFilter with FieldFilterBase {
+  extends EventFilter with FieldFilterBase with Injectable {
+
+  protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
   def apply(contextWithRequest: RequestContext, event: DynamicRequest)
            (implicit ec: ExecutionContext): Future[DynamicRequest] = {
@@ -66,14 +72,13 @@ class EventFieldFilterAdapter(val typeDef: TypeDefinition,
 }
 
 class FieldFilterAdapterFactory(protected val predicateEvaluator: ExpressionEvaluator,
-                                protected val ramlConfiguration: RamlConfiguration,
-                                protected implicit val scheduler: Scheduler,
-                                protected implicit val injector: Injector) extends Injectable {
+                                protected implicit val injector: Injector,
+                                protected implicit val scheduler: Scheduler) extends Injectable {
   def createFilters(typeDef: TypeDefinition): SimpleFilterChain = {
     SimpleFilterChain(
-      requestFilters = Seq(new RequestFieldFilterAdapter(typeDef, ramlConfiguration, predicateEvaluator, scheduler)),
-      responseFilters = Seq(new ResponseFieldFilterAdapter(typeDef, ramlConfiguration, predicateEvaluator, scheduler)),
-      eventFilters = Seq(new EventFieldFilterAdapter(typeDef, ramlConfiguration, predicateEvaluator, scheduler))
+      requestFilters = Seq(new RequestFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler)),
+      responseFilters = Seq(new ResponseFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler)),
+      eventFilters = Seq(new EventFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler))
     )
   }
 }
@@ -82,6 +87,7 @@ trait FieldFilterBase {
   protected def typeDef: TypeDefinition
   protected def typeDefinitions: Map[String, TypeDefinition]
   protected implicit def scheduler: Scheduler
+  protected def expressionEvaluator: ExpressionEvaluator
 
   protected def filterBody(body: Value, requestContext: RequestContext): Task[Value] = {
     recursiveFilterValue(body, body, requestContext, typeDef)
@@ -100,24 +106,21 @@ trait FieldFilterBase {
       }.map(Lst(_))
     } else {
       val m = value.toMap
-      val updateExistingFields = m.flatMap { case (k, v) ⇒
+      val updateExistingFields = m.map { case (k, v) ⇒
         typeDef
           .fields
           .get(k)
-          .map { field ⇒
-            field.annotations.map { annotation ⇒
-              annotation.filter(rootValue, field, Some(v), requestContext).map(k → _)
-            }
+          .map(filterMatching(_, rootValue, Some(v), requestContext))
+          .getOrElse {
+            Task.now(k → Some(v))
           }
-      }.toSeq.flatten
+      }.toSeq
 
       val newFields = typeDef
         .fields
         .filterNot(f ⇒ m.contains(f._1))
-        .flatMap { case (k, field) ⇒
-          field.annotations.map { annotation ⇒
-            annotation.filter(rootValue, field, None, requestContext).map(k → _)
-          }
+        .map { case (_, field) ⇒
+          filterMatching(field, rootValue, None, requestContext)
         }
         .toSeq
 
@@ -130,10 +133,10 @@ trait FieldFilterBase {
                 .get(k)
                 .flatMap { field ⇒
                   typeDefinitions
-                    .get(field.name)
+                    .get(field.typeName)
                     .map { innerTypeDef ⇒
                       recursiveFilterValue(rootValue, v, requestContext, innerTypeDef)
-                        .map(vv ⇒ Some(k → v))
+                        .map(vv ⇒ Some(k → vv))
                     }
                 }.getOrElse {
                 Task.now(Some(k → v))
@@ -147,6 +150,23 @@ trait FieldFilterBase {
         }
       }
     }
+  }
+
+  protected def filterMatching(field: Field,
+                             rootValue: Value,
+                             value: Option[Value],
+                             requestContext: RequestContext): Task[(String, Option[Value])] = {
+    field
+      .annotations
+      .find {
+        _.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, _))
+      }
+      .map { a ⇒
+        a.filter(rootValue, field, value, requestContext).map(field.name → _)
+      }
+      .getOrElse {
+        Task.now(field.name → value)
+      }
   }
 }
 
