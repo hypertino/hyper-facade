@@ -1,5 +1,6 @@
 package com.hypertino.facade.modules
 
+import com.hypertino.facade.filter.SelectFieldsResponseFilter
 import com.hypertino.facade.filter.chain.{FilterChain, RamlFilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.http.{AuthenticationRequestFilter, HttpWsRequestFilter, HttpWsResponseFilter, WsEventFilter}
 import com.hypertino.facade.filter.model.{RamlFieldFilterFactory, RamlFilterFactory}
@@ -16,13 +17,17 @@ class FiltersModule extends Module {
 
   bind [RamlFieldFilterFactory]     identifiedBy "removeField"                          to injected[RemoveFieldFilterFactory]
   bind [RamlFieldFilterFactory]     identifiedBy "setField"                             to injected[SetFieldFilterFactory]
+  bind [RamlFieldFilterFactory]     identifiedBy "fetchField"                           to injected[FetchFieldFilterFactory]
 
   bind [FilterChain]                identifiedBy "beforeFilterChain"                    to SimpleFilterChain(
     requestFilters            = Seq(injected[HttpWsRequestFilter],
                                     injected[AuthenticationRequestFilter])
   )
   bind [FilterChain]                identifiedBy "afterFilterChain"                     to SimpleFilterChain(
-    responseFilters           = Seq(injected[HttpWsResponseFilter]),
+    responseFilters           = Seq(
+      injected[SelectFieldsResponseFilter],
+      injected[HttpWsResponseFilter]
+    ),
     eventFilters              = Seq(injected[WsEventFilter])
   )
   bind [FilterChain]                identifiedBy "ramlFilterChain"                      to injected[RamlFilterChain]

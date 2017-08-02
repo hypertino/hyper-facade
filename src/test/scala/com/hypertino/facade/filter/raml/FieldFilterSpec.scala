@@ -1,22 +1,30 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Lst, Obj, Value}
+import com.hypertino.binders.value.{Lst, Null, Obj, Value}
 import com.hypertino.facade.TestBase
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
 import com.hypertino.facade.raml._
-import com.hypertino.hyperbus.model.{DynamicRequest, EmptyBody, HRL, HeadersMap, Method}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, HRL, HeadersMap, Method, Ok}
+import com.hypertino.hyperbus.transport.api.matchers.RequestMatcher
 import com.hypertino.parser.HParser
 import monix.eval.Task
+import monix.execution.Ack.Continue
 import monix.execution.Scheduler
+
+import scala.util.Success
 
 class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-test.raml")) {
 
-  def fieldFilter(aTypeDef: TypeDefinition, aTypeDefinitions: Map[String, TypeDefinition]) = new FieldFilterBase {
+  def fieldFilter(
+                   aTypeDef: TypeDefinition,
+                   aTypeDefinitions: Map[String, TypeDefinition],
+                   query: Value = Null
+                 ) = new FieldFilterBase {
     override protected implicit def scheduler: Scheduler = FieldFilterSpec.this.scheduler
     def filter(body: Value): Task[Value] = {
       import com.hypertino.hyperbus.model.MessagingContext.Implicits.emptyContext
-      filterBody(body, RequestContext(DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, headersMap=HeadersMap(
+      filterBody(body, RequestContext(DynamicRequest(HRL("hb://test", query), Method.GET, EmptyBody, headersMap=HeadersMap(
         FacadeHeaders.REMOTE_ADDRESS → "127.0.0.1"
       ))))
     }
@@ -35,6 +43,19 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
         RemoveAnnotation(predicate=None),
+        name,
+        "string"
+      )
+    )))
+  }
+
+  def ff(name: String, source: String, onError: String = FetchFieldFilter.ON_ERROR_FAIL, defaultValue: Option[String] = None) = {
+    Map(name → Field(name, "string", Seq(
+      new FieldAnnotationWithFilter(
+        FetchAnnotation(predicate=None,
+          source=PreparedExpression(source),
+          onError=onError,
+          defaultValue=defaultValue.map(PreparedExpression(_))),
         name,
         "string"
       )
@@ -169,5 +190,37 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
         Obj.from("a" → 100500, "b" → "abc", "c" → "Yey", "d" → Lst.from(Obj.from("z" →1, "x" → "XXX"))),
         Obj.from("a" → 100501, "b" → "abd", "c" → "Yey")
       )
+  }
+
+  it should "fetch field values" in {
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+      ).subscribe { implicit request =>
+        request.reply(Success {
+          Ok(DynamicBody(Obj.from("service_result" → "Yey")))
+        })
+        Continue
+      }
+    }
+
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
+      Map.empty,
+      Obj.from("fields" → "c")
+    )
+      .filter(Obj.from("a" → 100500, "b" → "abc"))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc", "c" → Obj.from("service_result" → "Yey"))
+
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
+      Map.empty,
+      Obj.from("fields" → "d")
+    )
+      .filter(Obj.from("a" → 100500, "b" → "abc"))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc")
   }
 }

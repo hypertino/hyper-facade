@@ -6,7 +6,7 @@ import com.hypertino.facade.raml.Field
 import monix.eval.Task
 
 case class FieldFilterContext(
-                               path: String,
+                               fieldPath: Seq[String],
                                value: Option[Value],
                                field: Field,
                                extraContext: Value,

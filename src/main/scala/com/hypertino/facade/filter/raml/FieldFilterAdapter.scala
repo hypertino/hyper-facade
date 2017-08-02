@@ -90,19 +90,19 @@ trait FieldFilterBase {
   protected def expressionEvaluator: ExpressionEvaluator
 
   protected def filterBody(body: Value, requestContext: RequestContext): Task[Value] = {
-    recursiveFilterValue(body, body, requestContext, typeDef, "")
+    recursiveFilterValue(body, body, requestContext, typeDef, Seq.empty)
   }
 
   protected def recursiveFilterValue(rootValue: Value,
                                      value: Value,
                                      requestContext: RequestContext,
                                      typeDef: TypeDefinition,
-                                     fieldPath: String): Task[Value] = {
+                                     fieldPath: Seq[String]): Task[Value] = {
     if (typeDef.isCollection) {
       val tc = typeDef.copy(isCollection = false)
       Task.gather {
         value.toSeq.map { li ⇒
-          recursiveFilterValue(rootValue, li, requestContext, tc, fieldPath + "[]")
+          recursiveFilterValue(rootValue, li, requestContext, tc, fieldPath)
         }
       }.map(Lst(_))
     } else {
@@ -136,7 +136,7 @@ trait FieldFilterBase {
                   typeDefinitions
                     .get(field.typeName)
                     .map { innerTypeDef ⇒
-                      recursiveFilterValue(rootValue, v, requestContext, innerTypeDef, fieldPath + "." + field.name)
+                      recursiveFilterValue(rootValue, v, requestContext, innerTypeDef, fieldPath :+ field.name)
                         .map(vv ⇒ Some(k → vv))
                     }
                 }.getOrElse {
@@ -157,7 +157,7 @@ trait FieldFilterBase {
                                rootValue: Value,
                                value: Option[Value],
                                siblings: Value,
-                               parentFieldPath: String,
+                               parentFieldPath: Seq[String],
                                requestContext: RequestContext): Task[(String, Option[Value])] = {
     val extraContext = Obj.from(
       "this" → siblings,
@@ -169,7 +169,7 @@ trait FieldFilterBase {
         _.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
       }
       .map { a ⇒
-        a.filter(FieldFilterContext(parentFieldPath + "." + field.name, value, field, extraContext, requestContext)).map(field.name → _)
+        a.filter(FieldFilterContext(parentFieldPath :+ field.name, value, field, extraContext, requestContext)).map(field.name → _)
       }
       .getOrElse {
         Task.now(field.name → value)

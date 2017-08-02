@@ -28,6 +28,22 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     Source.fromURL("http://localhost:54321/simple-resource", "UTF-8").mkString shouldBe """{"textField":"Yey","integerField":100500}"""
   }
 
+  "Facade" should "filter fields" in {
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+      ).subscribe { implicit request =>
+        request.reply(Success {
+          Ok(DynamicBody(Obj.from("integerField" → 100500, "textField" → "Yey")))
+        })
+        Continue
+      }
+    }
+
+    Source.fromURL("http://localhost:54321/simple-resource?fields=textField", "UTF-8").mkString shouldBe """{"textField":"Yey"}"""
+  }
+
   it should "serve resource with pattern" in {
     register {
       hyperbus.commands[DynamicRequest](
