@@ -120,6 +120,18 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
       .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 2, "z" → "Yey"))
   }
 
+  it should "add inner values with root/this expression" in {
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
+      Map(
+        "T2" → TypeDefinition("T2", None, Seq.empty, sf("z", "this.y") ++ sf("z2", "root.a"), isCollection = false )
+      )
+    )
+      .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 2)))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 2, "z" → 2, "z2" → 100500))
+  }
+
   it should "set inner values, but only if target type instance exists" in {
     fieldFilter(
       TypeDefinition("T1", None, Seq.empty, tt("b" → "T2", "c" → "T3"), isCollection = false ),

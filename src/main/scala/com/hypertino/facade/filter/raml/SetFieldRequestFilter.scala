@@ -8,8 +8,8 @@ import com.hypertino.facade.raml.{Field, RamlAnnotation, SetAnnotation}
 import monix.eval.Task
 
 class SetFieldFilter(annotation: SetAnnotation, expressionEvaluator: ExpressionEvaluator) extends FieldFilter {
-  def apply(rootValue: Value, field: Field, value: Option[Value], requestContext: RequestContext): Task[Option[Value]] = Task.now {
-    Some(expressionEvaluator.evaluate(requestContext, annotation.source))
+  def apply(context: FieldFilterContext): Task[Option[Value]] = Task.now {
+    Some(expressionEvaluator.evaluate(context.requestContext, context.extraContext, annotation.source))
   }
 }
 

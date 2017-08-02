@@ -20,9 +20,9 @@ object PreparedExpression {
 trait ExpressionEvaluator {
   protected val log = LoggerFactory.getLogger(getClass)
 
-  def evaluatePredicate(requestContext: RequestContext, expression: PreparedExpression): Boolean = {
+  def evaluatePredicate(requestContext: RequestContext, extraContext: Value, expression: PreparedExpression): Boolean = {
     val result = try {
-      evaluate(requestContext, expression).toBoolean
+      evaluate(requestContext, extraContext, expression).toBoolean
     }
     catch {
       case NonFatal(ex) ⇒
@@ -37,8 +37,8 @@ trait ExpressionEvaluator {
     result
   }
 
-  def evaluate(requestContext: RequestContext, expression: PreparedExpression): Value = {
-    val context = new ValueContext(preparePredicateContext(requestContext)) {
+  def evaluate(requestContext: RequestContext, extraContext: Value, expression: PreparedExpression): Value = {
+    val context = new ValueContext(preparePredicateContext(requestContext) + extraContext) {
       override def binaryOperation: PartialFunction[(Value, Identifier, Value), Value] = IpParser.binaryOperation
       override def customOperators = Seq(IpParser.IP_MATCHES)
     }

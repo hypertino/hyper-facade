@@ -90,18 +90,19 @@ trait FieldFilterBase {
   protected def expressionEvaluator: ExpressionEvaluator
 
   protected def filterBody(body: Value, requestContext: RequestContext): Task[Value] = {
-    recursiveFilterValue(body, body, requestContext, typeDef)
+    recursiveFilterValue(body, body, requestContext, typeDef, "")
   }
 
-  private def recursiveFilterValue(rootValue: Value,
-                                   value: Value,
-                                   requestContext: RequestContext,
-                                   typeDef: TypeDefinition): Task[Value] = {
+  protected def recursiveFilterValue(rootValue: Value,
+                                     value: Value,
+                                     requestContext: RequestContext,
+                                     typeDef: TypeDefinition,
+                                     fieldPath: String): Task[Value] = {
     if (typeDef.isCollection) {
       val tc = typeDef.copy(isCollection = false)
       Task.gather {
-        value.toList.map { li ⇒
-          recursiveFilterValue(rootValue, li, requestContext, tc)
+        value.toSeq.map { li ⇒
+          recursiveFilterValue(rootValue, li, requestContext, tc, fieldPath + "[]")
         }
       }.map(Lst(_))
     } else {
@@ -110,7 +111,7 @@ trait FieldFilterBase {
         typeDef
           .fields
           .get(k)
-          .map(filterMatching(_, rootValue, Some(v), requestContext))
+          .map(filterMatching(_, rootValue, Some(v), value, fieldPath, requestContext))
           .getOrElse {
             Task.now(k → Some(v))
           }
@@ -120,7 +121,7 @@ trait FieldFilterBase {
         .fields
         .filterNot(f ⇒ m.contains(f._1))
         .map { case (_, field) ⇒
-          filterMatching(field, rootValue, None, requestContext)
+          filterMatching(field, rootValue, None, value, fieldPath, requestContext)
         }
         .toSeq
 
@@ -135,7 +136,7 @@ trait FieldFilterBase {
                   typeDefinitions
                     .get(field.typeName)
                     .map { innerTypeDef ⇒
-                      recursiveFilterValue(rootValue, v, requestContext, innerTypeDef)
+                      recursiveFilterValue(rootValue, v, requestContext, innerTypeDef, fieldPath + "." + field.name)
                         .map(vv ⇒ Some(k → vv))
                     }
                 }.getOrElse {
@@ -153,16 +154,22 @@ trait FieldFilterBase {
   }
 
   protected def filterMatching(field: Field,
-                             rootValue: Value,
-                             value: Option[Value],
-                             requestContext: RequestContext): Task[(String, Option[Value])] = {
+                               rootValue: Value,
+                               value: Option[Value],
+                               siblings: Value,
+                               parentFieldPath: String,
+                               requestContext: RequestContext): Task[(String, Option[Value])] = {
+    val extraContext = Obj.from(
+      "this" → siblings,
+      "root" → rootValue
+    )
     field
       .annotations
       .find {
-        _.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, _))
+        _.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
       }
       .map { a ⇒
-        a.filter(rootValue, field, value, requestContext).map(field.name → _)
+        a.filter(FieldFilterContext(parentFieldPath + "." + field.name, value, field, extraContext, requestContext)).map(field.name → _)
       }
       .getOrElse {
         Task.now(field.name → value)
