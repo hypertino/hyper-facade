@@ -7,6 +7,7 @@ import akka.util.Timeout
 import com.hypertino.facade.utils.MessageTransformer
 import com.hypertino.hyperbus.model.{DynamicMessage, DynamicRequest, DynamicResponse, StandardResponse}
 import com.hypertino.hyperbus.serialization.MessageReader
+import org.asynchttpclient.DefaultAsyncHttpClient
 import org.scalatest.concurrent.ScalaFutures
 import spray.can.server.UHttp
 import spray.can.websocket.WebSocketClientWorker

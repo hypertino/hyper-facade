@@ -12,6 +12,7 @@ import com.hypertino.service.config.ConfigModule
 import com.hypertino.service.control.api.Service
 import monix.eval.Task
 import monix.execution.{Cancelable, Scheduler}
+import org.asynchttpclient.{DefaultAsyncHttpClient, ListenableFuture}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest._
@@ -19,6 +20,7 @@ import scaldi.Injectable
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.util.Try
 
 abstract class TestBase(val configFileName: String = "inproc-test.conf", val ramlConfigFiles: Seq[String] = Seq(
   "simple.raml"
@@ -51,14 +53,44 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
   // bound to socket, so we need this stupid timeout to initialize the listener
   Thread.sleep(1000)
 
+  val asyncHttpClient = new DefaultAsyncHttpClient
+
+  def httpGet(url: String): String = {
+    val f = asyncHttpClient.prepareGet(url).execute()
+    Await.result(
+      taskFromListenableFuture(f).runAsync.map { result ⇒
+        result.getResponseBody
+      },
+      5.seconds
+    )
+  }
+
+  def taskFromListenableFuture[T](lf: ListenableFuture[T]): Task[T] = Task.create { (scheduler, callback) ⇒
+    lf.addListener(new Runnable {
+      override def run(): Unit = {
+        val r = Try(lf.get())
+        callback(r)
+      }
+    }, null)
+    new Cancelable {
+      override def cancel(): Unit = lf.cancel(true)
+    }
+  }
+
   def newPoolExecutor(): Executor = {
     val maximumPoolSize: Int = Runtime.getRuntime.availableProcessors() * 16
     new ThreadPoolExecutor(0, maximumPoolSize, 5 * 60L, TimeUnit.SECONDS, new SynchronousQueue[Runnable])
   }
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    Thread.sleep(400)
+  }
+
   override def afterEach(): Unit = {
     subscriptions.foreach(_.cancel())
     subscriptions.clear
+    super.afterEach()
   }
 
   def register(s: Cancelable) = {
@@ -72,5 +104,6 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
       hyperbus.shutdown(5.seconds),
       Task.fromFuture(actorSystem.terminate())
     )).runAsync, 16.seconds)
+    asyncHttpClient.close()
   }
 }

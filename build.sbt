@@ -39,7 +39,7 @@ libraryDependencies ++= Seq(
   "com.wandoulabs.akka"  %% "spray-websocket"             % "0.1.4",
   "com.typesafe.akka"    %% "akka-actor"                  % "2.4.18",
   "com.hypertino"        %% "hyperbus-t-inproc"           % "0.2-SNAPSHOT" % "test",
-  "io.spray"             %% "spray-client"                % "1.3.1"     % "test",
+  "org.asynchttpclient"  % "async-http-client"            % "2.0.33"  % "test",
   "org.scalamock"        %% "scalamock-scalatest-support" % "3.5.0" % "test",
 //  "com.hypertino"               %% "simple-auth-service"         % "0.1.13"    % "test",
   "org.pegdown"          % "pegdown"                      % "1.4.2"     % "test"

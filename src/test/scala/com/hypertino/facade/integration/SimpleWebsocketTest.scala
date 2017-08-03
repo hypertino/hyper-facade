@@ -24,7 +24,7 @@ class SimpleWebsocketTest extends TestBase("inproc-test.conf") {
         DynamicRequestObservableMeta(RequestMatcher("hb://ws-test-service/unreliable-feed", Method.GET, None))
       ).subscribe { implicit request =>
         request.reply(Success {
-          Ok(DynamicBody(Obj.from("integerField" → 100500, "textField" → "Yey")))
+          Ok(DynamicBody(Obj.from("integer_field" → 100500, "text_field" → "Yey")))
         })
         Continue
       }
@@ -41,10 +41,10 @@ class SimpleWebsocketTest extends TestBase("inproc-test.conf") {
 
     val resourceState = q.nextResponse().futureValue
     resourceState shouldBe a[Ok[_]]
-    resourceState.body.content shouldBe Obj.from("integerField" → 100500, "textField" → "Yey")
+    resourceState.body.content shouldBe Obj.from("integer_field" → 100500, "text_field" → "Yey")
 
     hyperbus.publish(DynamicRequest(HRL("hb://ws-test-service/unreliable-feed"), Method.FEED_POST,
-      DynamicBody(Obj.from("integerField" → 54321, "textField" → "Bye")),
+      DynamicBody(Obj.from("integer_field" → 54321, "text_field" → "Bye")),
       Headers.builder
         .withContentType(Some("application/vnd.feed-test+json"))
         .withMessageId("100500")
@@ -54,7 +54,7 @@ class SimpleWebsocketTest extends TestBase("inproc-test.conf") {
 
     val event1 = q.nextEvent().futureValue
     event1.headers.method shouldBe Method.FEED_POST
-    event1.body.content shouldBe Obj.from("integerField" → 54321, "textField" → "Bye")
+    event1.body.content shouldBe Obj.from("integer_field" → 54321, "text_field" → "Bye")
 
     client ! DynamicRequest(HRL("/simple-resource-with-events/unreliable-feed"), "unsubscribe",
       EmptyBody,
