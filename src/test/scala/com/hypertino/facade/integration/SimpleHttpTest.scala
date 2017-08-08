@@ -25,7 +25,7 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
-  "Facade" should "filter fields" in {
+  ignore should "filter fields" in {
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -41,7 +41,7 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """{"text_field":"Yey"}"""
   }
 
-  "Facade" should "filter collection fields" in {
+  ignore should "filter collection fields" in {
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -62,7 +62,7 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """[{"text_field":"Yey"},{"text_field":"Hey"}]"""
   }
 
-  it should "serve resource with pattern" in {
+  ignore should "serve resource with pattern" in {
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
