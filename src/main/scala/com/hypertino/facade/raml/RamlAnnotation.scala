@@ -34,6 +34,7 @@ object RamlAnnotation {
       case FETCH ⇒
         FetchAnnotation(predicate = preparedExpression,
             source = PreparedExpression(propMap("source").toString),
+            mode = propMap.get("mode").map(_.toString).getOrElse("document"),
             onError = propMap.get("on_error").map(_.toString).getOrElse("fail"),
             defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString))
           )
@@ -62,7 +63,8 @@ case class SetAnnotation(name: String = RamlAnnotation.SET,
 case class FetchAnnotation(name: String = RamlAnnotation.FETCH,
                            predicate: Option[PreparedExpression],
                            source: PreparedExpression,
-                           onError: String,
+                           mode: String, //todo: this shouldbe enum
+                           onError: String, //todo: this shouldbe enum
                            defaultValue: Option[PreparedExpression]
                           ) extends RamlAnnotation
 

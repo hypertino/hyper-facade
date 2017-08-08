@@ -1,21 +1,20 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Null, Obj, Value}
+import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.raml.{FetchAnnotation, RamlAnnotation, RamlConfiguration}
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, EmptyBody, HRL, Method, NotFound, Ok}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Method, NotFound, Ok}
 import monix.eval.Task
 import monix.execution.Scheduler
 import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
-import shapeless.Succ
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 class FetchFieldFilter(annotation: FetchAnnotation,
                        hyperbus: Hyperbus,
@@ -39,7 +38,6 @@ class FetchFieldFilter(annotation: FetchAnnotation,
           Task.now(None)
         }
     }
-    //if Try(SelectFields(fields.toString)) match
   }
 
   protected def fieldsSelected(fields: Value, context: FieldFilterContext) = Try(SelectFields(fields.toString)) match {
@@ -70,20 +68,57 @@ class FetchFieldFilter(annotation: FetchAnnotation,
       val hrl = ramlConfiguration.resourceHRL(HRL.fromURL(source), Method.GET).getOrElse(hrlOriginal)
 
       implicit val mcx = context.requestContext
-      hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
-        case Ok(body: DynamicBody, _) ⇒
-          Some(body.content)
-      } onErrorRecoverWith {
-        case NotFound(_) ⇒
-          defaultValue(context)
+      ask(hrl).
+        onErrorRecoverWith {
+          case NotFound(_) ⇒
+            defaultValue(context)
 
-        case NonFatal(e) ⇒
-          handleError(context, e)
-      }
+          case NonFatal(e) ⇒
+            handleError(context, e)
+        }
     } catch {
       case NonFatal(e) ⇒
         handleError(context, e)
     }
+  }
+
+  protected def ask(hrl: HRL): Task[Option[Value]] = {
+    annotation.mode match {
+      case "collection_link" ⇒
+        val hrlCollectionLink = hrl.copy(query = hrl.query + Obj.from("per_page" → 0))
+        hyperbus.ask(DynamicRequest(hrlCollectionLink, Method.GET, EmptyBody)).map {
+          case response @ Ok(body: DynamicBody, _) ⇒
+            Some(Obj(Map(
+                "first_page_url" → Text(hrl.toURL())
+            ) ++
+              response.headers.get(Header.COUNT).map("count" → _)
+            ))
+        }
+
+      case "collection_top" ⇒
+        hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
+          case response @ Ok(body: DynamicBody, _) ⇒
+            Some(
+              Obj(
+                Map("top" → body.content) ++
+                nextPageUrl(hrl, body.content).map("next_page_url" → Text(_)).toMap ++
+                response.headers.get(Header.COUNT).map("count" → _).toMap
+              )
+            )
+        }
+
+      case "document" ⇒
+        hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
+          case Ok(body: DynamicBody, _) ⇒
+            Some(body.content)
+        }
+    }
+  }
+
+  def nextPageUrl(hrl: HRL, content: Value): Option[String] = content match {
+      !-!-
+    case Lst(v) ⇒ v.lastOption.map(last ⇒ hrl.copy(query=hrl.query + Obj.from("filter" → s"id > '${last.id}'")).toURL())
+    case _ ⇒ None
   }
 
   protected def handleError(context: FieldFilterContext, e: Throwable): Task[Option[Value]] = {
