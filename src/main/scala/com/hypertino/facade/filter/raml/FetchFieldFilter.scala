@@ -6,7 +6,7 @@ import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.raml.{FetchAnnotation, RamlAnnotation, RamlConfiguration}
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Method, NotFound, Ok}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, MessagingContext, Method, NotFound, Ok}
 import monix.eval.Task
 import monix.execution.Scheduler
 import org.slf4j.LoggerFactory
@@ -82,7 +82,7 @@ class FetchFieldFilter(annotation: FetchAnnotation,
     }
   }
 
-  protected def ask(hrl: HRL): Task[Option[Value]] = {
+  protected def ask(hrl: HRL)(implicit mcx: MessagingContext): Task[Option[Value]] = {
     annotation.mode match {
       case "collection_link" ⇒
         val hrlCollectionLink = hrl.copy(query = hrl.query + Obj.from("per_page" → 0))
@@ -101,7 +101,7 @@ class FetchFieldFilter(annotation: FetchAnnotation,
             Some(
               Obj(
                 Map("top" → body.content) ++
-                nextPageUrl(hrl, body.content).map("next_page_url" → Text(_)).toMap ++
+                response.headers.link.map(kv ⇒ kv._1 → Text(kv._2.toURL())) ++
                 response.headers.get(Header.COUNT).map("count" → _).toMap
               )
             )
@@ -113,12 +113,6 @@ class FetchFieldFilter(annotation: FetchAnnotation,
             Some(body.content)
         }
     }
-  }
-
-  def nextPageUrl(hrl: HRL, content: Value): Option[String] = content match {
-      !-!-
-    case Lst(v) ⇒ v.lastOption.map(last ⇒ hrl.copy(query=hrl.query + Obj.from("filter" → s"id > '${last.id}'")).toURL())
-    case _ ⇒ None
   }
 
   protected def handleError(context: FieldFilterContext, e: Throwable): Task[Option[Value]] = {

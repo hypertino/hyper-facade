@@ -2,7 +2,7 @@ package com.hypertino.facade.raml
 
 import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.model.HRL
-import com.hypertino.hyperbus.raml.utils.UriParser
+import com.hypertino.hyperbus.utils.uri.UriPathParser
 
 import scala.collection.immutable.SortedMap
 
@@ -66,8 +66,8 @@ object RewriteIndex {
     }
 
     def compareUriTemplates(left: String, right: String): Int = {
-      val leftTokens = UriParser.tokens(left).length
-      val rightTokens = UriParser.tokens(right).length
+      val leftTokens = UriPathParser.tokens(left).length
+      val rightTokens = UriPathParser.tokens(right).length
       val uriLengthDiff = leftTokens - rightTokens
       if (uriLengthDiff != 0)
         uriLengthDiff

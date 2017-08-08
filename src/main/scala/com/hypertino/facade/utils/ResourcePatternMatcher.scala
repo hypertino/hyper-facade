@@ -3,7 +3,7 @@ package com.hypertino.facade.utils
 
 import com.hypertino.binders.value.{Obj, Text}
 import com.hypertino.hyperbus.model.HRL
-import com.hypertino.hyperbus.raml.utils._
+import com.hypertino.hyperbus.utils.uri._
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -39,9 +39,9 @@ object ResourcePatternMatcher {
 
     if (pattern.startsWith(prefix)) {
       val patternPathUri = pattern.substring(prefix.length)
-      val resourceTokens = UriParser.tokens(resource.substring(prefix.length))
+      val resourceTokens = UriPathParser.tokens(resource.substring(prefix.length))
       var args = mutable.MutableList[(String, String)]()
-      val patternTokens = UriParser.tokens(patternPathUri)
+      val patternTokens = UriPathParser.tokens(patternPathUri)
       val patternTokenIter = patternTokens.iterator
       val reqUriTokenIter = resourceTokens.iterator
       var matchesCorrectly = patternTokenIter.hasNext && reqUriTokenIter.hasNext

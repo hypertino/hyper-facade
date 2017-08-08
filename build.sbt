@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
 //  "com.hypertino"        %% "auth-service-model"          % "0.1.7",
   "com.hypertino"        %% "hyperbus"                    % "0.2-SNAPSHOT",
   "com.hypertino"        % "raml-parser-2"                % "1.0.5-SNAPSHOT",
-  "com.hypertino"        %% "hyperbus-raml-utils"         % "0.1-SNAPSHOT",
+  "com.hypertino"        %% "hyperbus-utils"              % "0.1-SNAPSHOT",
   "com.hypertino"        %% "service-control"             % "0.3-SNAPSHOT",
   "com.hypertino"        %% "service-config"              % "0.2-SNAPSHOT",
   "com.hypertino"        %% "service-metrics"             % "0.3-SNAPSHOT",

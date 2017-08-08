@@ -73,7 +73,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
         }
 
         override def onError(ex: Throwable): Unit = {
-          log.error(s"Error has occured on event consumption from Hyperbus. $ex")
+          log.error(s"Error has occurred on event consumption from Hyperbus. $ex")
         }
 
         override def onComplete(): Unit = {
@@ -81,7 +81,10 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
         }
       }
 
-      val requestMatcher = RequestMatcher(Map(HeaderHRL.FULL_HRL → Specific(groupUri.location), Header.METHOD → RegexMatcher("^feed:.*$")))
+      val requestMatcher = RequestMatcher(Map(
+        HeaderHRL.FULL_HRL → Seq(Specific(groupUri.location)),
+        Header.METHOD → Seq(RegexMatcher("^feed:.*$"))
+      ))
       hyperbusSubscription = Some(hyperbus.events(groupName, DynamicRequestObservableMeta(requestMatcher)).subscribe(s))
 
 

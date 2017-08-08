@@ -61,7 +61,7 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
       taskFromListenableFuture(f).runAsync.map { result ⇒
         result.getResponseBody
       },
-      5.seconds
+      6.seconds
     )
   }
 
@@ -84,17 +84,19 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    Thread.sleep(400)
+    Thread.sleep(600)
   }
 
   override def afterEach(): Unit = {
     subscriptions.foreach(_.cancel())
     subscriptions.clear
     super.afterEach()
+    Thread.sleep(600)
   }
 
   def register(s: Cancelable) = {
     subscriptions += s
+    Thread.sleep(600)
   }
 
   override def afterAll(): Unit = {
