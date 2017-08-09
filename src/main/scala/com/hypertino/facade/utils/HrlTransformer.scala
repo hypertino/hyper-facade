@@ -6,7 +6,7 @@ import com.hypertino.facade.raml.{RamlAnnotation, RamlConfiguration, RewriteInde
 import com.hypertino.hyperbus.model.HRL
 import spray.http.Uri.Path
 
-
+// todo: refactor this and make it injectable!!!
 object HrlTransformer {
   def rewriteLinkToOriginal(from: HRL, maxRewrites: Int): HRL = {
     if (spray.http.Uri(from.location).scheme != "hb") // hb:// scheme
@@ -59,26 +59,6 @@ object HrlTransformer {
       rewrittenUri
     }
   }
-
-  /*def addRootPathPrefix(rootPathPrefix: String)(hrl: HRL): HRL = {
-    if (spray.http.Uri(hrl.location).scheme != "hb") { // hb:// scheme
-      hrl
-    }
-    else {
-      HRL(rootPathPrefix + hrl.location, hrl.query)
-    }
-  }
-
-  def removeRootPathPrefix(rootPathPrefix: String, hrl: HRL): HRL = {
-    val normalizedUri = spray.http.Uri(hrl.location)
-    // todo: check scheme, server for http?
-    if (normalizedUri.path.startsWith(Path(rootPathPrefix))) {
-      val pathOffset = rootPathPrefix.length
-      HRL(normalizedUri.path.toString.substring(pathOffset), hrl.query)
-    } else {
-      throw new MalformedURLException(s"$hrl doesn't starts with prefix $rootPathPrefix")
-    }
-  }*/
 
   def rewrite(from: HRL, to: HRL): HRL = {
     to

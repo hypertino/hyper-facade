@@ -9,7 +9,9 @@ case class RequestContext(request: DynamicRequest,
                           ramlEntryHeaders: Option[RequestHeaders] = None) extends MessagingContext {
 
   // todo: original is http?
-  lazy val originalHeaders: RequestHeaders = RequestHeaders(HeadersMap(stages.reverse.head.toSeq.map(kv ⇒ kv._1.toLowerCase → kv._2): _*))
+  lazy val originalHeaders: RequestHeaders = RequestHeaders(
+    HeadersMap(stages.reverse.head.toSeq.map(kv ⇒ FacadeHeaders.normalize(kv._1) → kv._2): _*)
+  )
   lazy val remoteAddress: String = originalHeaders(FacadeHeaders.REMOTE_ADDRESS).toString
 
   def withNextStage(newRequest: DynamicRequest, ramlEntryHeaders: Option[RequestHeaders] = None): RequestContext = copy(

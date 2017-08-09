@@ -25,6 +25,7 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
+  // todo: fix
   ignore should "filter fields" in {
     register {
       hyperbus.commands[DynamicRequest](
@@ -41,6 +42,7 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """{"text_field":"Yey"}"""
   }
 
+  // todo: fix
   ignore should "filter collection fields" in {
     register {
       hyperbus.commands[DynamicRequest](
@@ -62,6 +64,7 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """[{"text_field":"Yey"},{"text_field":"Hey"}]"""
   }
 
+  // todo: fix
   ignore should "serve resource with pattern" in {
     register {
       hyperbus.commands[DynamicRequest](

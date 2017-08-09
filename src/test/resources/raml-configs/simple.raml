@@ -36,6 +36,8 @@ annotationTypes:
         body:
           type: SimpleService
   /{id}:
+    (rewrite):
+        uri: hb://test-service/{id}
     get:
       responses:
         200:
