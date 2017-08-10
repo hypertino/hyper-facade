@@ -8,7 +8,8 @@ import monix.eval.Task
 
 // todo: add statusCode to support different replies
 class DenyFieldFilter(typeName: String, fieldName: String) extends FieldFilter {
-  def apply(implicit context: FieldFilterContext): Task[Option[Value]] = Task.raiseError {
+  def apply(context: FieldFilterContext): Task[Option[Value]] = Task.raiseError {
+    implicit val mcx = context.requestContext
     Forbidden(ErrorBody("field-is-protected", Some(s"You can't set field `$typeName.$fieldName`")))
   }
 }
