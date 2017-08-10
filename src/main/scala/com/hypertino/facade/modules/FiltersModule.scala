@@ -18,6 +18,7 @@ class FiltersModule extends Module {
   bind [RamlFieldFilterFactory]     identifiedBy "removeField"                          to injected[RemoveFieldFilterFactory]
   bind [RamlFieldFilterFactory]     identifiedBy "setField"                             to injected[SetFieldFilterFactory]
   bind [RamlFieldFilterFactory]     identifiedBy "fetchField"                           to injected[FetchFieldFilterFactory]
+  bind [RamlFieldFilterFactory]     identifiedBy "denyField"                            to injected[DenyFieldFilterFactory]
 
   bind [FilterChain]                identifiedBy "beforeFilterChain"                    to SimpleFilterChain(
     requestFilters            = Seq(injected[HttpWsRequestFilter],
