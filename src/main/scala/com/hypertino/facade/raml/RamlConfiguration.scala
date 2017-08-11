@@ -9,13 +9,16 @@ import com.hypertino.parser.ast.Identifier
 import scaldi.{Injectable, Injector}
 
 case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, ResourceConfig], dataTypes: Map[String, TypeDefinition]) {
+  val resourcePatternHRLs = resourcesByPattern.keySet.map(HRL(_))
+
   def traitNames(uriPattern: String, method: String): Seq[String] = {
     traits(uriPattern, method).map(foundTrait ⇒ foundTrait.name).distinct
   }
 
   def resourceHRL(requestHRL: HRL, method: String): Option[HRL] = {
     //todo: lookup in map instead of sequence!
-    ResourcePatternMatcher.matchResource(requestHRL.location, resourcesByPattern.keySet).map(h ⇒
+    ResourcePatternMatcher.matchResource(requestHRL, resourcePatternHRLs).map(h ⇒
+      // todo: move this into matchResource?
       h.copy(
         query = h.query + requestHRL.query
       )

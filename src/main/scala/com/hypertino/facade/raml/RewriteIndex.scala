@@ -6,46 +6,37 @@ import com.hypertino.hyperbus.utils.uri.UriPathParser
 
 import scala.collection.immutable.SortedMap
 
-// todo: naming uri vs hrl
 case class IndexKey(hrl: HRL, method: Option[Method])
 
+// todo: !!! this is very inefficient, no actual index is here !!!
 case class RewriteIndex(inverted: Map[IndexKey, HRL], forward: Map[IndexKey, HRL]) {
-  def findRewriteForward(hrl: HRL, requestMethod: Option[String]): Option[HRL] = {
+  def findRewriteForward(hrl: HRL, requestMethod: Option[String]): Option[(HRL, HRL)] = {
     findRewrite(hrl, requestMethod, forward)
   }
 
-  def findRewriteBackward(hrl: HRL, requestMethod: Option[String]): Option[HRL] = {
+  def findRewriteBackward(hrl: HRL, requestMethod: Option[String]): Option[(HRL, HRL)] = {
     findRewrite(hrl, requestMethod, inverted)
   }
 
-  private def findRewrite(hrl: HRL, requestMethod: Option[String], index: Map[IndexKey, HRL]): Option[HRL] = {
+  private def findRewrite(hrl: HRL, requestMethod: Option[String], index: Map[IndexKey, HRL]): Option[(HRL, HRL)] = {
     val method = requestMethod.map(m ⇒ Method(m))
     findMostSpecificRewriteRule(index, method, hrl)
   }
 
-  private def findMostSpecificRewriteRule(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[HRL] = {
-    exactMatch(index, method, originalHRL) orElse
-      patternMatch(index, method, originalHRL) match {
-      case Some(matchedHRL) ⇒
-        val newQuery = originalHRL.query + matchedHRL.query
-        Some(matchedHRL.copy(
-          query = newQuery
-        ))
-      case None ⇒
-        None
-    }
+  private def findMostSpecificRewriteRule(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[(HRL, HRL)] = {
+    exactMatch(index, method, originalHRL) orElse patternMatch(index, method, originalHRL)
   }
 
-  private def exactMatch(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[HRL] = {
-    index.get(IndexKey(originalHRL, method)) orElse index.get(IndexKey(originalHRL, None))
-  }
-
-  private def patternMatch(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[HRL] = {
+  private def exactMatch(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[(HRL, HRL)] = {
     index
-      .iterator
-      .map(i ⇒ ResourcePatternMatcher.matchResource(originalHRL.location, i._1.hrl.location))
-      .find(_.nonEmpty)
-      .flatten
+      .find(i ⇒ i._1 == IndexKey(originalHRL, method) || i._1 == IndexKey(originalHRL, None))
+      .map(i ⇒ i._1.hrl → i._2)
+  }
+
+  private def patternMatch(index: Map[IndexKey, HRL], method: Option[Method], originalHRL: HRL): Option[(HRL, HRL)] = {
+    index
+      .find(i ⇒ ResourcePatternMatcher.matchResource(originalHRL, i._1.hrl).isDefined)
+      .map(i ⇒ i._1.hrl → i._2)
   }
 }
 

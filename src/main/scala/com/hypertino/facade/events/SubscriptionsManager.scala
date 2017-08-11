@@ -36,7 +36,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
     val groupSubscriptions = scala.collection.mutable.Map[HRL,GroupSubscription]()
     val groupSubscriptionById = TrieMap[ActorRef, HRL]()
 
-    case class ClientSubscriptionData(clientActorRef: ActorRef, uri: HRL, correlationId: String)
+    case class ClientSubscriptionData(clientActorRef: ActorRef, hrl: HRL, correlationId: String)
 
     class GroupSubscription(groupUri: HRL, initialSubscription: ClientSubscriptionData) {
       val clientSubscriptions = new ConcurrentLinkedQueue[ClientSubscriptionData]()
@@ -51,7 +51,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
           for (consumer: ClientSubscriptionData ← clientSubscriptions) {
             try {
               // todo: query matching!
-              val matched = ResourcePatternMatcher.matchResource(consumer.uri.location, elem.headers.hrl.location).isDefined
+              val matched = ResourcePatternMatcher.matchResource(consumer.hrl, elem.headers.hrl).isDefined
               log.debug(s"Event #(${elem.headers.messageId}) ${if (matched) "forwarded" else "NOT matched"} to ${consumer.clientActorRef}/${consumer.correlationId}")
               if (matched) {
                 val request = elem.copy(

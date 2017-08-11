@@ -8,15 +8,9 @@ import com.hypertino.hyperbus.utils.uri._
 import scala.annotation.tailrec
 import scala.collection.mutable
 
+// todo: this also needs total refactoring
 object ResourcePatternMatcher {
-
-  /**
-    * Matches uri against sequence of uri patterns
-    * @param resource - uri
-    * @param resourcePatterns - sequence uri patterns
-    * @return
-    */
-  def matchResource(resource: String, resourcePatterns: Set[String]): Option[HRL] = {
+  def matchResource(resource: HRL, resourcePatterns: Set[HRL]): Option[HRL] = {
     resourcePatterns
       .iterator
       .map(matchResource(resource, _))
@@ -24,27 +18,15 @@ object ResourcePatternMatcher {
       .flatten
   }
 
-  /**
-    * Matches URI pattern with request URI
-    * @param resource - request resource
-    * @param pattern - URI pattern from RAML configuration
-    * @return if request URI matches pattern then Some of constructed URI with parameters will be returned, None otherwise
-    */
-  def matchResource(resource: String, pattern: String): Option[HRL] = {
-    val resourceUri = spray.http.Uri(resource)
-    val prefix = if (resourceUri.scheme.nonEmpty && resourceUri.authority.nonEmpty)
-      resourceUri.scheme + ":" + resourceUri.authority
-    else
-      "/"
-
-    if (pattern.startsWith(prefix)) {
-      val patternPathUri = pattern.substring(prefix.length)
-      val resourceTokens = UriPathParser.tokens(resource.substring(prefix.length))
+  def matchResource(source: HRL, pattern: HRL): Option[HRL] = {
+    if (source.authority == pattern.authority) {
+      val patternPathUri = pattern.path
+      val sourceTokens = UriPathParser.tokens(source.path)
       var args = mutable.MutableList[(String, String)]()
       val patternTokens = UriPathParser.tokens(patternPathUri)
       val patternTokenIter = patternTokens.iterator
-      val reqUriTokenIter = resourceTokens.iterator
-      var matchesCorrectly = patternTokenIter.hasNext && reqUriTokenIter.hasNext
+      val reqUriTokenIter = sourceTokens.iterator
+      var matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
       var previousReqUriToken: Option[Token] = None
       while (patternTokenIter.hasNext && reqUriTokenIter.hasNext && matchesCorrectly) {
         val resUriToken = normalizePath(reqUriTokenIter, previousReqUriToken)
@@ -63,6 +45,8 @@ object ResourcePatternMatcher {
               case TextToken(value) ⇒
                 args += patternParamName → value
                 matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
+              case ParameterToken(_, RegularMatchType) ⇒
+                matchesCorrectly = true
               case _ ⇒
                 matchesCorrectly = false
             }
@@ -81,7 +65,7 @@ object ResourcePatternMatcher {
       }
       if (!matchesCorrectly) None
       else
-        Some(HRL(pattern, Obj.from(args.map(kv ⇒ kv._1 → Text(kv._2)): _*)))
+        Some(pattern.copy(query = Obj(args.map(kv ⇒ kv._1 → Text(kv._2)).toMap)))
     }
     else {
       None

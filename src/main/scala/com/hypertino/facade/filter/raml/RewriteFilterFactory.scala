@@ -10,14 +10,16 @@ import scaldi.{Injectable, Injector}
 
 class RewriteFilterFactory(config: Config, protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable {
   override def createFilters(target: RamlFilterTarget): SimpleFilterChain = {
-    val (rewrittenUri, originalUri, ramlMethod) = target match {
-      case ResourceTarget(uri, RewriteAnnotation(_, _, newUri)) ⇒ (newUri, uri, None)
-      case MethodTarget(uri, method, RewriteAnnotation(_, _, newUri)) ⇒ (newUri, uri, Some(Method(method)))
+    val (sourceLocation, ramlMethod, destinationLocation, query) = target match {
+      case ResourceTarget(uri, RewriteAnnotation(_, _, l, q)) ⇒ (uri, None, l, q)
+      case MethodTarget(uri, method, RewriteAnnotation(_, _, l, q)) ⇒ (uri, Some(Method(method)), l, q)
       case otherTarget ⇒ throw RamlConfigException(s"Annotation 'rewrite' cannot be assigned to $otherTarget")
     }
-    RewriteIndexHolder.updateRewriteIndex(HRL(originalUri), HRL(rewrittenUri), ramlMethod)
+    val sourceHRL = HRL(sourceLocation)
+    val destinationHRL = HRL(destinationLocation, query)
+    RewriteIndexHolder.updateRewriteIndex(sourceHRL, destinationHRL, ramlMethod)
     SimpleFilterChain(
-      requestFilters = Seq(new RewriteRequestFilter(rewrittenUri, predicateEvaluator)),
+      requestFilters = Seq(new RewriteRequestFilter(sourceHRL, destinationHRL, predicateEvaluator)),
       responseFilters = Seq.empty,
       eventFilters = Seq(new RewriteEventFilter(predicateEvaluator))
     )

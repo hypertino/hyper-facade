@@ -8,13 +8,14 @@ import com.hypertino.hyperbus.model.{DynamicRequest, HRL}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RewriteRequestFilter(uri: String, protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
+class RewriteRequestFilter(sourceHRL: HRL, destinationHRL: HRL, protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
+
   override def apply(contextWithRequest: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
       val request = contextWithRequest.request
       // todo: should we preserve all query fields???
-      val rewrittenUri = HrlTransformer.rewrite(request.headers.hrl, HRL(uri, request.headers.hrl.query))
+      val rewrittenUri = HrlTransformer.rewrite(request.headers.hrl, sourceHRL, destinationHRL)
       contextWithRequest.copy(
         request = RequestUtils.copyWithNewHRL(request, rewrittenUri)
       )

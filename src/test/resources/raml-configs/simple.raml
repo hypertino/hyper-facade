@@ -3,41 +3,27 @@ title: Facade API
 version: v1
 mediaType: application/json
 baseUri: http://test
+uses:
+  facade: facade-lib.raml
 
 types:
-  Conditional:
-    type: object
-    properties:
-      if?:
-
-  WithUri:
-    type: object
-    properties:
-      uri:
-
   SimpleService:
     type: object
     properties:
       integer_field: integer
       text_field: string
 
-annotationTypes:
-  x-client-ip: nil | Conditional
-  x-client-language: nil | Conditional
-  deny: nil | Conditional
-  rewrite: [WithUri, Conditional]
-
 /simple-resource:
-  (rewrite):
-    uri: hb://test-service
+  (facade.rewrite):
+    location: hb://test-service
   get:
     responses:
       200:
         body:
           type: SimpleService
   /{id}:
-    (rewrite):
-        uri: hb://test-service/{id}
+    (facade.rewrite):
+      location: hb://test-service/{id}
     get:
       responses:
         200:
@@ -45,9 +31,15 @@ annotationTypes:
             type: SimpleService
 
 /simple-resource-with-events:
-  (rewrite):
-    uri: hb://ws-test-service
+  (facade.rewrite):
+    location: hb://ws-test-service
   /unreliable-feed:
     get:
   /reliable-feed:
     get:
+
+/resource-with-rewrite-args/{some_id}:
+  (facade.rewrite):
+    location: hb://test-service-with-args/{path}
+    query:
+      path: abc/{some_id}

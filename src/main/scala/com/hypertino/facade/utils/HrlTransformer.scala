@@ -1,9 +1,12 @@
 package com.hypertino.facade.utils
 
-import java.net.MalformedURLException
+import java.net.{MalformedURLException, URLDecoder}
+import java.security.URIParameter
 
-import com.hypertino.facade.raml.{RamlAnnotation, RamlConfiguration, RewriteIndexHolder}
+import com.hypertino.binders.value.{Null, Obj, Value}
+import com.hypertino.facade.raml.{IndexKey, RamlAnnotation, RamlConfiguration, RewriteIndexHolder}
 import com.hypertino.hyperbus.model.HRL
+import com.hypertino.hyperbus.utils.uri.{ParameterToken, SlashToken, TextToken, UriPathParser}
 import spray.http.Uri.Path
 
 // todo: refactor this and make it injectable!!!
@@ -17,8 +20,9 @@ object HrlTransformer {
       while (rewritesLeft > 0) {
         rewritesLeft -= 1
         RewriteIndexHolder.rewriteIndex.findRewriteBackward(rewrittenHRL, None) match {
-          case Some(hrl) ⇒
-            rewrittenHRL = rewrite(rewrittenHRL, hrl)
+          case Some((sourceHRL, destinationHRL)) ⇒
+            rewrittenHRL = rewrite(rewrittenHRL, sourceHRL, destinationHRL)
+
           case None ⇒
             rewritesLeft = 0
         }
@@ -31,13 +35,12 @@ object HrlTransformer {
     if (spray.http.Uri(from.location).scheme != "hb") // hb:// scheme
       from
     else {
-      var rewrittenUri = from
       RewriteIndexHolder.rewriteIndex.findRewriteBackward(from, Some(method)) match {
-        case Some(uri) ⇒
-          rewrittenUri = rewrite(rewrittenUri, uri)
+        case Some((sourceHRL, destinationHRL)) ⇒
+          rewrite(from, sourceHRL, destinationHRL)
         case None ⇒
+          from
       }
-      rewrittenUri
     }
   }
 
@@ -50,8 +53,8 @@ object HrlTransformer {
       while (rewritesLeft > 0) {
         rewritesLeft -= 1
         RewriteIndexHolder.rewriteIndex.findRewriteForward(rewrittenUri, None) match {
-          case Some(uri) ⇒
-            rewrittenUri = rewrite(rewrittenUri, uri)
+          case Some((sourceHRL, destinationHRL)) ⇒
+            rewrittenUri = rewrite(rewrittenUri, sourceHRL, destinationHRL)
           case None ⇒
             rewritesLeft = 0
         }
@@ -60,8 +63,62 @@ object HrlTransformer {
     }
   }
 
-  def rewrite(from: HRL, to: HRL): HRL = {
-    to
+  def rewrite(hrl: HRL, sourcePattern: HRL, destinationPattern: HRL): HRL = {
+    val flattenHRL = HRL.fromURL(hrl.toURL())
+    ResourcePatternMatcher.matchResource(flattenHRL, sourcePattern.copy(query=Null)).map { matched ⇒
+      val destPathTokens = UriPathParser.tokens(destinationPattern.path)
+      val destPathParams = destPathTokens.collect {
+        case ParameterToken(str, _) ⇒ str
+      }
+      val destPathParmsValues = destPathParams.map { param ⇒
+        val v = {
+          hrl.query match {
+            case Obj(els) ⇒ els.get(param)
+            case _ ⇒ None
+          }
+        }.orElse {
+          val pattern = "{" + param + "}"
+          sourcePattern.query match {
+            case Obj(els) ⇒
+              els
+                .find(_._2.contains(pattern))
+                .flatMap(kv ⇒ extractInnerParamValue(kv._2.toString, matched.query.toMap(kv._1).toString, param))
+            case _ ⇒ None
+          }
+        }
+
+        v.map(param → _)
+      }
+      if (destPathParmsValues.forall(_.isDefined)) {
+        val destPathParmMap = destPathParmsValues.flatten.toMap
+
+        val destQuery = Obj(destPathParmMap) + {
+          flattenHRL.query match {
+            case Obj(els) ⇒ Obj(els.filterNot(kv ⇒ destPathParmMap.contains(kv._1)))
+            case other ⇒ other
+          }
+        }
+
+        destinationPattern.copy(query=destQuery match {
+          case Obj(v) if v.isEmpty ⇒ Null
+          case other ⇒ other
+        })
+      }
+      else {
+        hrl
+      }
+    } getOrElse {
+      hrl
+    }
+  }
+
+  private def extractInnerParamValue(sourceParamPattern: String, sourceValue: String, innerParamName: String): Option[Value] = {
+    ResourcePatternMatcher.matchResource(HRL(URLDecoder.decode(sourceValue, "UTF-8")), HRL(sourceParamPattern)).flatMap { matched ⇒
+      matched.query match {
+        case Obj(els) ⇒ els.get(innerParamName)
+        case _ ⇒ None
+      }
+    }
   }
 
   private def linkIsRewriteable(from: HRL, ramlConfig: RamlConfiguration): Boolean = {

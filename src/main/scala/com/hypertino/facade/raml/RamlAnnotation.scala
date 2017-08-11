@@ -1,7 +1,8 @@
 package com.hypertino.facade.raml
 
+import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
 import com.hypertino.facade.filter.parser.PreparedExpression
-import org.raml.v2.api.model.v10.datamodel.TypeInstanceProperty
+import org.raml.v2.api.model.v10.datamodel.{TypeInstance, TypeInstanceProperty}
 
 trait RamlAnnotation {
   def name: String
@@ -18,8 +19,35 @@ object RamlAnnotation {
   val AUTHORIZE = "authorize"
   val FETCH = "fetch"
 
+  import scala.collection.JavaConverters._
+
+  private def recursiveProperty(instance: TypeInstance): Value = {
+    if (instance.isScalar) {
+      Text(instance.value().toString)
+    } else {
+
+      Obj(
+        instance.properties().asScala.map { kv ⇒
+          kv.name() → recursiveProperty(kv)
+        }.toMap
+      )
+    }
+  }
+
+  private def recursiveProperty(instance: TypeInstanceProperty): Value = {
+    if (instance.isArray) {
+      Lst(
+        instance.values().asScala.map(recursiveProperty)
+      )
+    } else {
+      recursiveProperty(instance.value())
+    }
+  }
+
   def apply(name: String, properties: Seq[TypeInstanceProperty]): RamlAnnotation = {
-    val propMap = properties.map(property ⇒ property.name() → property.value.value()).toMap
+
+    val propMap = properties.map(property ⇒ property.name() → recursiveProperty(property.value())).toMap
+
     val predicate = propMap.get("if").map(_.toString)
     val preparedExpression = predicate.map(PreparedExpression.apply)
     name match {
@@ -30,7 +58,9 @@ object RamlAnnotation {
       case SET ⇒
         SetAnnotation(predicate = preparedExpression, source = PreparedExpression(propMap("source").toString))
       case REWRITE ⇒
-        RewriteAnnotation(predicate = preparedExpression, uri = propMap("uri").toString)
+        RewriteAnnotation(predicate = preparedExpression, location = propMap("location").toString,
+          query = propMap.getOrElse("query", Null)
+        )
       case FETCH ⇒
         FetchAnnotation(predicate = preparedExpression,
             source = PreparedExpression(propMap("source").toString),
@@ -46,7 +76,8 @@ object RamlAnnotation {
 
 case class RewriteAnnotation(name: String = RamlAnnotation.REWRITE,
                              predicate: Option[PreparedExpression],
-                             uri: String) extends RamlAnnotation
+                             location: String,
+                             query: Value) extends RamlAnnotation
 
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
                          predicate: Option[PreparedExpression]) extends RamlAnnotation

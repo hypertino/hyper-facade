@@ -6,9 +6,9 @@ object RewriteIndexHolder {
 
   var rewriteIndex = RewriteIndex()
 
-  def updateRewriteIndex(originalUri: HRL, rewrittenUri: HRL, method: Option[Method]): Unit = {
-    val invertedIndex = rewriteIndex.inverted + (IndexKey(rewrittenUri, method) → originalUri)
-    val forwardIndex = rewriteIndex.forward + (IndexKey(originalUri, method) → rewrittenUri)
+  def updateRewriteIndex(sourceHRL: HRL, destHRL: HRL, method: Option[Method]): Unit = {
+    val invertedIndex = rewriteIndex.inverted + (IndexKey(destHRL, method) → sourceHRL)
+    val forwardIndex = rewriteIndex.forward + (IndexKey(sourceHRL, method) → destHRL)
     rewriteIndex = RewriteIndex(invertedIndex, forwardIndex)
   }
 

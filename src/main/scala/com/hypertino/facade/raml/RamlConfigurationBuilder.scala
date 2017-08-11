@@ -122,9 +122,9 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
   private def adjustParentAnnotations(childResourceRelativeUri: String, parentAnnotations: Seq[RamlAnnotation]): Seq[RamlAnnotation] = {
     val adjustedAnnotations = Seq.newBuilder[RamlAnnotation]
     parentAnnotations.foreach {
-      case RewriteAnnotation(name, predicate, uri) ⇒
-        val adjustedRewrittenUri = uri + childResourceRelativeUri
-        adjustedAnnotations += RewriteAnnotation(name, predicate, adjustedRewrittenUri)
+      case RewriteAnnotation(name, predicate, location, query) ⇒
+        val adjustedRewrittenUri = location + childResourceRelativeUri
+        adjustedAnnotations += RewriteAnnotation(name, predicate, adjustedRewrittenUri, query)
       case otherAnn ⇒ adjustedAnnotations += otherAnn
     }
     adjustedAnnotations.result()
