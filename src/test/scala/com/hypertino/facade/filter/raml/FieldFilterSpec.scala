@@ -49,11 +49,12 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
     )))
   }
 
-  def ff(name: String, source: String, mode: String = "document", onError: String = FetchFieldFilter.ON_ERROR_FAIL, defaultValue: Option[String] = None) = {
+  def ff(name: String, source: String, query: Map[String,String] = Map.empty, mode: String = "document", onError: String = FetchFieldFilter.ON_ERROR_FAIL, defaultValue: Option[String] = None) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
         FetchAnnotation(predicate=None,
-          source=PreparedExpression(source),
+          location=PreparedExpression(source),
+          query=query.map(kv ⇒ kv._1 → PreparedExpression(kv._2)),
           mode=mode,
           onError=onError,
           defaultValue=defaultValue.map(PreparedExpression(_))),

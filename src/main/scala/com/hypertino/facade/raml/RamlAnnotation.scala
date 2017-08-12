@@ -45,11 +45,12 @@ object RamlAnnotation {
   }
 
   def apply(name: String, properties: Seq[TypeInstanceProperty]): RamlAnnotation = {
-
     val propMap = properties.map(property ⇒ property.name() → recursiveProperty(property.value())).toMap
+    def predicate = propMap.get("if").map(_.toString)
+    def preparedExpression = predicate.map(PreparedExpression.apply)
+    def locationExpression = PreparedExpression(propMap("location").toString)
+    def queryExpressionMap = propMap.getOrElse("query", Null).toMap.map(kv ⇒ kv._1 → PreparedExpression(kv._2.toString)).toMap
 
-    val predicate = propMap.get("if").map(_.toString)
-    val preparedExpression = predicate.map(PreparedExpression.apply)
     name match {
       case DENY ⇒
         DenyAnnotation(predicate = preparedExpression)
@@ -63,7 +64,8 @@ object RamlAnnotation {
         )
       case FETCH ⇒
         FetchAnnotation(predicate = preparedExpression,
-            source = PreparedExpression(propMap("source").toString),
+            location = locationExpression,
+            query = queryExpressionMap,
             mode = propMap.get("mode").map(_.toString).getOrElse("document"),
             onError = propMap.get("on_error").map(_.toString).getOrElse("fail"),
             defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString))
@@ -93,7 +95,8 @@ case class SetAnnotation(name: String = RamlAnnotation.SET,
 
 case class FetchAnnotation(name: String = RamlAnnotation.FETCH,
                            predicate: Option[PreparedExpression],
-                           source: PreparedExpression,
+                           location: PreparedExpression,
+                           query: Map[String, PreparedExpression],
                            mode: String, //todo: this shouldbe enum
                            onError: String, //todo: this shouldbe enum
                            defaultValue: Option[PreparedExpression]
@@ -101,4 +104,6 @@ case class FetchAnnotation(name: String = RamlAnnotation.FETCH,
 
 case class AuthorizeAnnotation(name: String = RamlAnnotation.AUTHORIZE,
                                predicate: Option[PreparedExpression]) extends RamlAnnotation
-case class RegularAnnotation(name: String, predicate: Option[PreparedExpression], properties: Map[String, String] = Map.empty) extends RamlAnnotation
+
+case class RegularAnnotation(name: String, predicate: Option[PreparedExpression],
+                             properties: Map[String, String] = Map.empty) extends RamlAnnotation
