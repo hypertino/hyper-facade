@@ -1,6 +1,8 @@
 package com.hypertino.facade.utils
 
 
+import java.net.URLDecoder
+
 import com.hypertino.binders.value.{Obj, Text}
 import com.hypertino.hyperbus.model.HRL
 import com.hypertino.hyperbus.utils.uri._
@@ -43,7 +45,7 @@ object ResourcePatternMatcher {
           case ParameterToken(patternParamName) ⇒
             resUriToken match {
               case TextToken(value) ⇒
-                args += patternParamName → value
+                args += patternParamName → URLDecoder.decode(value, "UTF-8")
                 matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
               case ParameterToken(_) ⇒
                 matchesCorrectly = true
