@@ -3,14 +3,34 @@ package com.hypertino.facade.utils
 import java.net.{MalformedURLException, URLDecoder}
 import java.security.URIParameter
 
-import com.hypertino.binders.value.{Null, Obj, Value}
+import com.hypertino.binders.value.{Null, Obj, Text, Value}
 import com.hypertino.facade.raml.{IndexKey, RamlAnnotation, RamlConfiguration, RewriteIndexHolder}
 import com.hypertino.hyperbus.model.HRL
-import com.hypertino.hyperbus.utils.uri.{ParameterToken, SlashToken, TextToken, UriPathParser}
+import com.hypertino.hyperbus.utils.uri._
 import spray.http.Uri.Path
 
 // todo: refactor this and make it injectable!!!
 object HrlTransformer {
+
+  // todo: this whole thing needs refactoring
+  def flattenPath(pattern: String, query: Value): Value = UriPathFormatter.format(pattern, query.toMap.map(kv ⇒ kv._1 → kv._2.toString).toMap)
+
+  def rewriteForwardWithPatterns(hrl: HRL, sourcePattern: HRL, destPattern: HRL): HRL = {
+    val flattenHRL = HRL.fromURL(hrl.toURL())
+    ResourcePatternMatcher.matchResource(flattenHRL, sourcePattern.copy(query=Null)).map { matched ⇒
+      val q = {destPattern.query match {
+        case Obj(els) ⇒ Obj(els.map{ kv ⇒
+          kv._1 → flattenPath(kv._2.toString, matched.query)
+        })
+
+        case other ⇒ other
+      }}
+      destPattern.copy(query = q + flattenHRL.query)
+    }.getOrElse {
+      hrl
+    }
+  }
+
   def rewriteLinkToOriginal(from: HRL, maxRewrites: Int): HRL = {
     if (spray.http.Uri(from.location).scheme != "hb") // hb:// scheme
       from
@@ -21,7 +41,7 @@ object HrlTransformer {
         rewritesLeft -= 1
         RewriteIndexHolder.rewriteIndex.findRewriteBackward(rewrittenHRL, None) match {
           case Some((sourceHRL, destinationHRL)) ⇒
-            rewrittenHRL = rewrite(rewrittenHRL, sourceHRL, destinationHRL)
+            rewrittenHRL = rewriteBackWithPatterns(rewrittenHRL, sourceHRL, destinationHRL)
 
           case None ⇒
             rewritesLeft = 0
@@ -37,7 +57,7 @@ object HrlTransformer {
     else {
       RewriteIndexHolder.rewriteIndex.findRewriteBackward(from, Some(method)) match {
         case Some((sourceHRL, destinationHRL)) ⇒
-          rewrite(from, sourceHRL, destinationHRL)
+          rewriteBackWithPatterns(from, sourceHRL, destinationHRL)
         case None ⇒
           from
       }
@@ -54,7 +74,7 @@ object HrlTransformer {
         rewritesLeft -= 1
         RewriteIndexHolder.rewriteIndex.findRewriteForward(rewrittenUri, None) match {
           case Some((sourceHRL, destinationHRL)) ⇒
-            rewrittenUri = rewrite(rewrittenUri, sourceHRL, destinationHRL)
+            rewrittenUri = rewriteBackWithPatterns(rewrittenUri, sourceHRL, destinationHRL)
           case None ⇒
             rewritesLeft = 0
         }
@@ -63,12 +83,12 @@ object HrlTransformer {
     }
   }
 
-  def rewrite(hrl: HRL, sourcePattern: HRL, destinationPattern: HRL): HRL = {
+  def rewriteBackWithPatterns(hrl: HRL, sourcePattern: HRL, destinationPattern: HRL): HRL = {
     val flattenHRL = HRL.fromURL(hrl.toURL())
     ResourcePatternMatcher.matchResource(flattenHRL, sourcePattern.copy(query=Null)).map { matched ⇒
       val destPathTokens = UriPathParser.tokens(destinationPattern.path)
       val destPathParams = destPathTokens.collect {
-        case ParameterToken(str, _) ⇒ str
+        case ParameterToken(str) ⇒ str
       }
       val destPathParmsValues = destPathParams.map { param ⇒
         val v = {

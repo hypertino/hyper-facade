@@ -21,9 +21,9 @@ object ResourcePatternMatcher {
   def matchResource(source: HRL, pattern: HRL): Option[HRL] = {
     if (source.authority == pattern.authority) {
       val patternPathUri = pattern.path
-      val sourceTokens = UriPathParser.tokens(source.path)
+      val sourceTokens = UriPathParser.tokens(source.path).toSeq
       var args = mutable.MutableList[(String, String)]()
-      val patternTokens = UriPathParser.tokens(patternPathUri)
+      val patternTokens = UriPathParser.tokens(patternPathUri).toSeq
       val patternTokenIter = patternTokens.iterator
       val reqUriTokenIter = sourceTokens.iterator
       var matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
@@ -40,22 +40,12 @@ object ResourcePatternMatcher {
             matchesCorrectly = (t == resUriToken) &&
               (patternTokenIter.hasNext == reqUriTokenIter.hasNext)
 
-          case ParameterToken(patternParamName, RegularMatchType) ⇒
+          case ParameterToken(patternParamName) ⇒
             resUriToken match {
               case TextToken(value) ⇒
                 args += patternParamName → value
                 matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
-              case ParameterToken(_, RegularMatchType) ⇒
-                matchesCorrectly = true
-              case _ ⇒
-                matchesCorrectly = false
-            }
-
-          case ParameterToken(paramName, PathMatchType) ⇒
-            resUriToken match {
-              case TextToken(value) ⇒
-                args += paramName → foldUriTail(value, reqUriTokenIter)
-              case ParameterToken(_, PathMatchType) ⇒
+              case ParameterToken(_) ⇒
                 matchesCorrectly = true
               case _ ⇒
                 matchesCorrectly = false
