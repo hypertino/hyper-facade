@@ -86,7 +86,7 @@ object HrlTransformer {
   def rewriteBackWithPatterns(hrl: HRL, sourcePattern: HRL, destinationPattern: HRL): HRL = {
     val flattenHRL = HRL.fromURL(hrl.toURL())
     ResourcePatternMatcher.matchResource(flattenHRL, sourcePattern.copy(query=Null)).map { matched ⇒
-      val destPathTokens = UriPathParser.tokens(destinationPattern.path)
+      val destPathTokens = UriPathParser.tokens(destinationPattern.path).toSeq
       val destPathParams = destPathTokens.collect {
         case ParameterToken(str) ⇒ str
       }
