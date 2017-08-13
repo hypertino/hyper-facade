@@ -30,6 +30,8 @@ object ResourcePatternMatcher {
       val reqUriTokenIter = sourceTokens.iterator
       var matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
       var previousReqUriToken: Option[Token] = None
+      val patternQuery = pattern.query.toMap
+      val sourceQuery = source.query.toMap
       while (patternTokenIter.hasNext && reqUriTokenIter.hasNext && matchesCorrectly) {
         val resUriToken = normalizePath(reqUriTokenIter, previousReqUriToken)
         val nextPatternToken = patternTokenIter.next()
@@ -47,8 +49,17 @@ object ResourcePatternMatcher {
               case TextToken(value) ⇒
                 args += patternParamName → URLDecoder.decode(value, "UTF-8")
                 matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
-              case ParameterToken(_) ⇒
-                matchesCorrectly = true
+              case ParameterToken(paramName) ⇒
+                matchesCorrectly = patternQuery.get(paramName).map { paramPattern ⇒
+                  sourceQuery.get(paramName).map { sourceParamValue ⇒
+                    matchResource(HRL(sourceParamValue.toString), HRL(paramPattern.toString)).isDefined
+                  } getOrElse {
+                    false
+                  }
+                } getOrElse {
+                  true
+                }
+
               case _ ⇒
                 matchesCorrectly = false
             }

@@ -51,7 +51,7 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
 
   // Unfortunately WsRestServiceApp doesn't provide a Future or any other way to ensure that listener is
   // bound to socket, so we need this stupid timeout to initialize the listener
-  Thread.sleep(1000)
+  Thread.sleep(500)
 
   val asyncHttpClient = new DefaultAsyncHttpClient
 
@@ -84,19 +84,19 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    Thread.sleep(1600)
+    Thread.sleep(500)
   }
 
   override def afterEach(): Unit = {
     subscriptions.foreach(_.cancel())
     subscriptions.clear
     super.afterEach()
-    Thread.sleep(1600)
+    Thread.sleep(500)
   }
 
   def register(s: Cancelable) = {
     subscriptions += s
-    Thread.sleep(1600)
+    Thread.sleep(500)
   }
 
   override def afterAll(): Unit = {

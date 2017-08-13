@@ -26,5 +26,9 @@ class RewriteIndexSpec extends TestBase() with CleanRewriteIndex with Matchers {
     HrlTransformer.rewriteBackward(HRL("hb://test-service-with-args/{path}", Obj.from("path" → "abc/100500", "extra" → "Yey")), model.Method.GET) shouldBe HRL(
       "/resource-with-rewrite-args/{some_id}", Obj.from("some_id" → "100500", "extra" → "Yey")
     )
+
+    HrlTransformer.rewriteBackward(HRL("hb://test-service-with-args/{path}", Obj.from("path" → "def/100500", "extra" → "Yey")), model.Method.GET) shouldBe HRL(
+      "/resource-with-other-rewrite-args/{some_id}", Obj.from("some_id" → "100500", "extra" → "Yey")
+    )
   }
 }

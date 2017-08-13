@@ -42,7 +42,7 @@ case class RewriteIndex(inverted: Map[IndexKey, HRL], forward: Map[IndexKey, HRL
 
 object RewriteIndex {
 
-  implicit object UriTemplateOrdering extends Ordering[IndexKey] {
+  /*implicit object UriTemplateOrdering extends Ordering[IndexKey] {
     override def compare(left: IndexKey, right: IndexKey): Int = {
       if (left.method.isDefined) {
         if (right.method.isDefined)
@@ -65,9 +65,9 @@ object RewriteIndex {
       else
         left.compareTo(right)
     }
-  }
+  }*/
 
   def apply(): RewriteIndex = {
-    RewriteIndex(SortedMap.empty[IndexKey, HRL], SortedMap.empty[IndexKey, HRL])
+    RewriteIndex(Map.empty[IndexKey, HRL], Map.empty[IndexKey, HRL])
   }
 }

@@ -43,3 +43,9 @@ types:
     location: hb://test-service-with-args/{path}
     query:
       path: abc/{some_id}
+
+/resource-with-other-rewrite-args/{some_id}:
+  (facade.rewrite):
+    location: hb://test-service-with-args/{path}
+    query:
+      path: def/{some_id}
