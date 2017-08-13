@@ -27,28 +27,35 @@ object ResourcePatternMatcher {
       var args = mutable.MutableList[(String, String)]()
       val patternTokens = UriPathParser.tokens(patternPathUri).toSeq
       val patternTokenIter = patternTokens.iterator
-      val reqUriTokenIter = sourceTokens.iterator
-      var matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
-      var previousReqUriToken: Option[Token] = None
+      val sourceUriTokenIter = sourceTokens.iterator
+      var matchesCorrectly = patternTokenIter.hasNext == sourceUriTokenIter.hasNext
+      var previousSourceUriToken: Option[Token] = None
       val patternQuery = pattern.query.toMap
       val sourceQuery = source.query.toMap
-      while (patternTokenIter.hasNext && reqUriTokenIter.hasNext && matchesCorrectly) {
-        val resUriToken = normalizePath(reqUriTokenIter, previousReqUriToken)
+      while (patternTokenIter.hasNext && sourceUriTokenIter.hasNext && matchesCorrectly) {
+        val sourceUriToken = normalizePath(sourceUriTokenIter, previousSourceUriToken)
         val nextPatternToken = patternTokenIter.next()
         nextPatternToken match {
           case SlashToken ⇒
-            matchesCorrectly = (SlashToken == resUriToken) &&
-              (patternTokenIter.hasNext == reqUriTokenIter.hasNext)
+            matchesCorrectly = (SlashToken == sourceUriToken) &&
+              (patternTokenIter.hasNext == sourceUriTokenIter.hasNext)
 
           case t: TextToken ⇒
-            matchesCorrectly = (t == resUriToken) &&
-              (patternTokenIter.hasNext == reqUriTokenIter.hasNext)
+            matchesCorrectly = (t == sourceUriToken) &&
+              (patternTokenIter.hasNext == sourceUriTokenIter.hasNext)
 
           case ParameterToken(patternParamName) ⇒
-            resUriToken match {
+            sourceUriToken match {
               case TextToken(value) ⇒
-                args += patternParamName → URLDecoder.decode(value, "UTF-8")
-                matchesCorrectly = patternTokenIter.hasNext == reqUriTokenIter.hasNext
+                val sourceParamValue = URLDecoder.decode(value, "UTF-8")
+                args += patternParamName → sourceParamValue
+                matchesCorrectly = patternQuery.get(patternParamName).map { paramPattern ⇒
+                  matchResource(HRL(sourceParamValue.toString), HRL(paramPattern.toString)).isDefined &&
+                    patternTokenIter.hasNext == sourceUriTokenIter.hasNext
+                } getOrElse {
+                  patternTokenIter.hasNext == sourceUriTokenIter.hasNext
+                }
+
               case ParameterToken(paramName) ⇒
                 matchesCorrectly = patternQuery.get(paramName).map { paramPattern ⇒
                   sourceQuery.get(paramName).map { sourceParamValue ⇒
@@ -57,14 +64,14 @@ object ResourcePatternMatcher {
                     false
                   }
                 } getOrElse {
-                  true
+                  patternTokenIter.hasNext == sourceUriTokenIter.hasNext
                 }
 
               case _ ⇒
                 matchesCorrectly = false
             }
         }
-        previousReqUriToken = Some(resUriToken)
+        previousSourceUriToken = Some(sourceUriToken)
       }
       if (!matchesCorrectly) None
       else

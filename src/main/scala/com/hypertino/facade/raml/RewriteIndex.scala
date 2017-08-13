@@ -41,32 +41,6 @@ case class RewriteIndex(inverted: Map[IndexKey, HRL], forward: Map[IndexKey, HRL
 }
 
 object RewriteIndex {
-
-  /*implicit object UriTemplateOrdering extends Ordering[IndexKey] {
-    override def compare(left: IndexKey, right: IndexKey): Int = {
-      if (left.method.isDefined) {
-        if (right.method.isDefined)
-          compareUriTemplates(left.hrl.location, right.hrl.location)
-        else
-          1
-      } else if (right.method.isDefined) {
-        -1
-      } else {
-        compareUriTemplates(left.hrl.location, right.hrl.location)
-      }
-    }
-
-    def compareUriTemplates(left: String, right: String): Int = {
-      val leftTokens = UriPathParser.tokens(left).length
-      val rightTokens = UriPathParser.tokens(right).length
-      val uriLengthDiff = leftTokens - rightTokens
-      if (uriLengthDiff != 0)
-        uriLengthDiff
-      else
-        left.compareTo(right)
-    }
-  }*/
-
   def apply(): RewriteIndex = {
     RewriteIndex(Map.empty[IndexKey, HRL], Map.empty[IndexKey, HRL])
   }
