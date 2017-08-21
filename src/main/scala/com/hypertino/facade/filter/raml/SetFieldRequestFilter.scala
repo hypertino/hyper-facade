@@ -14,7 +14,7 @@ class SetFieldFilter(annotation: SetAnnotation, expressionEvaluator: ExpressionE
 }
 
 class SetFieldFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFieldFilterFactory {
-  def createFieldFilter(typeName: String, fieldName: String, annotation: RamlAnnotation): FieldFilter = {
+  def createFieldFilter(fieldName: String, typeName: String, annotation: RamlAnnotation): FieldFilter = {
     new SetFieldFilter(annotation.asInstanceOf[SetAnnotation], predicateEvaluator)
   }
 }

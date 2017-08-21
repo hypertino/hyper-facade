@@ -147,7 +147,7 @@ class FetchFieldFilterFactory(hyperbus: Hyperbus,
                               protected val predicateEvaluator: ExpressionEvaluator,
                               protected implicit val injector: Injector,
                               protected implicit val scheduler: Scheduler) extends RamlFieldFilterFactory {
-  def createFieldFilter(typeName: String, fieldName: String, annotation: RamlAnnotation): FieldFilter = {
+  def createFieldFilter(fieldName: String, typeName: String, annotation: RamlAnnotation): FieldFilter = {
     new FetchFieldFilter(annotation.asInstanceOf[FetchAnnotation], hyperbus, predicateEvaluator, injector, scheduler)
   }
 }

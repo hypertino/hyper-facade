@@ -87,11 +87,4 @@ class FieldAnnotationWithFilter(val annotation: RamlAnnotation, fieldName: Strin
   }
 }
 
-case class Field(name: String, typeName: String, annotations: Seq[FieldAnnotationWithFilter]) {
-  val identifier: ast.Identifier = {
-    HParser(name) match {
-      case i: Identifier ⇒ i
-      case other ⇒ Identifier(Seq(name))
-    }
-  }
-}
+case class Field(name: String, typeName: String, annotations: Seq[FieldAnnotationWithFilter])
