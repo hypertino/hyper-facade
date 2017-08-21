@@ -76,7 +76,7 @@ object RamlAnnotation {
             mode = propMapString("mode", "document"),
             onError = propMapString("on_error", "fail"),
             defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString)),
-            on = on(FieldFilterStageRequest.stringValue)
+            on = on(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}")
           )
       case annotationName ⇒
         RegularAnnotation(annotationName, preparedExpression, (propMap - "if").map(kv ⇒ kv._1 → kv._2.toString))
