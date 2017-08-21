@@ -5,7 +5,7 @@ import com.hypertino.facade.TestBase
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
 import com.hypertino.facade.raml._
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, HRL, HeadersMap, Method, Ok}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, Forbidden, HRL, HeadersMap, Method, Ok}
 import com.hypertino.hyperbus.transport.api.matchers.RequestMatcher
 import com.hypertino.parser.HParser
 import monix.eval.Task
@@ -43,6 +43,16 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
         RemoveAnnotation(predicate=None),
+        name,
+        "string"
+      )
+    )))
+  }
+
+  def df(name: String) = {
+    Map(name → Field(name, "string", Seq(
+      new FieldAnnotationWithFilter(
+        DenyAnnotation(predicate=None),
         name,
         "string"
       )
@@ -224,5 +234,30 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
       .filter(Obj.from("a" → 100500, "b" → "abc"))
       .runAsync
       .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc")
+  }
+
+  it should "deny if fields are set" in {
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
+      Map(
+        "T2" → TypeDefinition("T2", None, Seq.empty, df("y"), isCollection = false )
+      )
+    )
+      .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 2)))
+      .runAsync
+      .failed
+      .futureValue shouldBe a[Forbidden[_]]
+  }
+
+  it should "not deny if fields are set" in {
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
+      Map(
+        "T2" → TypeDefinition("T2", None, Seq.empty, df("y"), isCollection = false )
+      )
+    )
+      .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1)))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1))
   }
 }

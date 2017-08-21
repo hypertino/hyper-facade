@@ -28,6 +28,6 @@ class DenyFieldFilter(fieldName: String, typeName: String) extends FieldFilter {
 
 class DenyFieldFilterFactory extends RamlFieldFilterFactory {
   def createFieldFilter(fieldName: String, typeName: String, annotation: RamlAnnotation): FieldFilter = new DenyFieldFilter(
-    typeName, fieldName
+    fieldName, typeName
   )
 }
