@@ -3,7 +3,7 @@ package com.hypertino.facade.filter.raml
 import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
-import com.hypertino.facade.raml.{FetchAnnotation, RamlAnnotation, RamlConfiguration}
+import com.hypertino.facade.raml.{FetchAnnotation, RamlAnnotation, RamlConfiguration, RamlFieldAnnotation}
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, MessagingContext, Method, NotFound, Ok}
@@ -25,7 +25,7 @@ class FetchFieldFilter(annotation: FetchAnnotation,
   protected val log = LoggerFactory.getLogger(getClass)
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
-  def apply(context: FieldFilterContext): Task[Option[Value]] = if (context.stage == FieldFilterStageResponse) {
+  def apply(context: FieldFilterContext): Task[Option[Value]] = {
     context.requestContext.request.headers.hrl.query.fields match {
       case Null ⇒
         Task.now(None)
@@ -38,8 +38,6 @@ class FetchFieldFilter(annotation: FetchAnnotation,
           Task.now(None)
         }
     }
-  } else {
-    Task.now(context.value)
   }
 
   protected def fieldsSelected(fields: Value, context: FieldFilterContext) = Try(SelectFields(fields.toString)) match {
@@ -149,7 +147,7 @@ class FetchFieldFilterFactory(hyperbus: Hyperbus,
                               protected val predicateEvaluator: ExpressionEvaluator,
                               protected implicit val injector: Injector,
                               protected implicit val scheduler: Scheduler) extends RamlFieldFilterFactory {
-  def createFieldFilter(fieldName: String, typeName: String, annotation: RamlAnnotation): FieldFilter = {
+  def createFieldFilter(fieldName: String, typeName: String, annotation: RamlFieldAnnotation): FieldFilter = {
     new FetchFieldFilter(annotation.asInstanceOf[FetchAnnotation], hyperbus, predicateEvaluator, injector, scheduler)
   }
 }

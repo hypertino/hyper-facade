@@ -71,7 +71,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     val name = ramlField.name
     val typeName = ramlField.`type`
     val annotations = extractAnnotations(ramlField).map { annotation ⇒
-      new FieldAnnotationWithFilter(annotation, name, typeName)
+      new FieldAnnotationWithFilter(annotation.asInstanceOf[RamlFieldAnnotation], name, typeName)
     }
     name → Field(name, typeName, annotations)
   }

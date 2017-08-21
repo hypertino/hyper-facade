@@ -12,14 +12,14 @@ class DenyFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) e
 
   override def createFilters(target: RamlFilterTarget): SimpleFilterChain = {
     target match {
-      case ResourceTarget(_, DenyAnnotation(_, _)) ⇒
+      case ResourceTarget(_, DenyAnnotation(_, _, _)) ⇒
         SimpleFilterChain(
           requestFilters = Seq(new DenyRequestFilter(predicateEvaluator)),
           responseFilters = Seq.empty,
           eventFilters = Seq.empty
         )
 
-      case MethodTarget(_, _, DenyAnnotation(_, _)) ⇒
+      case MethodTarget(_, _, DenyAnnotation(_, _, _)) ⇒
         SimpleFilterChain(
           requestFilters = Seq(new DenyRequestFilter(predicateEvaluator)),
           responseFilters = Seq.empty,

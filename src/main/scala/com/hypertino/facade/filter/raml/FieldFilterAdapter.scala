@@ -162,12 +162,15 @@ trait FieldFilterBase {
                                stage: FieldFilterStage): Task[(String, Option[Value])] = {
     val extraContext = Obj.from(
       "this" → siblings,
-      "root" → rootValue
+      "root" → rootValue,
+      "stage" → stage.stringValue
     )
     field
       .annotations
       .find {
-        _.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
+        fa ⇒
+          fa.annotation.on.contains(stage) &&
+          fa.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
       }
       .map { a ⇒
         a.filter(FieldFilterContext(parentFieldPath :+ field.name, value, field, extraContext, requestContext, stage)).map(field.name → _)

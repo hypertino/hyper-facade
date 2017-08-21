@@ -23,7 +23,7 @@ object HrlTransformer {
           kv._1 → flattenPath(kv._2.toString, matched.query)
         })
 
-        case other ⇒ other
+        case _ ⇒ matched.query
       }}
       destPattern.copy(query = q + flattenHRL.query)
     }.getOrElse {

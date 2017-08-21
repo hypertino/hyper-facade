@@ -4,7 +4,7 @@ import com.hypertino.binders.value.{Obj, Value}
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.RequestContext
-import com.hypertino.facade.raml.{Field, RamlAnnotation, TypeDefinition}
+import com.hypertino.facade.raml.{Field, RamlAnnotation, RamlFieldAnnotation, TypeDefinition}
 
 trait Filter {
   protected def expressionEvaluator: ExpressionEvaluator
@@ -40,7 +40,7 @@ trait RamlFilterFactory {
 }
 
 trait RamlFieldFilterFactory {
-  def createFieldFilter(fieldName: String, typeName: String, annotation: RamlAnnotation): FieldFilter
+  def createFieldFilter(fieldName: String, typeName: String, annotation: RamlFieldAnnotation): FieldFilter
 }
 
 sealed trait RamlFilterTarget {

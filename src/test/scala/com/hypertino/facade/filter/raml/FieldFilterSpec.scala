@@ -2,7 +2,7 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Value}
 import com.hypertino.facade.TestBase
-import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageRequest, FieldFilterStageResponse}
+import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageEvent, FieldFilterStageRequest, FieldFilterStageResponse}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
 import com.hypertino.facade.raml._
@@ -41,27 +41,27 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
     } toMap
   }
 
-  def rf(name: String) = {
+  def rf(name: String, on: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        RemoveAnnotation(predicate=None),
+        RemoveAnnotation(predicate=None,on=on),
         name,
         "string"
       )
     )))
   }
 
-  def df(name: String) = {
+  def df(name: String, on: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        DenyAnnotation(predicate=None),
+        DenyAnnotation(predicate=None,on=on),
         name,
         "string"
       )
     )))
   }
 
-  def ff(name: String, source: String, query: Map[String,String] = Map.empty, mode: String = "document", onError: String = FetchFieldFilter.ON_ERROR_FAIL, defaultValue: Option[String] = None) = {
+  def ff(name: String, source: String, query: Map[String,String] = Map.empty, mode: String = "document", onError: String = FetchFieldFilter.ON_ERROR_FAIL, defaultValue: Option[String] = None, on: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
         FetchAnnotation(predicate=None,
@@ -69,20 +69,20 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
           query=query.map(kv ⇒ kv._1 → PreparedExpression(kv._2)),
           mode=mode,
           onError=onError,
-          defaultValue=defaultValue.map(PreparedExpression(_))),
+          defaultValue=defaultValue.map(PreparedExpression(_)),on=on),
         name,
         "string"
       )
     )))
   }
 
-  def sf(name: String, expression: String = "1") = {
+  def sf(name: String, expression: String = "1", on: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     val e = HParser(expression)
     val pp = PreparedExpression(expression,e)
 
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        SetAnnotation(predicate=None,source=pp),
+        SetAnnotation(predicate=None,source=pp,on=on),
         name,
         "string"
       )
