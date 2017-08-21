@@ -23,7 +23,7 @@ class RequestFieldFilterAdapter(val typeDef: TypeDefinition,
 
   def apply(contextWithRequest: RequestContext)
            (implicit ec: ExecutionContext): Future[RequestContext] = {
-    filterBody(contextWithRequest.request.body.content, contextWithRequest).map { body ⇒
+    filterBody(contextWithRequest.request.body.content, contextWithRequest, FieldFilterStageRequest).map { body ⇒
       contextWithRequest.copy(
         request = contextWithRequest.request.copy(body = DynamicBody(body))
       )
@@ -43,7 +43,7 @@ class ResponseFieldFilterAdapter(val typeDef: TypeDefinition,
 
   def apply(contextWithRequest: RequestContext, response: DynamicResponse)
            (implicit ec: ExecutionContext): Future[DynamicResponse] = {
-    filterBody(response.body.content, contextWithRequest).map { body ⇒
+    filterBody(response.body.content, contextWithRequest, FieldFilterStageResponse).map { body ⇒
       StandardResponse(body = DynamicBody(body), response.headers)
         .asInstanceOf[DynamicResponse]
     }.runAsync
@@ -63,7 +63,7 @@ class EventFieldFilterAdapter(val typeDef: TypeDefinition,
 
   def apply(contextWithRequest: RequestContext, event: DynamicRequest)
            (implicit ec: ExecutionContext): Future[DynamicRequest] = {
-    filterBody(event.body.content, contextWithRequest).map { body ⇒
+    filterBody(event.body.content, contextWithRequest, FieldFilterStageEvent).map { body ⇒
       DynamicRequest(DynamicBody(body), contextWithRequest.request.headers)
     }.runAsync
   }
@@ -89,20 +89,20 @@ trait FieldFilterBase {
   protected implicit def scheduler: Scheduler
   protected def expressionEvaluator: ExpressionEvaluator
 
-  protected def filterBody(body: Value, requestContext: RequestContext): Task[Value] = {
-    recursiveFilterValue(body, body, requestContext, typeDef, Seq.empty)
+  protected def filterBody(body: Value, requestContext: RequestContext, stage: FieldFilterStage): Task[Value] = {
+    recursiveFilterValue(body, body, requestContext, typeDef, Seq.empty, stage)
   }
 
   protected def recursiveFilterValue(rootValue: Value,
                                      value: Value,
                                      requestContext: RequestContext,
                                      typeDef: TypeDefinition,
-                                     fieldPath: Seq[String]): Task[Value] = {
+                                     fieldPath: Seq[String], stage: FieldFilterStage): Task[Value] = {
     if (typeDef.isCollection) {
       val tc = typeDef.copy(isCollection = false)
       Task.gather {
         value.toSeq.map { li ⇒
-          recursiveFilterValue(rootValue, li, requestContext, tc, fieldPath)
+          recursiveFilterValue(rootValue, li, requestContext, tc, fieldPath, stage)
         }
       }.map(Lst(_))
     } else {
@@ -111,7 +111,7 @@ trait FieldFilterBase {
         typeDef
           .fields
           .get(k)
-          .map(filterMatching(_, rootValue, Some(v), value, fieldPath, requestContext))
+          .map(filterMatching(_, rootValue, Some(v), value, fieldPath, requestContext, stage))
           .getOrElse {
             Task.now(k → Some(v))
           }
@@ -121,7 +121,7 @@ trait FieldFilterBase {
         .fields
         .filterNot(f ⇒ m.contains(f._1))
         .map { case (_, field) ⇒
-          filterMatching(field, rootValue, None, value, fieldPath, requestContext)
+          filterMatching(field, rootValue, None, value, fieldPath, requestContext, stage)
         }
         .toSeq
 
@@ -136,7 +136,7 @@ trait FieldFilterBase {
                   typeDefinitions
                     .get(field.typeName)
                     .map { innerTypeDef ⇒
-                      recursiveFilterValue(rootValue, v, requestContext, innerTypeDef, fieldPath :+ field.name)
+                      recursiveFilterValue(rootValue, v, requestContext, innerTypeDef, fieldPath :+ field.name, stage)
                         .map(vv ⇒ Some(k → vv))
                     }
                 }.getOrElse {
@@ -158,7 +158,8 @@ trait FieldFilterBase {
                                value: Option[Value],
                                siblings: Value,
                                parentFieldPath: Seq[String],
-                               requestContext: RequestContext): Task[(String, Option[Value])] = {
+                               requestContext: RequestContext,
+                               stage: FieldFilterStage): Task[(String, Option[Value])] = {
     val extraContext = Obj.from(
       "this" → siblings,
       "root" → rootValue
@@ -169,7 +170,7 @@ trait FieldFilterBase {
         _.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
       }
       .map { a ⇒
-        a.filter(FieldFilterContext(parentFieldPath :+ field.name, value, field, extraContext, requestContext)).map(field.name → _)
+        a.filter(FieldFilterContext(parentFieldPath :+ field.name, value, field, extraContext, requestContext, stage)).map(field.name → _)
       }
       .getOrElse {
         Task.now(field.name → value)

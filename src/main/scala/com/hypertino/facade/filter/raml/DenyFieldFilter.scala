@@ -1,7 +1,7 @@
 package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Obj, Value}
-import com.hypertino.facade.filter.model.{FieldFilter, FieldFilterContext, RamlFieldFilterFactory}
+import com.hypertino.facade.filter.model.{FieldFilter, FieldFilterContext, FieldFilterStageRequest, RamlFieldFilterFactory}
 import com.hypertino.facade.raml.RamlAnnotation
 import com.hypertino.hyperbus.model.{ErrorBody, Forbidden}
 import com.hypertino.parser.ast.Identifier
@@ -17,7 +17,7 @@ class DenyFieldFilter(fieldName: String, typeName: String) extends FieldFilter {
 //    }
 //  }
   def apply(context: FieldFilterContext): Task[Option[Value]] = {
-    if (context.value.isDefined) Task.raiseError {
+    if (context.stage == FieldFilterStageRequest && context.value.isDefined) Task.raiseError {
       implicit val mcx = context.requestContext
       Forbidden(ErrorBody("field-is-protected", Some(s"You can't set field `$fieldName`")))
     } else Task.now {

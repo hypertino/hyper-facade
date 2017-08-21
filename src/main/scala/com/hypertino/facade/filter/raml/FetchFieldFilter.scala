@@ -25,7 +25,7 @@ class FetchFieldFilter(annotation: FetchAnnotation,
   protected val log = LoggerFactory.getLogger(getClass)
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
-  def apply(context: FieldFilterContext): Task[Option[Value]] = {
+  def apply(context: FieldFilterContext): Task[Option[Value]] = if (context.stage == FieldFilterStageResponse) {
     context.requestContext.request.headers.hrl.query.fields match {
       case Null ⇒
         Task.now(None)
@@ -38,6 +38,8 @@ class FetchFieldFilter(annotation: FetchAnnotation,
           Task.now(None)
         }
     }
+  } else {
+    Task.now(context.value)
   }
 
   protected def fieldsSelected(fields: Value, context: FieldFilterContext) = Try(SelectFields(fields.toString)) match {

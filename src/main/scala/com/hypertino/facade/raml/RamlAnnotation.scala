@@ -81,6 +81,8 @@ case class RewriteAnnotation(name: String = RamlAnnotation.REWRITE,
                              location: String,
                              query: Value) extends RamlAnnotation
 
+// todo: add and implement stages for all field annotations!
+
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
                          predicate: Option[PreparedExpression]) extends RamlAnnotation
 

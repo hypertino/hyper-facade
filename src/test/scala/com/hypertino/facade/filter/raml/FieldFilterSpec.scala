@@ -2,6 +2,7 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Value}
 import com.hypertino.facade.TestBase
+import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageRequest, FieldFilterStageResponse}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
 import com.hypertino.facade.raml._
@@ -19,14 +20,15 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
   def fieldFilter(
                    aTypeDef: TypeDefinition,
                    aTypeDefinitions: Map[String, TypeDefinition],
-                   query: Value = Null
+                   query: Value = Null,
+                   stage: FieldFilterStage = FieldFilterStageRequest
                  ) = new FieldFilterBase {
     override protected implicit def scheduler: Scheduler = FieldFilterSpec.this.scheduler
     def filter(body: Value): Task[Value] = {
       import com.hypertino.hyperbus.model.MessagingContext.Implicits.emptyContext
       filterBody(body, RequestContext(DynamicRequest(HRL("hb://test", query), Method.GET, EmptyBody, headersMap=HeadersMap(
         FacadeHeaders.REMOTE_ADDRESS → "127.0.0.1"
-      ))))
+      ))), stage)
     }
     override protected def typeDef: TypeDefinition = aTypeDef
     override protected def typeDefinitions: Map[String, TypeDefinition] = aTypeDefinitions
@@ -100,7 +102,9 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
   it should "remove values" in {
     fieldFilter(
       TypeDefinition("test", None, Seq.empty, rf("b"), isCollection = false ),
-      Map.empty
+      Map.empty,
+      Null,
+      FieldFilterStageResponse
     )
       .filter(Obj.from("a" → 100500, "b" → "abc"))
       .runAsync
@@ -114,7 +118,9 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
         "T2" → TypeDefinition("T2", None, Seq.empty, rf("y"), isCollection = false ),
         "T3" → TypeDefinition("T3", None, Seq.empty, tt("z" → "T4"), isCollection = false ),
         "T4" → TypeDefinition("T4", None, Seq.empty, rf("z"), isCollection = false )
-      )
+      ),
+      Null,
+      FieldFilterStageResponse
     )
       .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 2), "c" → Obj.from("z" → Obj.from("x" → 4, "z" → 5))))
       .runAsync
@@ -220,7 +226,8 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
     fieldFilter(
       TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
       Map.empty,
-      Obj.from("fields" → "c")
+      Obj.from("fields" → "c"),
+      FieldFilterStageResponse
     )
       .filter(Obj.from("a" → 100500, "b" → "abc"))
       .runAsync
@@ -229,7 +236,8 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
     fieldFilter(
       TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
       Map.empty,
-      Obj.from("fields" → "d")
+      Obj.from("fields" → "d"),
+      FieldFilterStageResponse
     )
       .filter(Obj.from("a" → 100500, "b" → "abc"))
       .runAsync
