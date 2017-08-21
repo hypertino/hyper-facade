@@ -5,7 +5,7 @@ import java.io.{StringReader, StringWriter}
 import com.hypertino.binders.value.Text
 import com.hypertino.facade.model.FacadeHeaders
 import com.hypertino.hyperbus.model.headers.PlainHeadersConverter
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Headers}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Headers, NoContent}
 import com.hypertino.hyperbus.serialization.{JsonContentTypeConverter, MessageReader}
 import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode}
@@ -82,18 +82,23 @@ object MessageTransformer {
   }
 
   def messageToHttpResponse(response: DynamicResponse): HttpResponse = {
-    val bodyWriter = new StringWriter()
-    val bodyString = try {
-      response.body.serialize(bodyWriter)
-      bodyWriter.toString
+    val responseData = response match {
+      case NoContent(_) ⇒ HttpData.Empty
+      case _ ⇒
+        val bodyWriter = new StringWriter()
+        try {
+          response.body.serialize(bodyWriter)
+          HttpData(bodyWriter.toString)
+        }
+        finally {
+          bodyWriter.close()
+        }
     }
-    finally {
-      bodyWriter.close()
-    }
+
 
     val headers = PlainHeadersConverter.toHttp(response.headers.underlying)
     HttpResponse(StatusCode.int2StatusCode(response.headers.statusCode),
-      HttpEntity(contentTypeToSpray(response.headers.contentType), bodyString), headers.map { case (name, value) ⇒
+      HttpEntity(contentTypeToSpray(response.headers.contentType), responseData), headers.map { case (name, value) ⇒
         RawHeader(name, value)
       }.toList
     )
