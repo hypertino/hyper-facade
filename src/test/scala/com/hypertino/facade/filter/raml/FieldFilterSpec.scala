@@ -44,7 +44,7 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
   def rf(name: String, on: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        RemoveAnnotation(predicate=None,on=on),
+        RemoveAnnotation(predicate=None,stages=on),
         name,
         "string"
       )
@@ -54,7 +54,7 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
   def df(name: String, on: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        DenyAnnotation(predicate=None,on=on),
+        DenyAnnotation(predicate=None,stages=on),
         name,
         "string"
       )
@@ -67,9 +67,9 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
         FetchAnnotation(predicate=None,
           location=PreparedExpression(source),
           query=query.map(kv ⇒ kv._1 → PreparedExpression(kv._2)),
-          mode=mode,
+          expects=mode,
           onError=onError,
-          defaultValue=defaultValue.map(PreparedExpression(_)),on=on),
+          defaultValue=defaultValue.map(PreparedExpression(_)),stages=on),
         name,
         "string"
       )
@@ -82,7 +82,7 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
 
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        SetAnnotation(predicate=None,source=pp,on=on),
+        SetAnnotation(predicate=None,source=pp,stages=on),
         name,
         "string"
       )

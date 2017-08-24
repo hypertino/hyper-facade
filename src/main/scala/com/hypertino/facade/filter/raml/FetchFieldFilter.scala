@@ -26,17 +26,21 @@ class FetchFieldFilter(annotation: FetchAnnotation,
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
   def apply(context: FieldFilterContext): Task[Option[Value]] = {
-    context.requestContext.request.headers.hrl.query.fields match {
-      case Null ⇒
-        Task.now(None)
-
-      case fields: Value ⇒
-        if(fieldsSelected(fields, context)) {
-          fetchAndReturnField(context)
-        }
-        else {
+    if (annotation.always) {
+      fetchAndReturnField(context)
+    } else {
+      context.requestContext.request.headers.hrl.query.fields match {
+        case Null ⇒
           Task.now(None)
-        }
+
+        case fields: Value ⇒
+          if (fieldsSelected(fields, context)) {
+            fetchAndReturnField(context)
+          }
+          else {
+            Task.now(None)
+          }
+      }
     }
   }
 
@@ -86,7 +90,7 @@ class FetchFieldFilter(annotation: FetchAnnotation,
   }
 
   protected def ask(hrl: HRL)(implicit mcx: MessagingContext): Task[Option[Value]] = {
-    annotation.mode match {
+    annotation.expects match {
       case "collection_link" ⇒
         val hrlCollectionLink = hrl.copy(query = hrl.query + Obj.from("per_page" → 0))
         hyperbus.ask(DynamicRequest(hrlCollectionLink, Method.GET, EmptyBody)).map {

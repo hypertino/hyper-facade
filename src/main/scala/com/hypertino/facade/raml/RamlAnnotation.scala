@@ -11,7 +11,7 @@ trait RamlAnnotation {
 }
 
 trait RamlFieldAnnotation extends RamlAnnotation {
-  def on: Set[FieldFilterStage]
+  def stages: Set[FieldFilterStage]
 }
 // todo: make this injectable !!
 
@@ -55,16 +55,16 @@ object RamlAnnotation {
     def preparedExpression = predicate.map(PreparedExpression.apply)
     def locationExpression = PreparedExpression(propMap("location").toString)
     def queryExpressionMap = propMap.getOrElse("query", Null).toMap.map(kv ⇒ kv._1 → PreparedExpression(kv._2.toString)).toMap
-    def on(default: String): Set[FieldFilterStage] = propMapString("on", default).split(",").map(FieldFilterStage.apply).toSet
+    def stages(default: String): Set[FieldFilterStage] = propMapString("stages", default).split(",").map(FieldFilterStage.apply).toSet
 
     name match {
       case DENY ⇒
-        DenyAnnotation(predicate = preparedExpression, on = on(FieldFilterStageRequest.stringValue))
+        DenyAnnotation(predicate = preparedExpression, stages = stages(FieldFilterStageRequest.stringValue))
       case REMOVE ⇒
-        RemoveAnnotation(predicate = preparedExpression, on = on(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}"))
+        RemoveAnnotation(predicate = preparedExpression, stages = stages(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}"))
       case SET ⇒
         SetAnnotation(predicate = preparedExpression, source = PreparedExpression(propMap("source").toString),
-          on = on(FieldFilterStageRequest.stringValue))
+          stages = stages(FieldFilterStageRequest.stringValue))
       case REWRITE ⇒
         RewriteAnnotation(predicate = preparedExpression, location = propMap("location").toString,
           query = propMap.getOrElse("query", Null)
@@ -73,10 +73,11 @@ object RamlAnnotation {
         FetchAnnotation(predicate = preparedExpression,
             location = locationExpression,
             query = queryExpressionMap,
-            mode = propMapString("mode", "document"),
+            expects = propMapString("expects", "document"),
             onError = propMapString("on_error", "fail"),
             defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString)),
-            on = on(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}")
+            stages = stages(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}"),
+            always = propMap("always").toBoolean
           )
       case annotationName ⇒
         RegularAnnotation(annotationName, preparedExpression, (propMap - "if").map(kv ⇒ kv._1 → kv._2.toString))
@@ -92,18 +93,18 @@ case class RewriteAnnotation(name: String = RamlAnnotation.REWRITE,
 // todo: split DenyAnnotation to DenyFilterAnnotation and non-filter
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
                           predicate: Option[PreparedExpression],
-                          on: Set[FieldFilterStage]
+                          stages: Set[FieldFilterStage]
                          ) extends RamlFieldAnnotation
 
 case class RemoveAnnotation(name: String = RamlAnnotation.REMOVE,
                             predicate: Option[PreparedExpression],
-                            on: Set[FieldFilterStage]
+                            stages: Set[FieldFilterStage]
                            ) extends RamlFieldAnnotation
 
 case class SetAnnotation(name: String = RamlAnnotation.SET,
                          predicate: Option[PreparedExpression],
                          source: PreparedExpression,
-                         on: Set[FieldFilterStage]
+                         stages: Set[FieldFilterStage]
                         ) extends RamlFieldAnnotation
 
 
@@ -111,10 +112,11 @@ case class FetchAnnotation(name: String = RamlAnnotation.FETCH,
                            predicate: Option[PreparedExpression],
                            location: PreparedExpression,
                            query: Map[String, PreparedExpression],
-                           mode: String, //todo: this should be enum
+                           expects: String, //todo: this should be enum
                            onError: String, //todo: this should be enum
                            defaultValue: Option[PreparedExpression],
-                           on: Set[FieldFilterStage]
+                           stages: Set[FieldFilterStage],
+                           always: Boolean
                           ) extends RamlFieldAnnotation
 
 case class AuthorizeAnnotation(name: String = RamlAnnotation.AUTHORIZE,

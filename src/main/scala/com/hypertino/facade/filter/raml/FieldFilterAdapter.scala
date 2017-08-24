@@ -169,7 +169,7 @@ trait FieldFilterBase {
       .annotations
       .find {
         fa ⇒
-          fa.annotation.on.contains(stage) &&
+          fa.annotation.stages.contains(stage) &&
           fa.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
       }
       .map { a ⇒
