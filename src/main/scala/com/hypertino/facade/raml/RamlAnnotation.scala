@@ -1,6 +1,6 @@
 package com.hypertino.facade.raml
 
-import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
+import com.hypertino.binders.value.{False, Lst, Null, Obj, Text, Value}
 import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageEvent, FieldFilterStageRequest, FieldFilterStageResponse}
 import com.hypertino.facade.filter.parser.PreparedExpression
 import org.raml.v2.api.model.v10.datamodel.{TypeInstance, TypeInstanceProperty}
@@ -77,7 +77,7 @@ object RamlAnnotation {
             onError = propMapString("on_error", "fail"),
             defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString)),
             stages = stages(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}"),
-            always = propMap("always").toBoolean
+            always = propMap.getOrElse("always", False).toBoolean
           )
       case annotationName ⇒
         RegularAnnotation(annotationName, preparedExpression, (propMap - "if").map(kv ⇒ kv._1 → kv._2.toString))
