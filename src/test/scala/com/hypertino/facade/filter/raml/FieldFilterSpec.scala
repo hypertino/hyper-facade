@@ -41,48 +41,48 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
     } toMap
   }
 
-  def rf(name: String, on: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent)) = {
+  def rf(name: String, stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        RemoveAnnotation(predicate=None,stages=on),
+        RemoveAnnotation(predicate=None,stages=stages),
         name,
         "string"
       )
     )))
   }
 
-  def df(name: String, on: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
+  def df(name: String, stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        DenyAnnotation(predicate=None,stages=on),
+        DenyAnnotation(predicate=None,stages=stages),
         name,
         "string"
       )
     )))
   }
 
-  def ff(name: String, source: String, query: Map[String,String] = Map.empty, mode: String = "document", onError: String = FetchFieldFilter.ON_ERROR_FAIL, defaultValue: Option[String] = None, on: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent)) = {
+  def ff(name: String, source: String, query: Map[String,String] = Map.empty, expects: String = "document", onError: String = FetchFieldFilter.ON_ERROR_FAIL, defaultValue: Option[String] = None, stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent), always: Boolean=false) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
         FetchAnnotation(predicate=None,
           location=PreparedExpression(source),
           query=query.map(kv ⇒ kv._1 → PreparedExpression(kv._2)),
-          expects=mode,
+          expects=expects,
           onError=onError,
-          defaultValue=defaultValue.map(PreparedExpression(_)),stages=on),
+          defaultValue=defaultValue.map(PreparedExpression(_)),stages=stages,always=always),
         name,
         "string"
       )
     )))
   }
 
-  def sf(name: String, expression: String = "1", on: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
+  def sf(name: String, expression: String = "1", stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     val e = HParser(expression)
     val pp = PreparedExpression(expression,e)
 
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        SetAnnotation(predicate=None,source=pp,stages=on),
+        SetAnnotation(predicate=None,source=pp,stages=stages),
         name,
         "string"
       )
