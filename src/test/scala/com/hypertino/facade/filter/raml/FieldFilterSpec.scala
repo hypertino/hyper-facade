@@ -76,15 +76,15 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
     )))
   }
 
-  def sf(name: String, expression: String = "1", stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
+  def sf(name: String, expression: String = "1", t:String = "string", stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     val e = HParser(expression)
     val pp = PreparedExpression(expression,e)
 
-    Map(name → Field(name, "string", Seq(
+    Map(name → Field(name, t, Seq(
       new FieldAnnotationWithFilter(
         SetAnnotation(predicate=None,source=pp,stages=stages),
         name,
-        "string"
+        t
       )
     )))
   }
@@ -183,6 +183,19 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
       .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 2)))
       .runAsync
       .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → "Yey"))
+  }
+
+  it should "set inner values, if target instance is added by other filter" in {
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
+      Map(
+        "T2" → TypeDefinition("T2", None, Seq.empty, sf("y", "{\"k\":\"Yey\"}", "T3"), isCollection = false ),
+        "T3" → TypeDefinition("T3", None, Seq.empty, sf("l", "123"), isCollection = false )
+      )
+    )
+      .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1)))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → Obj.from("k" → "Yey", "l" → 123)))
   }
 
   it should "add values into the collection" in {

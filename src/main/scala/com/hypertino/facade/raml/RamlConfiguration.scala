@@ -79,11 +79,11 @@ object TypeDefinition {
   val empty = TypeDefinition(DataType.DEFAULT_TYPE_NAME, None, Seq.empty, Map.empty, isCollection = false)
 }
 
-class FieldAnnotationWithFilter(val annotation: RamlFieldAnnotation, fieldName: String, typeName: String)
+class FieldAnnotationWithFilter(val annotation: RamlFieldAnnotation, fieldName: String, fieldTypeName: String)
                                (implicit injector: Injector) extends Injectable {
   lazy val filter: FieldFilter = {
     val filterName = annotation.name + "Field"
-    inject[RamlFieldFilterFactory](filterName).createFieldFilter(fieldName, typeName, annotation)
+    inject[RamlFieldFilterFactory](filterName).createFieldFilter(fieldName, fieldTypeName, annotation)
   }
 }
 
