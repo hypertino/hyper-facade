@@ -16,7 +16,7 @@ import org.asynchttpclient.{DefaultAsyncHttpClient, ListenableFuture}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest._
-import scaldi.Injectable
+import scaldi._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -31,7 +31,7 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
     "src/test/resources/raml-configs/" + _
   ).mkString(java.io.File.pathSeparator))
   val fullConfigPath = "./src/test/resources/" + configFileName
-  implicit val injector = new FiltersModule :: new MetricsModule ::
+  implicit val injector = extraModule :: new FiltersModule :: new MetricsModule ::
     new SystemServicesModule :: new FacadeServiceModule :: new RamlConfigModule ::
     ConfigModule(configFiles=Seq(fullConfigPath), loadDefaults = true)
 
@@ -108,4 +108,6 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
     )).runAsync, 16.seconds)
     asyncHttpClient.close()
   }
+
+  def extraModule: Injector = NilInjector
 }

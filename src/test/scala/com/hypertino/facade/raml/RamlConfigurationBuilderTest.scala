@@ -41,7 +41,7 @@ class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-co
     val fa = rffa.typeDef.fields.values.filter(_.annotations.nonEmpty).toSeq
 
     fa.size shouldBe 2
-    fa.head.name shouldBe "clientIp"
+    fa.head.fieldName shouldBe "clientIp"
     fa.head.annotations.map(_.annotation).head shouldBe a[SetAnnotation]
     fa.head.annotations.map(_.filter).head shouldBe a[SetFieldFilter]
     fa(1).annotations.map(_.annotation).head shouldBe a[RemoveAnnotation]
@@ -74,13 +74,13 @@ class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-co
     val fa = rffa.typeDef.fields.values.filter(_.annotations.nonEmpty).toSeq
 
     fa.size shouldBe 1
-    fa.head.name shouldBe "password"
+    fa.head.fieldName shouldBe "password"
     fa(0).annotations.map(_.annotation).head shouldBe a[RemoveAnnotation]
     fa(0).annotations.map(_.filter).head shouldBe RemoveFieldFilter
 
     rffa.typeDef.fields.keySet should contain("inner")
     val inner = rffa.typeDef.fields("inner")
-    inner.typeName shouldBe "TestInnerFields"
+    inner.fieldTypeName shouldBe "TestInnerFields"
 
     val typeDef = ramlConfig.dataTypes("TestInnerFields")
     typeDef.fields.size shouldBe 2

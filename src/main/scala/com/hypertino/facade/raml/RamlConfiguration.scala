@@ -4,8 +4,6 @@ import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model.{FieldFilter, RamlFieldFilterFactory}
 import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.model.HRL
-import com.hypertino.parser.{HParser, ast}
-import com.hypertino.parser.ast.Identifier
 import scaldi.{Injectable, Injector}
 
 case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, ResourceConfig], dataTypes: Map[String, TypeDefinition]) {
@@ -33,6 +31,8 @@ case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, Re
       case None ⇒ Seq()
     }
   }
+
+  def getTypeDefinition(fieldType: String): Option[TypeDefinition] = RamlTypeUtils.getTypeDefinition(fieldType, dataTypes)
 }
 
 case class ResourceConfig(
@@ -81,10 +81,18 @@ object TypeDefinition {
 
 class FieldAnnotationWithFilter(val annotation: RamlFieldAnnotation, fieldName: String, fieldTypeName: String)
                                (implicit injector: Injector) extends Injectable {
+
   lazy val filter: FieldFilter = {
     val filterName = annotation.name + "Field"
     inject[RamlFieldFilterFactory](filterName).createFieldFilter(fieldName, fieldTypeName, annotation)
   }
 }
 
-case class Field(name: String, typeName: String, annotations: Seq[FieldAnnotationWithFilter])
+case class Field(fieldName: String, fieldTypeName: String, annotations: Seq[FieldAnnotationWithFilter])
+                (implicit injector: Injector) extends Injectable {
+
+  lazy val typeDefinition: Option[TypeDefinition] = {
+    val ramlConfiguration = inject[RamlConfiguration]
+    ramlConfiguration.getTypeDefinition(fieldTypeName)
+  }
+}

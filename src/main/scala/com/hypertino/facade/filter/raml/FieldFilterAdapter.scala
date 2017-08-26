@@ -29,8 +29,6 @@ class RequestFieldFilterAdapter(val typeDef: TypeDefinition,
       )
     }.runAsync
   }
-
-  override protected def typeDefinitions: Map[String, TypeDefinition] = ramlConfiguration.dataTypes
 }
 
 class ResponseFieldFilterAdapter(val typeDef: TypeDefinition,
@@ -48,8 +46,6 @@ class ResponseFieldFilterAdapter(val typeDef: TypeDefinition,
         .asInstanceOf[DynamicResponse]
     }.runAsync
   }
-
-  override protected def typeDefinitions: Map[String, TypeDefinition] = ramlConfiguration.dataTypes
 }
 
 
@@ -67,8 +63,6 @@ class EventFieldFilterAdapter(val typeDef: TypeDefinition,
       DynamicRequest(DynamicBody(body), contextWithRequest.request.headers)
     }.runAsync
   }
-
-  override protected def typeDefinitions: Map[String, TypeDefinition] = ramlConfiguration.dataTypes
 }
 
 class FieldFilterAdapterFactory(protected val predicateEvaluator: ExpressionEvaluator,
@@ -85,7 +79,6 @@ class FieldFilterAdapterFactory(protected val predicateEvaluator: ExpressionEval
 
 trait FieldFilterBase {
   protected def typeDef: TypeDefinition
-  protected def typeDefinitions: Map[String, TypeDefinition]
   protected implicit def scheduler: Scheduler
   protected def expressionEvaluator: ExpressionEvaluator
 
@@ -133,17 +126,17 @@ trait FieldFilterBase {
                 .fields
                 .get(k)
                 .flatMap { field ⇒
-                  typeDefinitions
-                    .get(field.typeName)
+                  field
+                    .typeDefinition
                     .map { innerTypeDef ⇒
-                      recursiveFilterValue(rootValue, v, requestContext, innerTypeDef, fieldPath :+ field.name, stage)
+                      recursiveFilterValue(rootValue, v, requestContext, innerTypeDef, fieldPath :+ field.fieldName, stage)
                         .map(vv ⇒ Some(k → vv))
                     }
                 }.getOrElse {
                 Task.now(Some(k → v))
               }
 
-            case (k, None) ⇒
+            case (_, None) ⇒
               Task.now(None)
           }
         } map { inner ⇒
@@ -173,10 +166,10 @@ trait FieldFilterBase {
           fa.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
       }
       .map { a ⇒
-        a.filter(FieldFilterContext(parentFieldPath :+ field.name, value, field, extraContext, requestContext, stage)).map(field.name → _)
+        a.filter(FieldFilterContext(parentFieldPath :+ field.fieldName, value, field, extraContext, requestContext, stage)).map(field.fieldName → _)
       }
       .getOrElse {
-        Task.now(field.name → value)
+        Task.now(field.fieldName → value)
       }
   }
 }

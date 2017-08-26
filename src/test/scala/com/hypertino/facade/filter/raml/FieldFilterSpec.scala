@@ -12,10 +12,28 @@ import com.hypertino.parser.HParser
 import monix.eval.Task
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.{FlatSpec, Matchers}
+import scaldi.{DynamicModule, Injectable, Injector}
 
+import scala.collection.mutable
 import scala.util.Success
 
 class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-test.raml")) {
+  private var dataTypes = Map.empty[String, TypeDefinition]
+
+  override def extraModule = DynamicModule({ module =>
+    module.bind [RamlConfiguration] toProvider raml
+  })
+
+  lazy val originalRaml = inject[RamlConfiguration]('raml)
+  def raml: RamlConfiguration = {
+    if (dataTypes == null)
+      originalRaml
+    else
+      RamlConfiguration(originalRaml.baseUri, originalRaml.resourcesByPattern, originalRaml.dataTypes ++ dataTypes)
+  }
+
 
   def fieldFilter(
                    aTypeDef: TypeDefinition,
@@ -23,6 +41,9 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
                    query: Value = Null,
                    stage: FieldFilterStage = FieldFilterStageRequest
                  ) = new FieldFilterBase {
+
+    FieldFilterSpec.this.dataTypes = aTypeDefinitions
+
     override protected implicit def scheduler: Scheduler = FieldFilterSpec.this.scheduler
     def filter(body: Value): Task[Value] = {
       import com.hypertino.hyperbus.model.MessagingContext.Implicits.emptyContext
@@ -31,7 +52,7 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
       ))), stage)
     }
     override protected def typeDef: TypeDefinition = aTypeDef
-    override protected def typeDefinitions: Map[String, TypeDefinition] = aTypeDefinitions
+    //override protected def typeDefinitions: Map[String, TypeDefinition] = aTypeDefinitions
     override protected def expressionEvaluator: ExpressionEvaluator = DefaultExpressionEvaluator
   }
 
@@ -185,17 +206,17 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
       .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → "Yey"))
   }
 
-  it should "set inner values, if target instance is added by other filter" in {
+  it should "set inner values, if target instance is collection added by other filter" in {
     fieldFilter(
       TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
       Map(
-        "T2" → TypeDefinition("T2", None, Seq.empty, sf("y", "{\"k\":\"Yey\"}", "T3"), isCollection = false ),
+        "T2" → TypeDefinition("T2", None, Seq.empty, sf("y", "[{\"k\":\"Yey\"}]", "T3[]"), isCollection = false ),
         "T3" → TypeDefinition("T3", None, Seq.empty, sf("l", "123"), isCollection = false )
       )
     )
       .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1)))
       .runAsync
-      .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → Obj.from("k" → "Yey", "l" → 123)))
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → Lst.from(Obj.from("k" → "Yey", "l" → 123))))
   }
 
   it should "add values into the collection" in {
