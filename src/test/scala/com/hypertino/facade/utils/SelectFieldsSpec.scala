@@ -40,5 +40,16 @@ class SelectFieldsSpec extends FlatSpec with Matchers{
         "y" → SelectField("y", Map.empty)
       ))
     )
+
+    SelectFields("x.{k,m.z}") shouldBe Map(
+      "x" → SelectField("x",
+        Map(
+          "k" → SelectField("k", Map.empty),
+          "m" → SelectField("m",  Map(
+            "z" → SelectField("z", Map.empty)
+          ))
+        )
+      )
+    )
   }
 }

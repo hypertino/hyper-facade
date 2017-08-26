@@ -31,6 +31,9 @@ object SelectFields {
       val c = it.next()
       c match {
         case '.' ⇒
+          if (sb.isEmpty) {
+            throw new SelectFieldsParseError("Character was expected before '.'", selector)
+          }
           val inner = recursive(selector, it, level + 1)
           val field = sb.toString()
           currentLevel += field → SelectField(field, inner)
@@ -38,8 +41,10 @@ object SelectFields {
           sb.clear()
 
         case ',' ⇒
-          val field = sb.toString()
-          currentLevel += field → SelectField(field, Map.empty)
+          if (sb.nonEmpty) {
+            val field = sb.toString()
+            currentLevel += field → SelectField(field, Map.empty)
+          }
           exit = !expectsEndBrace && level > 0
           sb.clear()
 
@@ -50,10 +55,10 @@ object SelectFields {
           expectsEndBrace = true
 
         case '}' ⇒
-          if (!expectsEndBrace) {
-            throw new SelectFieldsParseError("'}' was unexpected", selector)
-          }
-          exit = !expectsEndBrace && level > 0
+//          if (!expectsEndBrace) {
+//            throw new SelectFieldsParseError("'}' was unexpected", selector)
+//          }
+          exit = level > 0
           expectsEndBrace = false
 
         case _ ⇒ sb.append(c)
