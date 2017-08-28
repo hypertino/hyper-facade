@@ -80,4 +80,20 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
 
     httpGet("http://localhost:54321/simple-resource/100500") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
+
+  it should "foward (eval)" in {
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service/{id}", Method.GET, None))
+      ).subscribe { implicit command =>
+        command.reply(Success {
+          Ok(DynamicBody(Obj.from("integer_field" → command.request.headers.hrl.query.id.toLong, "text_field" → "Yey")))
+        })
+        Continue
+      }
+    }
+
+    httpGet("http://localhost:54321/simple-forward") shouldBe """{"text_field":"Yey","integer_field":100500}"""
+  }
 }

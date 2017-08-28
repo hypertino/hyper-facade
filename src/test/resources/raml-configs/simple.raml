@@ -30,6 +30,17 @@ types:
           body:
             type: SimpleService
 
+/simple-forward:
+  (facade.forward):
+    location: "'hb://test-service/' + '{id}'"
+    query:
+      id: "100500"
+  get:
+    responses:
+      200:
+        body:
+          type: SimpleService
+
 /simple-resource-with-events:
   (facade.rewrite):
     location: hb://ws-test-service

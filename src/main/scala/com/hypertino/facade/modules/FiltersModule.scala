@@ -13,6 +13,7 @@ class FiltersModule extends Module {
 
   bind [RamlFilterFactory]          identifiedBy "deny"                                 to injected[DenyFilterFactory]
   bind [RamlFilterFactory]          identifiedBy "rewrite"                              to injected[RewriteFilterFactory]
+  bind [RamlFilterFactory]          identifiedBy "forward"                              to injected[ForwardFilterFactory]
   bind [FieldFilterAdapterFactory]  identifiedBy "fieldFilterAdapter"                   to injected[FieldFilterAdapterFactory]
 
   bind [RamlFieldFilterFactory]     identifiedBy "removeField"                          to injected[RemoveFieldFilterFactory]

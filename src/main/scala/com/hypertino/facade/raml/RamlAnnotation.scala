@@ -18,6 +18,7 @@ trait RamlFieldAnnotation extends RamlAnnotation {
 object RamlAnnotation {
   val SET = "set"
   val REWRITE = "rewrite"
+  val FORWARD = "forward"
   val DENY = "deny"
   val REMOVE = "remove"
   val AUTHORIZE = "authorize"
@@ -66,8 +67,14 @@ object RamlAnnotation {
         SetAnnotation(predicate = preparedExpression, source = PreparedExpression(propMap("source").toString),
           stages = stages(FieldFilterStageRequest.stringValue))
       case REWRITE ⇒
-        RewriteAnnotation(predicate = preparedExpression, location = propMap("location").toString,
+        RewriteAnnotation(predicate = preparedExpression,
+          location = propMap("location").toString,
           query = propMap.getOrElse("query", Null)
+        )
+      case FORWARD ⇒
+        ForwardAnnotation(predicate = preparedExpression,
+          location = locationExpression,
+          query = queryExpressionMap
         )
       case FETCH ⇒
         FetchAnnotation(predicate = preparedExpression,
@@ -89,6 +96,11 @@ case class RewriteAnnotation(name: String = RamlAnnotation.REWRITE,
                              predicate: Option[PreparedExpression],
                              location: String,
                              query: Value) extends RamlAnnotation
+
+case class ForwardAnnotation(name: String = RamlAnnotation.FORWARD,
+                             predicate: Option[PreparedExpression],
+                             location: PreparedExpression,
+                             query: Map[String, PreparedExpression]) extends RamlAnnotation
 
 // todo: split DenyAnnotation to DenyFilterAnnotation and non-filter
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
