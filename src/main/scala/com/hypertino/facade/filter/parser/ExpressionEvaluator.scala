@@ -4,6 +4,7 @@ import com.hypertino.binders.value.{Obj, _}
 import com.hypertino.facade.model.ContextStorage._
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.model.{ErrorBody, InternalServerError}
+import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import com.hypertino.parser.{HEval, HParser}
 import com.hypertino.parser.ast.Identifier
 import com.hypertino.parser.eval.ValueContext
@@ -41,6 +42,10 @@ trait ExpressionEvaluator {
     val context = new ValueContext(preparePredicateContext(requestContext) + extraContext) {
       override def binaryOperation: PartialFunction[(Value, Identifier, Value), Value] = IpParser.binaryOperation
       override def customOperators = Seq(IpParser.IP_MATCHES)
+      override def function: PartialFunction[(Identifier, Seq[Value]), Value] = {
+        case (Identifier(Seq("newId")), _) ⇒ IdGenerator.create()
+        case (Identifier(Seq("newSeq")), _) ⇒ SeqGenerator.create()
+      }
     }
     new HEval(context).eval(expression.ast)
   }
@@ -52,6 +57,7 @@ trait ExpressionEvaluator {
       "headers" → Obj(request.headers),
       "location" → request.headers.hrl.location,
       "query" → request.headers.hrl.query,
+      "method" → request.headers.method,
       "body" → request.body.content,
       "remote_address" → contextWithRequest.remoteAddress
     )

@@ -53,31 +53,32 @@ object RamlAnnotation {
     val propMap = properties.map(property ⇒ property.name() → recursiveProperty(property.value())).toMap
     def propMapString(key: String, defaultValue: String): String = propMap.get(key).map(_.toString).getOrElse(defaultValue)
     def predicate = propMap.get("if").map(_.toString)
-    def preparedExpression = predicate.map(PreparedExpression.apply)
+    def predicateExpression = predicate.map(PreparedExpression.apply)
     def locationExpression = PreparedExpression(propMap("location").toString)
     def queryExpressionMap = propMap.getOrElse("query", Null).toMap.map(kv ⇒ kv._1 → PreparedExpression(kv._2.toString)).toMap
     def stages(default: String): Set[FieldFilterStage] = propMapString("stages", default).split(",").map(FieldFilterStage.apply).toSet
 
     name match {
       case DENY ⇒
-        DenyAnnotation(predicate = preparedExpression, stages = stages(FieldFilterStageRequest.stringValue))
+        DenyAnnotation(predicate = predicateExpression, stages = stages(FieldFilterStageRequest.stringValue))
       case REMOVE ⇒
-        RemoveAnnotation(predicate = preparedExpression, stages = stages(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}"))
+        RemoveAnnotation(predicate = predicateExpression, stages = stages(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}"))
       case SET ⇒
-        SetAnnotation(predicate = preparedExpression, source = PreparedExpression(propMap("source").toString),
+        SetAnnotation(predicate = predicateExpression, source = PreparedExpression(propMap("source").toString),
           stages = stages(FieldFilterStageRequest.stringValue))
       case REWRITE ⇒
-        RewriteAnnotation(predicate = preparedExpression,
+        RewriteAnnotation(predicate = predicateExpression,
           location = propMap("location").toString,
           query = propMap.getOrElse("query", Null)
         )
       case FORWARD ⇒
-        ForwardAnnotation(predicate = preparedExpression,
+        ForwardAnnotation(predicate = predicateExpression,
           location = locationExpression,
-          query = queryExpressionMap
+          query = queryExpressionMap,
+          method = propMap.get("method").map(o ⇒ PreparedExpression(o.toString))
         )
       case FETCH ⇒
-        FetchAnnotation(predicate = preparedExpression,
+        FetchAnnotation(predicate = predicateExpression,
             location = locationExpression,
             query = queryExpressionMap,
             expects = propMapString("expects", "document"),
@@ -87,7 +88,7 @@ object RamlAnnotation {
             always = propMap.getOrElse("always", False).toBoolean
           )
       case annotationName ⇒
-        RegularAnnotation(annotationName, preparedExpression, (propMap - "if").map(kv ⇒ kv._1 → kv._2.toString))
+        RegularAnnotation(annotationName, predicateExpression, (propMap - "if").map(kv ⇒ kv._1 → kv._2.toString))
     }
   }
 }
@@ -100,7 +101,9 @@ case class RewriteAnnotation(name: String = RamlAnnotation.REWRITE,
 case class ForwardAnnotation(name: String = RamlAnnotation.FORWARD,
                              predicate: Option[PreparedExpression],
                              location: PreparedExpression,
-                             query: Map[String, PreparedExpression]) extends RamlAnnotation
+                             query: Map[String, PreparedExpression],
+                             method: Option[PreparedExpression]
+                            ) extends RamlAnnotation
 
 // todo: split DenyAnnotation to DenyFilterAnnotation and non-filter
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,

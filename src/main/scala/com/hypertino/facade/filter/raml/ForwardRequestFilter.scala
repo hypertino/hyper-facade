@@ -5,13 +5,14 @@ import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.{HrlTransformer, RequestUtils}
-import com.hypertino.hyperbus.model.HRL
+import com.hypertino.hyperbus.model.{DynamicRequest, HRL, Headers}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class ForwardRequestFilter(sourceHRL: HRL,
                            locationExpression: PreparedExpression,
                            queryExpressionMap: Map[String, PreparedExpression],
+                           method: Option[PreparedExpression],
                            protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
   override def apply(contextWithRequest: RequestContext)
@@ -24,11 +25,12 @@ class ForwardRequestFilter(sourceHRL: HRL,
         kv._1 → expressionEvaluator.evaluate(contextWithRequest, Null, kv._2)
       }
       val destinationHRL = HRL(location, query)
+      val destinationMethod = method.map(expressionEvaluator.evaluate(contextWithRequest, Null, _).toString)
 
       // todo: should we preserve all query fields???
       val rewrittenUri = HrlTransformer.rewriteForwardWithPatterns(request.headers.hrl, sourceHRL, destinationHRL)
       contextWithRequest.copy(
-        request = RequestUtils.copyWithNewHRL(request, rewrittenUri)
+        request = RequestUtils.copyWith(request, rewrittenUri, destinationMethod)
       )
     }
   }

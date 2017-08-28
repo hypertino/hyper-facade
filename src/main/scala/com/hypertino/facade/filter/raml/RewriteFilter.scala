@@ -17,7 +17,7 @@ class RewriteRequestFilter(sourceHRL: HRL, destinationHRL: HRL, protected val ex
       // todo: should we preserve all query fields???
       val rewrittenUri = HrlTransformer.rewriteForwardWithPatterns(request.headers.hrl, sourceHRL, destinationHRL)
       contextWithRequest.copy(
-        request = RequestUtils.copyWithNewHRL(request, rewrittenUri)
+        request = RequestUtils.copyWith(request, rewrittenUri)
       )
     }
   }
@@ -27,6 +27,6 @@ class RewriteEventFilter(protected val expressionEvaluator: ExpressionEvaluator)
   override def apply(contextWithRequest: RequestContext, event: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     val newHrl = HrlTransformer.rewriteBackward(event.headers.hrl, event.headers.method)
-    Future.successful(RequestUtils.copyWithNewHRL(event, newHrl))
+    Future.successful(RequestUtils.copyWith(event, newHrl))
   }
 }
