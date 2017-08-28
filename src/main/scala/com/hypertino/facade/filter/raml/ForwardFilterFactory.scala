@@ -10,14 +10,14 @@ import scaldi.Injectable
 
 class ForwardFilterFactory(config: Config, protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable {
   override def createFilters(target: RamlFilterTarget): SimpleFilterChain = {
-    val (sourceLocation, ramlMethod, destinationLocation, query) = target match {
-      case ResourceTarget(uri, ForwardAnnotation(_, _, l, q)) ⇒ (uri, None, l, q)
-      case MethodTarget(uri, method, ForwardAnnotation(_, _, l, q)) ⇒ (uri, Some(Method(method)), l, q)
+    val (sourceLocation, ramlMethod, destLocation, destQuery, destMethod) = target match {
+      case ResourceTarget(uri, ForwardAnnotation(_, _, l, q, m)) ⇒ (uri, None, l, q, m)
+      case MethodTarget(uri, method, ForwardAnnotation(_, _, l, q, m)) ⇒ (uri, Some(Method(method)), l, q, m)
       case otherTarget ⇒ throw RamlConfigException(s"Annotation 'forward' cannot be assigned to $otherTarget")
     }
     val sourceHRL = HRL(sourceLocation)
     SimpleFilterChain(
-      requestFilters = Seq(new ForwardRequestFilter(sourceHRL, destinationLocation, query, predicateEvaluator)),
+      requestFilters = Seq(new ForwardRequestFilter(sourceHRL, destLocation, destQuery, destMethod, predicateEvaluator)),
       responseFilters = Seq.empty,
       eventFilters = Seq.empty
     )
