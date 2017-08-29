@@ -43,9 +43,6 @@ class ContextFetchRequestFilter(protected val annotation: ContextFetchAnnotation
       implicit val mcx = contextWithRequest
       ask(hrl).
         onErrorRecoverWith {
-          case NotFound(_) ⇒
-            defaultValue(contextWithRequest)
-
           case NonFatal(e) ⇒
             handleError(hrl, contextWithRequest, e)
         }
