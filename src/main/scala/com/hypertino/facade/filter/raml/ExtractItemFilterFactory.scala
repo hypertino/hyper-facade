@@ -16,8 +16,8 @@ class ExtractItemFilterFactory(protected val predicateEvaluator: ExpressionEvalu
       case otherTarget ⇒ throw RamlConfigException(s"Annotation 'extract_item' cannot be assigned to $otherTarget")
     }
     SimpleFilterChain(
-      requestFilters = Seq(new ExtractItemRequestFilter(predicateEvaluator)),
-      responseFilters = Seq.empty,
+      requestFilters = Seq.empty,
+      responseFilters = Seq(new ExtractItemResponseFilter(predicateEvaluator)),
       eventFilters = Seq.empty
     )
   }
