@@ -12,7 +12,7 @@ import com.hypertino.service.config.ConfigModule
 import com.hypertino.service.control.api.Service
 import monix.eval.Task
 import monix.execution.{Cancelable, Scheduler}
-import org.asynchttpclient.{DefaultAsyncHttpClient, ListenableFuture}
+import org.asynchttpclient.{DefaultAsyncHttpClient, ListenableFuture, Response}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest._
@@ -61,7 +61,17 @@ abstract class TestBase(val configFileName: String = "inproc-test.conf", val ram
       taskFromListenableFuture(f).runAsync.map { result ⇒
         result.getResponseBody
       },
-      6.seconds
+      timeout.duration
+    )
+  }
+
+  def httpGetResponse(url: String): Response = {
+    val f = asyncHttpClient.prepareGet(url).execute()
+    Await.result(
+      taskFromListenableFuture(f).runAsync.map { result ⇒
+        result
+      },
+      timeout.duration
     )
   }
 

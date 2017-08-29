@@ -10,6 +10,7 @@ object FacadeHeaders {
   val PRIVILEGE_AUTHORIZATION = "Privilege-Authorization"
   val LOCATION                = "Location"
   val LINK                    = "Link"
+  val COUNT                    = "X-Count"
 
   val directHeaderMapping = Set(
     Header.METHOD,

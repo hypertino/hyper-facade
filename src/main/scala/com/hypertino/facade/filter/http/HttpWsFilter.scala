@@ -11,6 +11,7 @@ import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest
 import com.typesafe.config.Config
 
 import scala.annotation.tailrec
+import scala.collection.immutable.ListMap
 import scala.concurrent.{ExecutionContext, Future}
 
 class HttpWsResponseFilter(config: Config,
@@ -21,8 +22,11 @@ class HttpWsResponseFilter(config: Config,
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     Future {
       //todo: implement rewriting back
-      val (body, headersObj) = HttpWsFilter.filterMessage(response, hrl ⇒ hrl)
-      StandardResponse(body, ResponseHeaders(headersObj)).asInstanceOf[DynamicResponse]
+      val (headersObj1, body1) = HttpWsFilter.wrapCollection(contextWithRequest, response, hrl ⇒ hrl)
+      val (headersObj2, body2) = HttpWsFilter.filterMessage(headersObj1, body1,
+        hrl ⇒ hrl
+      )
+      StandardResponse(body2, ResponseHeaders(headersObj2)).asInstanceOf[DynamicResponse]
     }
   }
 }
@@ -33,7 +37,9 @@ class WsEventFilter(config: Config, ramlConfig: RamlConfiguration,
   override def apply(contextWithRequest: RequestContext, request: DynamicRequest)
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     Future {
-      val (newBody, newHeaders) = HttpWsFilter.filterMessage(request, hrl ⇒ hrl) // todo: root/baseUri
+
+
+      val (newHeaders, newBody) = HttpWsFilter.filterMessage(request.headers.underlying, request.body, hrl ⇒ hrl) // todo: root/baseUri
       val n = Headers
         .builder
         .++=(newHeaders)
@@ -52,7 +58,7 @@ object HttpWsFilter {
       case o @ Obj(links) ⇒
         links.map {
           case(k, v: Obj) ⇒
-            "<" + v.to[HRL].toURL().replace(",", "%2C") + ">; rel=" + k
+            "<" + rewriteHrlToHttpUrl(v.to[HRL]).replace(",", "%2C") + ">; rel=" + k
           case(k, other) ⇒
             "<" + other.toString.replace(",", "%2C") + ">; rel=" + k
         } mkString ", "
@@ -61,19 +67,22 @@ object HttpWsFilter {
     }
   }
 
-  def filterMessage(message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (DynamicBody, HeadersMap) = {
+  def filterMessage(headers: HeadersMap, body: DynamicBody, uriTransformer: (HRL ⇒ HRL)): (HeadersMap, DynamicBody) = {
     val headersBuilder = Headers.builder
 
-    message.headers.foreach {
+    headers.foreach {
       // todo: transform?
       case (Header.LOCATION, v) ⇒
-        FacadeHeaders.LOCATION → rewriteHrlToHttpUrl(v.to[HRL])
+        headersBuilder += FacadeHeaders.LOCATION → rewriteHrlToHttpUrl(v.to[HRL])
 
       case (Header.HRL, v) ⇒       // todo: events, remove scheme!!!
-        FacadeHeaders.LOCATION → rewriteHrlToHttpUrl(v.to[HRL])
+        headersBuilder += FacadeHeaders.LOCATION → rewriteHrlToHttpUrl(v.to[HRL])
 
       case (Header.LINK, v) ⇒
-        FacadeHeaders.LINK → httpLink(v)
+        headersBuilder += FacadeHeaders.LINK → httpLink(v)
+
+      case (Header.COUNT, v) ⇒
+        headersBuilder += FacadeHeaders.COUNT → v
 
       case (k, v) ⇒
         if (FacadeHeaders.directHeaderMapping.contains(k)) {
@@ -81,8 +90,9 @@ object HttpWsFilter {
         }
     }
 
-    val newBody = DynamicBody(filterBodyContent(message.body.content), message.body.contentType)
-    (newBody, headersBuilder.result())
+    val bodyContent = filterBodyContent(body.content)
+    val newBody = DynamicBody(bodyContent, body.contentType)
+    (headersBuilder.result(), newBody)
   }
 
   def filterBodyContent(c: Value): Value = {
@@ -119,5 +129,43 @@ object HttpWsFilter {
 
   def rewriteHrlToHttpUrl(hrl: HRL): String = {
     HrlTransformer.rewriteLinkToOriginal(hrl, MAX_REWRITES).toURL()
+  }
+
+  // todo: move wrap_collection to separate filter & make configurable
+  def wrapCollection(contextWithRequest: RequestContext,
+                    message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (HeadersMap, DynamicBody) = {
+
+    val wq = contextWithRequest.request.headers.hrl.query.wrap_collection.toBoolean
+    if (wq || contextWithRequest.request.headers.get("X-Wrap-Collection").exists(_.toBoolean)) {
+
+      val vx: Map[String, Value] = message.headers.flatMap {
+        // todo: transform?
+        case (Header.LINK, v: Value) ⇒
+          val l: Value = v match {
+            case o@Obj(links) ⇒
+              Obj(links.map {
+                case (k, v: Obj) ⇒
+                  k → Text(rewriteHrlToHttpUrl(v.to[HRL]))
+                case (k, other) ⇒
+                  k → other
+              })
+
+            case other ⇒ other
+          }
+          Some("link" → l)
+
+        case (Header.COUNT, v) ⇒
+          Some("count" → v)
+
+        case _ ⇒
+          None
+      } ++ Map("items" → message.body.content)
+
+
+      (HeadersMap(message.headers.toSeq: _*), DynamicBody(Obj(vx), message.body.contentType))
+    }
+    else {
+      (HeadersMap(message.headers.toSeq: _*), message.body)
+    }
   }
 }
