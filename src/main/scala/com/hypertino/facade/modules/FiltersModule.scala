@@ -14,7 +14,7 @@ class FiltersModule extends Module {
   bind [RamlFilterFactory]          identifiedBy "deny"                                 to injected[DenyFilterFactory]
   bind [RamlFilterFactory]          identifiedBy "rewrite"                              to injected[RewriteFilterFactory]
   bind [RamlFilterFactory]          identifiedBy "context_fetch"                        to injected[ContextFetchFilterFactory]
-  bind [RamlFilterFactory]          identifiedBy "item0"                                to injected[Item0FilterFactory]
+  bind [RamlFilterFactory]          identifiedBy "extract_item"                         to injected[ExtractItemFilterFactory]
   bind [FieldFilterAdapterFactory]  identifiedBy "fieldFilterAdapter"                   to injected[FieldFilterAdapterFactory]
   bind [RamlFilterFactory]          identifiedBy "forward"                              to injected[ForwardFilterFactory]
 

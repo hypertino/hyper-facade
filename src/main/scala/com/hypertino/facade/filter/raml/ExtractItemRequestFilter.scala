@@ -9,7 +9,7 @@ import com.hypertino.hyperbus.model.{ErrorBody, InternalServerError, NotFound}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class Item0RequestFilter(protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
+class ExtractItemRequestFilter(protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
   override def apply(contextWithRequest: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {

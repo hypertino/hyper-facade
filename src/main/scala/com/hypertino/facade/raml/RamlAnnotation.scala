@@ -23,7 +23,7 @@ object RamlAnnotation {
   val REMOVE = "remove"
   val AUTHORIZE = "authorize"
   val FETCH = "fetch"
-  val ITEM0 = "item0"
+  val EXTRACT_ITEM = "extract_item"
   val CONTEXT_FETCH = "context_fetch"
 
   import scala.collection.JavaConverters._
@@ -79,8 +79,8 @@ object RamlAnnotation {
           query = queryExpressionMap,
           method = propMap.get("method").map(o ⇒ PreparedExpression(o.toString))
         )
-      case ITEM0 ⇒
-        Item0Annotation(predicate = predicateExpression)
+      case EXTRACT_ITEM ⇒
+        ExtractItemAnnotation(predicate = predicateExpression) // todo: add single, head, tail, index...
       case CONTEXT_FETCH ⇒
         ContextFetchAnnotation(predicate = predicateExpression,
           target = propMapString("target", ""), // todo: fail if target is empty
@@ -117,8 +117,8 @@ case class ForwardAnnotation(name: String = RamlAnnotation.FORWARD,
                              method: Option[PreparedExpression]
                             ) extends RamlAnnotation
 
-case class Item0Annotation(name: String = RamlAnnotation.ITEM0,
-                             predicate: Option[PreparedExpression]
+case class ExtractItemAnnotation(name: String = RamlAnnotation.EXTRACT_ITEM,
+                                 predicate: Option[PreparedExpression]
                             ) extends RamlAnnotation
 
 case class ContextFetchAnnotation(name: String = RamlAnnotation.CONTEXT_FETCH,

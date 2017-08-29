@@ -8,15 +8,15 @@ import com.hypertino.hyperbus.model.HRL
 import com.typesafe.config.Config
 import scaldi.Injectable
 
-class Item0FilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable {
+class ExtractItemFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable {
   override def createFilters(target: RamlFilterTarget): SimpleFilterChain = {
     target match {
-      case ResourceTarget(_, Item0Annotation(_, _)) ⇒
-      case MethodTarget(_, _, Item0Annotation(_, _)) ⇒
-      case otherTarget ⇒ throw RamlConfigException(s"Annotation 'item0' cannot be assigned to $otherTarget")
+      case ResourceTarget(_, ExtractItemAnnotation(_, _)) ⇒
+      case MethodTarget(_, _, ExtractItemAnnotation(_, _)) ⇒
+      case otherTarget ⇒ throw RamlConfigException(s"Annotation 'extract_item' cannot be assigned to $otherTarget")
     }
     SimpleFilterChain(
-      requestFilters = Seq(new Item0RequestFilter(predicateEvaluator)),
+      requestFilters = Seq(new ExtractItemRequestFilter(predicateEvaluator)),
       responseFilters = Seq.empty,
       eventFilters = Seq.empty
     )
