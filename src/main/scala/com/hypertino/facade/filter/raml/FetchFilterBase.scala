@@ -1,8 +1,8 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Obj, Text, Value}
+import com.hypertino.binders.value.{Lst, Obj, Text, Value}
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, EmptyBody, HRL, Header, MessagingContext, Method, Ok}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, EmptyBody, ErrorBody, HRL, Header, InternalServerError, MessagingContext, Method, NotFound, Ok}
 import monix.eval.Task
 
 trait FetchFilterBase {
@@ -31,6 +31,20 @@ trait FetchFilterBase {
                   response.headers.get(Header.COUNT).map("count" → _).toMap
               )
             )
+        }
+
+      case "single_item" ⇒
+        hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
+          case response @ Ok(body: DynamicBody, _) ⇒
+            body.content match {
+              case Lst(l) if l.size == 1 ⇒ Some(l)
+              case Lst(l) if l.isEmpty ⇒
+                throw NotFound(ErrorBody("single-item-not-found", Some(s"$hrl")))
+              case Lst(_) ⇒
+                throw InternalServerError(ErrorBody("single-item-ambiguous", Some(s"$hrl")))
+              case o: Obj ⇒
+                throw InternalServerError(ErrorBody("resource-is-not-a-collection", Some(s"$hrl")))
+            }
         }
 
       case "document" ⇒
