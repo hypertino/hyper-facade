@@ -17,10 +17,10 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 class FetchFieldFilter(annotation: FetchAnnotation,
-                       hyperbus: Hyperbus,
+                       protected val hyperbus: Hyperbus,
                        expressionEvaluator: ExpressionEvaluator,
                        protected implicit val injector: Injector,
-                       protected implicit val scheduler: Scheduler) extends FieldFilter with Injectable {
+                       protected implicit val scheduler: Scheduler) extends FieldFilter with FetchFilterBase with Injectable {
 
   protected val log = LoggerFactory.getLogger(getClass)
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
@@ -89,39 +89,6 @@ class FetchFieldFilter(annotation: FetchAnnotation,
     }
   }
 
-  protected def ask(hrl: HRL)(implicit mcx: MessagingContext): Task[Option[Value]] = {
-    annotation.expects match {
-      case "collection_link" ⇒
-        val hrlCollectionLink = hrl.copy(query = hrl.query + Obj.from("per_page" → 0))
-        hyperbus.ask(DynamicRequest(hrlCollectionLink, Method.GET, EmptyBody)).map {
-          case response @ Ok(body: DynamicBody, _) ⇒
-            Some(Obj(Map(
-                "first_page_url" → Text(hrl.toURL())
-            ) ++
-              response.headers.get(Header.COUNT).map("count" → _)
-            ))
-        }
-
-      case "collection_top" ⇒
-        hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
-          case response @ Ok(body: DynamicBody, _) ⇒
-            Some(
-              Obj(
-                Map("top" → body.content) ++
-                response.headers.link.map(kv ⇒ kv._1 → Text(kv._2.toURL())) ++
-                response.headers.get(Header.COUNT).map("count" → _).toMap
-              )
-            )
-        }
-
-      case "document" ⇒
-        hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
-          case Ok(body: DynamicBody, _) ⇒
-            Some(body.content)
-        }
-    }
-  }
-
   protected def handleError(context: FieldFilterContext, e: Throwable): Task[Option[Value]] = {
     import FetchFieldFilter._
     if (log.isDebugEnabled) {
@@ -145,6 +112,8 @@ class FetchFieldFilter(annotation: FetchAnnotation,
       Some(Null)
     }
   }
+
+  override protected def expects: String = annotation.expects
 }
 
 class FetchFieldFilterFactory(hyperbus: Hyperbus,

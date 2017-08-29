@@ -1,6 +1,7 @@
 package com.hypertino.facade.utils
 
-import com.hypertino.hyperbus.model.{DynamicRequest, HRL, Headers}
+import com.hypertino.binders.value.Value
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, HRL, Headers}
 
 object RequestUtils {
   def copyWith(request: DynamicRequest, hrl: HRL, method: Option[String] = None): DynamicRequest = {
@@ -12,6 +13,12 @@ object RequestUtils {
 
     request.copy(
       headers = newHeaders
+    )
+  }
+
+  def copyWithNewBody(request: DynamicRequest, bodyValue: Value): DynamicRequest = {
+    request.copy(
+      body=DynamicBody(bodyValue,request.body.contentType)
     )
   }
 }

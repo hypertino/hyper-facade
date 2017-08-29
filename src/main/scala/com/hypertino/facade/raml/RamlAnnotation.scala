@@ -23,6 +23,8 @@ object RamlAnnotation {
   val REMOVE = "remove"
   val AUTHORIZE = "authorize"
   val FETCH = "fetch"
+  val ITEM0 = "item0"
+  val CONTEXT_FETCH = "context_fetch"
 
   import scala.collection.JavaConverters._
 
@@ -77,6 +79,16 @@ object RamlAnnotation {
           query = queryExpressionMap,
           method = propMap.get("method").map(o ⇒ PreparedExpression(o.toString))
         )
+      case ITEM0 ⇒
+        Item0Annotation(predicate = predicateExpression)
+      case CONTEXT_FETCH ⇒
+        ContextFetchAnnotation(predicate = predicateExpression,
+          target = propMapString("target", ""), // todo: fail if target is empty
+          location = locationExpression,
+          query = queryExpressionMap,
+          expects = propMapString("expects", "document"),
+          onError = propMapString("on_error", "fail"),
+          defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString)))
       case FETCH ⇒
         FetchAnnotation(predicate = predicateExpression,
             location = locationExpression,
@@ -104,6 +116,20 @@ case class ForwardAnnotation(name: String = RamlAnnotation.FORWARD,
                              query: Map[String, PreparedExpression],
                              method: Option[PreparedExpression]
                             ) extends RamlAnnotation
+
+case class Item0Annotation(name: String = RamlAnnotation.ITEM0,
+                             predicate: Option[PreparedExpression]
+                            ) extends RamlAnnotation
+
+case class ContextFetchAnnotation(name: String = RamlAnnotation.CONTEXT_FETCH,
+                                  predicate: Option[PreparedExpression],
+                                  target: String,
+                                  location: PreparedExpression,
+                                  query: Map[String, PreparedExpression],
+                                  expects: String, //todo: this should be enum
+                                  onError: String, //todo: this should be enum
+                                  defaultValue: Option[PreparedExpression]
+                                 ) extends RamlAnnotation
 
 // todo: split DenyAnnotation to DenyFilterAnnotation and non-filter
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
