@@ -37,7 +37,7 @@ trait FetchFilterBase {
         hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
           case response @ Ok(body: DynamicBody, _) ⇒
             body.content match {
-              case Lst(l) if l.size == 1 ⇒ Some(l)
+              case Lst(l) if l.size == 1 ⇒ Some(l.head)
               case Lst(l) if l.isEmpty ⇒
                 throw NotFound(ErrorBody("single-item-not-found", Some(s"$hrl")))
               case Lst(_) ⇒
