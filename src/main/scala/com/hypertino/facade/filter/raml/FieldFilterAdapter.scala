@@ -160,16 +160,16 @@ trait FieldFilterBase {
     )
     field
       .annotations
-      .find {
+      .filter {
         fa ⇒
           fa.annotation.stages.contains(stage) &&
           fa.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
       }
-      .map { a ⇒
-        a.filter(FieldFilterContext(parentFieldPath :+ field.fieldName, value, field, extraContext, requestContext, stage)).map(field.fieldName → _)
-      }
-      .getOrElse {
-        Task.now(field.fieldName → value)
+      .foldLeft(Task.now(field.fieldName → value)) { case (lastValueTask, a) ⇒
+        lastValueTask.flatMap( lastValue ⇒
+          a.filter(FieldFilterContext(parentFieldPath :+ field.fieldName, lastValue._2, field, extraContext, requestContext, stage))
+            .map(field.fieldName → _)
+        )
       }
   }
 }

@@ -291,7 +291,7 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
       .futureValue shouldBe a[Forbidden[_]]
   }
 
-  it should "not deny if fields are set" in {
+  it should "not deny if fields are not set" in {
     fieldFilter(
       TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
       Map(
@@ -301,5 +301,32 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
       .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1)))
       .runAsync
       .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1))
+  }
+
+  it should "apply multiple filters" in {
+    val deny = df("y")("y")
+    val set = sf("y", "123")("y")
+    val yf = Map("y" → deny.copy(annotations=deny.annotations ++ set.annotations))
+
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
+      Map(
+        "T2" → TypeDefinition("T2", None, Seq.empty, yf, isCollection = false )
+      )
+    )
+      .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1)))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 123))
+
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
+      Map(
+        "T2" → TypeDefinition("T2", None, Seq.empty, yf, isCollection = false )
+      )
+    )
+      .filter(Obj.from("a" → 100500, "b" → Obj.from("x" → 1, "y" → 1)))
+      .runAsync
+      .failed
+      .futureValue shouldBe a[Forbidden[_]]
   }
 }
