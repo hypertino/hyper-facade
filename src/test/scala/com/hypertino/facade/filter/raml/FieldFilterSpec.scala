@@ -1,7 +1,7 @@
 package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Value}
-import com.hypertino.facade.TestBase
+import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
 import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageEvent, FieldFilterStageRequest, FieldFilterStageResponse}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
@@ -19,21 +19,30 @@ import scaldi.{DynamicModule, Injectable, Injector}
 import scala.collection.mutable
 import scala.util.Success
 
-class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-test.raml")) {
+class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-config-parser-test.raml")) {
   private var dataTypes = Map.empty[String, TypeDefinition]
 
   override def extraModule = DynamicModule({ module =>
     module.bind [RamlConfiguration] toProvider raml
   })
 
-  lazy val originalRaml = inject[RamlConfiguration]('raml)
   def raml: RamlConfiguration = {
-    if (dataTypes == null)
-      originalRaml
-    else
-      RamlConfiguration(originalRaml.baseUri, originalRaml.resourcesByPattern, originalRaml.dataTypes ++ dataTypes)
+    if (testServices == null) {
+      RamlConfiguration("", Map.empty, dataTypes)
+    }
+    else {
+      import testServices._
+
+      if (dataTypes == null)
+        originalRamlConfig
+      else
+        RamlConfiguration(originalRamlConfig.baseUri,
+          originalRamlConfig.resourcesByPattern,
+          originalRamlConfig.dataTypes ++ dataTypes)
+    }
   }
 
+  import testServices._
 
   def fieldFilter(
                    aTypeDef: TypeDefinition,
@@ -103,7 +112,7 @@ class FieldFilterSpec extends TestBase(ramlConfigFiles=Seq("raml-config-parser-t
 
     Map(name → Field(name, t, Seq(
       new FieldAnnotationWithFilter(
-        SetAnnotation(predicate=None,source=pp,stages=stages),
+        SetAnnotation(predicate=None,source=pp,stages=stages,target=None),
         name,
         t
       )

@@ -1,7 +1,7 @@
 package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Text}
-import com.hypertino.facade.TestBase
+import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
 import com.hypertino.facade.apiref.auth.{Validation, ValidationResult}
 import com.hypertino.facade.apiref.user.UsersGet
 import com.hypertino.facade.filter.http.AuthenticationRequestFilter
@@ -9,6 +9,7 @@ import com.hypertino.facade.filter.parser.DefaultExpressionEvaluator
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.hyperbus.model.annotations.request
 import com.hypertino.hyperbus.model.{Created, DefinedResponse, DynamicBody, DynamicRequest, EmptyBody, ErrorBody, Forbidden, HRL, HeadersMap, MessagingContext, Method, Ok, Request, ResponseBase}
+import com.hypertino.hyperbus.subscribe.Subscribable
 import monix.eval.Task
 
 @request(Method.POST, "hb://auth-test/validations")
@@ -24,9 +25,10 @@ object TestValidationsPost extends com.hypertino.hyperbus.model.RequestMetaCompa
   type ResponseType = Created[ValidationResult]
 }
 
-class AuthenticationRequestFilterSpec extends TestBase("inproc-test.conf") {
-  val handlers = hyperbus.subscribe(this)
+class AuthenticationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") with Subscribable {
   Thread.sleep(500)
+  import testServices._
+  hyperbus.subscribe(this)
 
   def onTestValidationsPost(implicit post: TestValidationsPost): Task[ResponseBase] =
     if (post.body.authorization == "Test ABC") {

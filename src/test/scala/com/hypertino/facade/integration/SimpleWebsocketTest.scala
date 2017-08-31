@@ -1,7 +1,7 @@
 package com.hypertino.facade.integration
 
 import com.hypertino.binders.value.Obj
-import com.hypertino.facade.TestBase
+import com.hypertino.facade.{TestBase, TestBaseWithFacade}
 import com.hypertino.facade.workers.TestQueue
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.transport.api.PublishResult
@@ -10,10 +10,11 @@ import monix.execution.Ack.Continue
 
 import scala.util.Success
 
-class SimpleWebsocketTest extends TestBase("inproc-test.conf") {
-  facadeService // initialize
-
+class SimpleWebsocketTest extends TestBaseWithFacade("inproc-test.conf") {
   "Facade" should "serve simple event feed" in {
+    val t = testObjects
+    import t._
+
     val q = new TestQueue
     val client = createWsClient("unreliable-feed-client", "/", q.put)
     import MessagingContext.Implicits.emptyContext

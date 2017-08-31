@@ -1,14 +1,14 @@
 package com.hypertino.facade.raml
 
-import com.hypertino.facade.TestBase
+import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
 import com.hypertino.facade.filter.raml.ResponseFieldFilterAdapter
 import com.hypertino.hyperbus.model
 
-class RamlConfigurationBuilderCollectionTest extends TestBase(ramlConfigFiles=Seq("raml-collection-config-parser-test.raml")) {
-  private val ramlConfig = inject[RamlConfiguration]
+class RamlConfigurationBuilderCollectionTest extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-collection-config-parser-test.raml")) {
+  import testServices._
 
   "Responses" should "have filters on collection fields" in {
-    val filterChain = ramlConfig
+    val filterChain = originalRamlConfig
       .resourcesByPattern("/request-collection-annotations")
       .methods(Method(model.Method.GET))
       .responses

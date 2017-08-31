@@ -2,14 +2,13 @@ package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.model.ConditionalRequestFilterProxy
 import com.hypertino.facade.filter.raml._
-import com.hypertino.facade.TestBase
+import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
 import com.hypertino.hyperbus.model
 
-class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-config-parser-test.raml")) {
-  private val ramlConfig = inject[RamlConfiguration]
-
+class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-config-parser-test.raml")) {
+  import testServices._
   "Request filters" should "be empty if no annotation is applied" in {
-    val statusFilterChain = ramlConfig
+    val statusFilterChain = originalRamlConfig
       .resourcesByPattern("/without-annotations")
       .methods(Method(model.Method.POST))
       .requests
@@ -20,7 +19,7 @@ class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-co
   }
 
   it should "have filters including field filters if annotations are applied" in {
-    val statusServiceFilterChain = ramlConfig
+    val statusServiceFilterChain = originalRamlConfig
       .resourcesByPattern("/request-annotations")
       .methods(Method(model.Method.POST))
       .requests
@@ -54,7 +53,7 @@ class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-co
   }
 
   it should "have filters on data types" in {
-    val filterChain = ramlConfig
+    val filterChain = originalRamlConfig
       .resourcesByPattern("/request-inner-annotations")
       .methods(Method(model.Method.POST))
       .requests
@@ -82,7 +81,7 @@ class RamlConfigurationBuilderTest extends TestBase(ramlConfigFiles=Seq("raml-co
     val inner = rffa.typeDef.fields("inner")
     inner.fieldTypeName shouldBe "TestInnerFields"
 
-    val typeDef = ramlConfig.dataTypes("TestInnerFields")
+    val typeDef = originalRamlConfig.dataTypes("TestInnerFields")
     typeDef.fields.size shouldBe 2
     typeDef.fields("secret").annotations.size shouldBe 1
 

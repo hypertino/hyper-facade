@@ -1,0 +1,53 @@
+#%RAML 1.0
+title: Facade API
+version: v1
+mediaType: application/json
+baseUri: http://test
+uses:
+  facade: facade-lib.raml
+
+types:
+  SimpleService:
+    type: object
+    properties:
+      integer_field: integer
+      text_field: string
+
+/set-query:
+  (facade.set):
+    target: 'query.filter'
+    source: '"abc"'
+  (facade.rewrite):
+    location: hb://test-service
+  get:
+    responses:
+      200:
+        body:
+          type: SimpleService
+
+/set-headers:
+  (facade.set):
+    target: 'headers.filter'
+    source: '"abc"'
+  (facade.rewrite):
+    location: hb://test-service
+  get:
+    responses:
+      200:
+        body:
+          type: SimpleService
+
+/set-context:
+  (facade.set):
+    target: 'context.abc'
+    source: '10'
+  get:
+    (facade.set):
+      target: 'query.x'
+      source: 'context.abc * 13'
+    (facade.rewrite):
+      location: hb://test-service
+    responses:
+      200:
+        body:
+          type: SimpleService

@@ -1,15 +1,17 @@
 package com.hypertino.facade.integration
 
 import com.hypertino.binders.value.{Lst, Number, Obj}
-import com.hypertino.facade.TestBase
+import com.hypertino.facade.{TestBase, TestBaseWithFacade}
 import com.hypertino.hyperbus.model.{Created, DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, HRL, Header, Headers, Method, NoContent, Ok}
 import com.hypertino.hyperbus.transport.api.matchers.RequestMatcher
 import monix.execution.Ack.Continue
 
 import scala.util.Success
 
-class SimpleHttpTest extends TestBase("inproc-test.conf") {
+class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
   "Facade" should "serve http resource" in {
+    val t = testObjects
+    import t._
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -25,8 +27,9 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
-  // todo: fix
-  ignore should "filter fields" in {
+  it should "filter fields" in {
+    val t = testObjects
+    import t._
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -42,8 +45,9 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """{"text_field":"Yey"}"""
   }
 
-  // todo: fix
-  ignore should "filter collection fields" in {
+  it should "filter collection fields" in {
+    val t = testObjects
+    import t._
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -64,8 +68,9 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """[{"text_field":"Yey"},{"text_field":"Hey"}]"""
   }
 
-  // todo: fix
-  ignore should "serve resource with pattern" in {
+  it should "serve resource with pattern" in {
+    val t = testObjects
+    import t._
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -81,8 +86,9 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-resource/100500") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
-  // todo: fix
-  ignore should "foward (eval)" in {
+  it should "foward (eval)" in {
+    val t = testObjects
+    import t._
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -98,8 +104,9 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     httpGet("http://localhost:54321/simple-forward") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
-  // todo: fix
-  ignore should "render link" in {
+  it should "render link" in {
+    val t = testObjects
+    import t._
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -125,8 +132,10 @@ class SimpleHttpTest extends TestBase("inproc-test.conf") {
     r.getHeaders("X-Count").asScala.head shouldBe "3"
   }
 
-  // todo: fix
-  ignore should "render wrap collection" in {
+
+  it should "render wrap collection" in {
+    val t = testObjects
+    import t._
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,

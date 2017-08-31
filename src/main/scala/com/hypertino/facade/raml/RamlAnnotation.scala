@@ -66,7 +66,9 @@ object RamlAnnotation {
       case REMOVE ⇒
         RemoveAnnotation(predicate = predicateExpression, stages = stages(s"${FieldFilterStageResponse.stringValue},${FieldFilterStageEvent.stringValue}"))
       case SET ⇒
-        SetAnnotation(predicate = predicateExpression, source = PreparedExpression(propMap("source").toString),
+        SetAnnotation(predicate = predicateExpression,
+          source = PreparedExpression(propMap("source").toString),
+          target = propMap.get("target").map(_.toString),
           stages = stages(FieldFilterStageRequest.stringValue))
       case REWRITE ⇒
         RewriteAnnotation(predicate = predicateExpression,
@@ -81,6 +83,7 @@ object RamlAnnotation {
         )
       case EXTRACT_ITEM ⇒
         ExtractItemAnnotation(predicate = predicateExpression) // todo: add single, head, tail, index...
+
       case CONTEXT_FETCH ⇒
         ContextFetchAnnotation(predicate = predicateExpression,
           target = propMapString("target", ""), // todo: fail if target is empty
@@ -131,7 +134,7 @@ case class ContextFetchAnnotation(name: String = RamlAnnotation.CONTEXT_FETCH,
                                   defaultValue: Option[PreparedExpression]
                                  ) extends RamlAnnotation
 
-// todo: split DenyAnnotation to DenyFilterAnnotation and non-filter
+// todo: split DenyAnnotation to DenyFilterAnnotation and non-field
 case class DenyAnnotation(name: String = RamlAnnotation.DENY,
                           predicate: Option[PreparedExpression],
                           stages: Set[FieldFilterStage]
@@ -142,9 +145,11 @@ case class RemoveAnnotation(name: String = RamlAnnotation.REMOVE,
                             stages: Set[FieldFilterStage]
                            ) extends RamlFieldAnnotation
 
+// todo: split SetAnnotation to SetFieldAnnotation and non-field
 case class SetAnnotation(name: String = RamlAnnotation.SET,
                          predicate: Option[PreparedExpression],
                          source: PreparedExpression,
+                         target: Option[String],
                          stages: Set[FieldFilterStage]
                         ) extends RamlFieldAnnotation
 
