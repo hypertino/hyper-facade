@@ -97,6 +97,9 @@ class SetRequestFilter(set: SetAnnotation,
 
         case "method" ⇒
           setMethod(contextWithRequest, targetIdentifier.segments.tail, result)
+
+        case other ⇒
+          throw new IllegalArgumentException(s"Can't set unknown variable '$other'")
       }
     }
   }
