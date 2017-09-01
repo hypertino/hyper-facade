@@ -55,11 +55,11 @@ object SelectFieldsResponseFilter {
           inner.flatMap { case (k, i) ⇒
               selectFields.get(k).map {
                 sf ⇒ k → recursiveFilterFields(i, sf.children)
-              }.orElse(if(selectFields.contains("*")) {
-                Option(k -> i)
-              } else {
-                None
-              })
+              }.orElse {
+                selectFields.get("*").map { _ ⇒
+                  k → i
+                }
+              }
             })
 
         case Lst(inner) ⇒

@@ -43,6 +43,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
     }
 
     httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """{"text_field":"Yey"}"""
+    httpGet("http://localhost:54321/simple-resource?fields=*") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
   it should "filter collection fields" in {
