@@ -1,6 +1,6 @@
 package com.hypertino.facade.filter.model
 
-import com.hypertino.binders.value.Null
+import com.hypertino.binders.value.{Null, Obj}
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlAnnotation
@@ -15,7 +15,7 @@ case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: Req
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     annotation.predicate match {
       case Some(p) ⇒
-        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Null), p)) match {
+        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Obj.empty), p)) match {
           case Success(true) ⇒
             filter.apply(contextWithRequest)
           case Success(false) ⇒
@@ -35,7 +35,7 @@ case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: Re
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
     annotation.predicate match {
       case Some(p) ⇒
-        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Null), p)) match {
+        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Obj.empty), p)) match {
           case Success(true) ⇒
             filter.apply(contextWithRequest, response)
           case Success(false) ⇒
@@ -56,7 +56,7 @@ case class ConditionalEventFilterProxy(annotation: RamlAnnotation, filter: Event
                     (implicit ec: ExecutionContext): Future[DynamicRequest] = {
     annotation.predicate match {
       case Some(p) ⇒
-        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Null), p)) match {
+        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Obj.empty), p)) match {
           case Success(true) ⇒
             filter.apply(contextWithRequest, event)
           case Success(false) ⇒

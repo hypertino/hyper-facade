@@ -1,6 +1,6 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.Null
+import com.hypertino.binders.value.{Null, Obj}
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext, PreparedExpression}
 import com.hypertino.facade.model._
@@ -19,7 +19,7 @@ class ForwardRequestFilter(sourceHRL: HRL,
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
       val request = contextWithRequest.request
-      val ctx = ExpressionEvaluatorContext(contextWithRequest, Null)
+      val ctx = ExpressionEvaluatorContext(contextWithRequest, Obj.empty)
       val location = expressionEvaluator.evaluate(ctx, locationExpression).toString
       val query = queryExpressionMap.map { kv ⇒
         kv._1 → expressionEvaluator.evaluate(ctx, kv._2)

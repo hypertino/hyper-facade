@@ -80,7 +80,7 @@ class SetRequestFilter(set: SetAnnotation,
   override def apply(contextWithRequest: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
-      val result = expressionEvaluator.evaluate(ExpressionEvaluatorContext(contextWithRequest, Null), set.source)
+      val result = expressionEvaluator.evaluate(ExpressionEvaluatorContext(contextWithRequest, Obj.empty), set.source)
 
       targetIdentifier.segments.head match {
         case "context" ⇒

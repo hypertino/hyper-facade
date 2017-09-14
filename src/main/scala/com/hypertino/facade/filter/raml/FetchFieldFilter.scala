@@ -66,24 +66,23 @@ class FetchFieldFilter(protected val annotation: FetchAnnotation,
   }
 
   protected def fetchAndReturnField(context: FieldFilterContext): Task[Option[Value]] = {
-    val ctx = ExpressionEvaluatorContext(context.requestContext, context.extraContext)
     try {
-      val location = expressionEvaluator.evaluate(ctx, annotation.location).toString
+      val location = expressionEvaluator.evaluate(context.expressionEvaluatorContext, annotation.location).toString
       val query = annotation.query.map { kv ⇒
-        kv._1 → expressionEvaluator.evaluate(ctx, kv._2)
+        kv._1 → expressionEvaluator.evaluate(context.expressionEvaluatorContext, kv._2)
       }
       val hrl = HRL(location, query)
       //val hrl = ramlConfiguration.resourceHRL(HRL.fromURL(location), Method.GET).getOrElse(hrlOriginal)
 
       implicit val mcx = context.requestContext
-      ask(hrl, ctx).
+      ask(hrl, context.expressionEvaluatorContext).
         onErrorRecoverWith {
           case NonFatal(e) ⇒
-            handleError(context.fieldPath.mkString("."), ctx, e)
+            handleError(context.fieldPath.mkString("."), context.expressionEvaluatorContext, e)
         }
     } catch {
       case NonFatal(e) ⇒
-        handleError(context.fieldPath.mkString("."), ctx, e)
+        handleError(context.fieldPath.mkString("."), context.expressionEvaluatorContext, e)
     }
   }
 }

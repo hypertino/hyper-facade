@@ -30,7 +30,7 @@ class ContextFetchRequestFilter(protected val annotation: ContextFetchAnnotation
   }
 
   protected def fetchAndReturn(contextWithRequest: RequestContext): Task[Option[Value]] = {
-    val ctx = ExpressionEvaluatorContext(contextWithRequest, Null)
+    val ctx = ExpressionEvaluatorContext(contextWithRequest, Obj.empty)
     try {
       val location = expressionEvaluator.evaluate(ctx, annotation.location).toString
       val query = annotation.query.map { kv ⇒
