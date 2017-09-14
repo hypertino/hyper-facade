@@ -46,7 +46,7 @@ object MessageTransformer {
     val body = if (request.entity.isEmpty)
       EmptyBody
     else {
-      DynamicBody(new StringReader(request.entity.asString), None) // todo: content type from headers? !!!!
+      DynamicBody(new StringReader(request.entity.asString(`UTF-8`)), None) // todo: content type/encoding from headers? !!!!
     }
 
     val headers = Headers
