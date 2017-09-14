@@ -2,7 +2,7 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.Null
 import com.hypertino.facade.filter.model.RequestFilter
-import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext, PreparedExpression}
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.{HrlTransformer, RequestUtils}
 import com.hypertino.hyperbus.model.{DynamicRequest, HRL, Headers}
@@ -19,13 +19,13 @@ class ForwardRequestFilter(sourceHRL: HRL,
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
       val request = contextWithRequest.request
-
-      val location = expressionEvaluator.evaluate(contextWithRequest, Null, locationExpression).toString
+      val ctx = ExpressionEvaluatorContext(contextWithRequest, Null)
+      val location = expressionEvaluator.evaluate(ctx, locationExpression).toString
       val query = queryExpressionMap.map { kv ⇒
-        kv._1 → expressionEvaluator.evaluate(contextWithRequest, Null, kv._2)
+        kv._1 → expressionEvaluator.evaluate(ctx, kv._2)
       }
       val destinationHRL = HRL(location, query)
-      val destinationMethod = method.map(expressionEvaluator.evaluate(contextWithRequest, Null, _).toString)
+      val destinationMethod = method.map(expressionEvaluator.evaluate(ctx, _).toString)
 
       // todo: should we preserve all query fields???
       val rewrittenUri = HrlTransformer.rewriteForwardWithPatterns(request.headers.hrl, sourceHRL, destinationHRL)

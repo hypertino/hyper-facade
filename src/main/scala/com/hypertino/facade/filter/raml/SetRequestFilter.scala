@@ -2,7 +2,7 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Null, Obj, Value}
 import com.hypertino.facade.filter.model.RequestFilter
-import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.SetAnnotation
 import com.hypertino.facade.utils.RequestUtils
@@ -80,7 +80,7 @@ class SetRequestFilter(set: SetAnnotation,
   override def apply(contextWithRequest: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     Future {
-      val result = expressionEvaluator.evaluate(contextWithRequest, Null, set.source)
+      val result = expressionEvaluator.evaluate(ExpressionEvaluatorContext(contextWithRequest, Null), set.source)
 
       targetIdentifier.segments.head match {
         case "context" ⇒

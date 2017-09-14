@@ -1,7 +1,7 @@
 package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Value}
-import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
+import com.hypertino.facade.TestBaseWithHyperbus
 import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageEvent, FieldFilterStageRequest, FieldFilterStageResponse}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
@@ -12,11 +12,8 @@ import com.hypertino.parser.HParser
 import monix.eval.Task
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{FlatSpec, Matchers}
-import scaldi.{DynamicModule, Injectable, Injector}
+import scaldi.DynamicModule
 
-import scala.collection.mutable
 import scala.util.Success
 
 class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-config-parser-test.raml")) {
@@ -91,7 +88,13 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     )))
   }
 
-  def ff(name: String, source: String, query: Map[String,String] = Map.empty, expects: String = "document", onError: String = FetchFieldFilter.ON_ERROR_FAIL, defaultValue: Option[String] = None, stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent), always: Boolean=false) = {
+  def ff(name: String,
+         source: String,
+         query: Map[String,String] = Map.empty,
+         expects: String = "document",
+         onError: String = FetchFieldFilter.ON_ERROR_FAIL,
+         defaultStatuses: Set[Int] = Set(404),
+         defaultValue: Option[String] = None, stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent), selector: Option[String] = None, always: Boolean=false) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
         FetchAnnotation(predicate=None,
@@ -99,6 +102,8 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
           query=query.map(kv ⇒ kv._1 → PreparedExpression(kv._2)),
           expects=expects,
           onError=onError,
+          defaultStatuses=defaultStatuses,
+          selector=selector.map(PreparedExpression(_)),
           defaultValue=defaultValue.map(PreparedExpression(_)),stages=stages,always=always),
         name,
         "string"
@@ -285,6 +290,16 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       .filter(Obj.from("a" → 100500, "b" → "abc"))
       .runAsync
       .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc")
+
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\"", selector=Some("source.service_result")), isCollection = false),
+      Map.empty,
+      Obj.from("fields" → "c"),
+      FieldFilterStageResponse
+    )
+      .filter(Obj.from("a" → 100500, "b" → "abc"))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc", "c" → "Yey")
   }
 
   it should "deny if fields are set" in {

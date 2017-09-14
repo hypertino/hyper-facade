@@ -8,7 +8,7 @@ import monix.eval.Task
 
 class SetFieldFilter(annotation: SetAnnotation, expressionEvaluator: ExpressionEvaluator) extends FieldFilter {
   def apply(context: FieldFilterContext): Task[Option[Value]] = Task.now {
-    Some(expressionEvaluator.evaluate(context.requestContext, context.extraContext, annotation.source))
+    Some(expressionEvaluator.evaluate(context.expressionEvaluatorContext, annotation.source))
   }
 }
 

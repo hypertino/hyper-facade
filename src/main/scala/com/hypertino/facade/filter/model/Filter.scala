@@ -1,15 +1,13 @@
 package com.hypertino.facade.filter.model
 
-import com.hypertino.binders.value.{Obj, Value}
 import com.hypertino.facade.filter.chain.SimpleFilterChain
-import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
-import com.hypertino.facade.model.RequestContext
-import com.hypertino.facade.raml.{Field, RamlAnnotation, RamlFieldAnnotation, TypeDefinition}
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext, PreparedExpression}
+import com.hypertino.facade.raml.{RamlAnnotation, RamlFieldAnnotation}
 
 trait Filter {
   protected def expressionEvaluator: ExpressionEvaluator
-  def evaluatePredicate(contextWithRequest: RequestContext, extraContext: Value, expression: PreparedExpression): Boolean = {
-    expressionEvaluator.evaluatePredicate(contextWithRequest, extraContext, expression)
+  def evaluatePredicate(expressionEvaluatorContext: ExpressionEvaluatorContext, expression: PreparedExpression): Boolean = {
+    expressionEvaluator.evaluatePredicate(expressionEvaluatorContext, expression)
   }
 }
 

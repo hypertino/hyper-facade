@@ -3,7 +3,7 @@ package com.hypertino.facade.filter.raml
 import com.hypertino.binders.value.{Lst, Null, Obj, Value}
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model._
-import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.raml.{Field, FieldAnnotationWithFilter, RamlConfiguration, TypeDefinition}
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, StandardResponse}
@@ -158,12 +158,13 @@ trait FieldFilterBase {
       "root" → rootValue,
       "stage" → stage.stringValue
     )
+    val ctx = ExpressionEvaluatorContext(requestContext, extraContext)
     field
       .annotations
       .filter {
         fa ⇒
           fa.annotation.stages.contains(stage) &&
-          fa.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(requestContext, extraContext, _))
+          fa.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(ctx, _))
       }
       .foldLeft(Task.now(field.fieldName → value)) { case (lastValueTask, a) ⇒
         lastValueTask.flatMap( lastValue ⇒

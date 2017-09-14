@@ -1,6 +1,7 @@
 package com.hypertino.facade.filter.model
 
 import com.hypertino.binders.value.Value
+import com.hypertino.facade.filter.parser.ExpressionEvaluatorContext
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.raml.Field
 import monix.eval.Task
@@ -34,7 +35,9 @@ case class FieldFilterContext(
                                extraContext: Value,
                                requestContext: RequestContext,
                                stage: FieldFilterStage
-                             )
+                             ) {
+  lazy val expressionEvaluatorContext = ExpressionEvaluatorContext(requestContext,extraContext)
+}
 
 trait FieldFilter {
   def apply(context: FieldFilterContext): Task[Option[Value]]

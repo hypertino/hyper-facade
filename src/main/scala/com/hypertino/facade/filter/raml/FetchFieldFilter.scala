@@ -2,11 +2,11 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
 import com.hypertino.facade.filter.model._
-import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.raml.{FetchAnnotation, RamlAnnotation, RamlConfiguration, RamlFieldAnnotation}
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, MessagingContext, Method, NotFound, Ok}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, HyperbusError, MessagingContext, Method, NotFound, Ok}
 import monix.eval.Task
 import monix.execution.Scheduler
 import org.slf4j.LoggerFactory
@@ -16,9 +16,9 @@ import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-class FetchFieldFilter(annotation: FetchAnnotation,
+class FetchFieldFilter(protected val annotation: FetchAnnotation,
                        protected val hyperbus: Hyperbus,
-                       expressionEvaluator: ExpressionEvaluator,
+                       protected val expressionEvaluator: ExpressionEvaluator,
                        protected implicit val injector: Injector,
                        protected implicit val scheduler: Scheduler) extends FieldFilter with FetchFilterBase with Injectable {
 
@@ -66,54 +66,26 @@ class FetchFieldFilter(annotation: FetchAnnotation,
   }
 
   protected def fetchAndReturnField(context: FieldFilterContext): Task[Option[Value]] = {
+    val ctx = ExpressionEvaluatorContext(context.requestContext, context.extraContext)
     try {
-      val location = expressionEvaluator.evaluate(context.requestContext, context.extraContext, annotation.location).toString
+      val location = expressionEvaluator.evaluate(ctx, annotation.location).toString
       val query = annotation.query.map { kv ⇒
-        kv._1 → expressionEvaluator.evaluate(context.requestContext, context.extraContext, kv._2)
+        kv._1 → expressionEvaluator.evaluate(ctx, kv._2)
       }
       val hrl = HRL(location, query)
       //val hrl = ramlConfiguration.resourceHRL(HRL.fromURL(location), Method.GET).getOrElse(hrlOriginal)
 
       implicit val mcx = context.requestContext
-      ask(hrl).
+      ask(hrl, ctx).
         onErrorRecoverWith {
-          case NotFound(_) ⇒
-            defaultValue(context)
-
           case NonFatal(e) ⇒
-            handleError(context, e)
+            handleError(context.fieldPath.mkString("."), ctx, e)
         }
     } catch {
       case NonFatal(e) ⇒
-        handleError(context, e)
+        handleError(context.fieldPath.mkString("."), ctx, e)
     }
   }
-
-  protected def handleError(context: FieldFilterContext, e: Throwable): Task[Option[Value]] = {
-    import FetchFieldFilter._
-    if (log.isDebugEnabled) {
-      log.debug(s"Can't fetch ${context.fieldPath.mkString(".")}", e)
-    }
-    if (annotation.onError == ON_ERROR_REMOVE) {
-      Task.now(None)
-    }
-    else if (annotation.onError == ON_ERROR_DEFAULT) {
-      defaultValue(context)
-    }
-    else {
-      Task.raiseError(e)
-    }
-  }
-
-  def defaultValue(context: FieldFilterContext): Task[Option[Value]] = Task.now {
-    annotation.defaultValue.map { defV ⇒
-      Some(expressionEvaluator.evaluate(context.requestContext, context.extraContext, defV))
-    } getOrElse {
-      Some(Null)
-    }
-  }
-
-  override protected def expects: String = annotation.expects
 }
 
 class FetchFieldFilterFactory(hyperbus: Hyperbus,
