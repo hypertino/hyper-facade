@@ -115,8 +115,8 @@ trait RequestProcessor extends Injectable {
     case e: NoTransportRouteException ⇒
       implicit val mcf = cwr.request
       val errorId = SeqGenerator.create()
-      log.error(s"Service not found #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})")
-      BadGateway(ErrorBody("service-not-found", Some(s"'${cwr.originalHeaders.hrl.location}' is not found.")))
+      log.error(s"Service not found #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})", e)
+      BadGateway(ErrorBody("service-not-found", Some(s"'Service for ${cwr.originalHeaders.hrl.location}' is not found.")))
 
     case _: AskTimeoutException ⇒
       implicit val mcf = cwr.request
