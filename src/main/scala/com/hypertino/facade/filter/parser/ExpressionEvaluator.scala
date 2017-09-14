@@ -7,7 +7,7 @@ import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import com.hypertino.parser.ast.Identifier
 import com.hypertino.parser.eval.Context
 import com.hypertino.parser.{HEval, HParser}
-import org.slf4j.LoggerFactory
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.util.control.NonFatal
 
@@ -46,9 +46,7 @@ object PreparedExpression {
   def apply(source: String): PreparedExpression = PreparedExpression(source, HParser(source))
 }
 
-trait ExpressionEvaluator {
-  protected val log = LoggerFactory.getLogger(getClass)
-
+trait ExpressionEvaluator extends StrictLogging {
   def evaluatePredicate(context: ExpressionEvaluatorContext, expression: PreparedExpression): Boolean = {
     val result = try {
       evaluate(context, expression).toBoolean
@@ -57,12 +55,10 @@ trait ExpressionEvaluator {
       case NonFatal(ex) ⇒
         implicit val mcx = context.requestContext.request
         val errorBody = ErrorBody("condition-check-failure") // todo: add check line num
-        log.error(s"Predicate check '${expression.source}' failed #${errorBody.errorId}", ex)
+        logger.error(s"Predicate check '${expression.source}' failed #${errorBody.errorId}", ex)
         throw InternalServerError(errorBody)
     }
-    if (log.isTraceEnabled) {
-      log.trace(s"Checking ${expression.source} is $result. Context: ${context.requestContext}")
-    }
+    logger.trace(s"Checking ${expression.source} is $result. Context: $context")
     result
   }
 
