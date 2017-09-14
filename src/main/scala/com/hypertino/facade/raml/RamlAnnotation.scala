@@ -65,7 +65,7 @@ object RamlAnnotation {
       case DENY ⇒
         DenyAnnotation(predicate = predicateExpression, stages = stages(Seq(FieldFilterStageRequest.stringValue)))
       case REMOVE ⇒
-        RemoveAnnotation(predicate = predicateExpression, stages = stages(Seq(FieldFilterStageRequest.stringValue,FieldFilterStageEvent.stringValue)))
+        RemoveAnnotation(predicate = predicateExpression, stages = stages(Seq(FieldFilterStageResponse.stringValue,FieldFilterStageEvent.stringValue)))
       case SET ⇒
         SetAnnotation(predicate = predicateExpression,
           source = PreparedExpression(propMap("source").toString),
