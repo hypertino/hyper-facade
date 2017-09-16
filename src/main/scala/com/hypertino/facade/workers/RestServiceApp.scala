@@ -12,8 +12,8 @@ import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.metrics.{MetricsTracker, ProcessMetrics}
 import com.hypertino.metrics.loaders.MetricsReporterLoader
 import com.hypertino.service.control.api.Service
+import com.typesafe.scalalogging.StrictLogging
 import monix.execution.Scheduler
-import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector, TypeTagIdentifier}
 import spray.can.server.ServerSettings
 import spray.http._
@@ -27,14 +27,14 @@ import scala.util.{Failure, Success}
 
 class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
   with Service
-  with Injectable {
+  with Injectable
+  with StrictLogging {
 
   implicit val timeout = Timeout(10 seconds)
-  implicit val actorSystem = inject [ActorSystem]
-  implicit val scheduler = inject [Scheduler]
+  implicit val actorSystem = inject[ActorSystem]
+  implicit val scheduler = inject[Scheduler]
 
   private val rootConf = inject [Config]
-  val log = LoggerFactory.getLogger(getClass())
 
   val config = inject [Config]
   val restConfig = config.getConfig(FacadeConfigPaths.HTTP)
@@ -55,17 +55,17 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
         ProcessMetrics.startReporting(metricsTracker)
 
       case None ⇒
-        log.warn("Metric reporter is not configured.")
+        logger.warn("Metric reporter is not configured.")
     }
 
     startServer(interface, port, settings = Some(ServerSettings(rootConf))) {
       startWithDirectives(initRoutes)
     } onComplete {
       case Success(_) ⇒
-        log.info("HttpService successfully started.")
+        logger.info("HttpService successfully started.")
 
       case Failure(e) ⇒
-        log.error(s"Error on bind server to $interface:$port", e)
+        logger.error(s"Error on bind server to $interface:$port", e)
         sys.exit(1)
     }
   }
@@ -84,7 +84,7 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
 
   override def stopService(controlBreak: Boolean, timeout: FiniteDuration): Future[Unit] = {
     // todo: implement real stop
-    Future.successful(log.info("Hyperfacade is stopped"))
+    Future.successful(logger.info("Hyperfacade is stopped"))
 
   }
 

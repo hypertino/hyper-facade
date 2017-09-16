@@ -7,8 +7,8 @@ import com.hypertino.metrics.modules.MetricsModule
 import com.hypertino.service.config.ConfigModule
 import com.hypertino.service.control.ConsoleModule
 import com.hypertino.service.control.api.{Service, ServiceController}
+import com.typesafe.scalalogging.StrictLogging
 import monix.execution.Scheduler
-import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Module}
 
 import scala.concurrent.Await
@@ -20,7 +20,7 @@ class MainServiceModule extends Module {
   bind [Service]          identifiedBy 'mainService        to inject[FacadeService]
 }
 
-object MainApp extends App with Injectable {
+object MainApp extends App with Injectable with StrictLogging {
   private implicit val injector =
     new ConsoleModule ::
     new SystemServicesModule ::
@@ -32,7 +32,6 @@ object MainApp extends App with Injectable {
     ConfigModule()
 
   private implicit val scheduler = inject[Scheduler]
-  private val log = LoggerFactory.getLogger(getClass)
 
   inject[ServiceController].run().andThen {
     case _ ⇒
@@ -42,6 +41,7 @@ object MainApp extends App with Injectable {
   }
 
   private def logException: PartialFunction[Throwable, Unit] = {
-    case NonFatal(e) ⇒ log.error("Unhandled exception", e)
+    case NonFatal(e) ⇒
+      logger.error("Unhandled exception", e)
   }
 }

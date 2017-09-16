@@ -36,7 +36,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
         val uri = spray.http.Uri(request.headers.hrl.location)
         val hrl = HRL(uri.path.toString, request.headers.hrl.query)
 
-        val headersBuilder = Headers.builder
+        val headersBuilder = MessageHeaders.builder
         var messageIdFound = false
 
         contextWithRequest.originalHeaders.foreach { kv ⇒
@@ -44,7 +44,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
             case (FacadeHeaders.CONTENT_TYPE, value) ⇒
               JsonContentTypeConverter.universalJsonContentTypeToSimple(value) match {
                 case Text(contentType) ⇒ headersBuilder.withContentType(Some(contentType))
-                case Null ⇒ // ...
+                case _ ⇒ // ...
               }
 
             case (Header.MESSAGE_ID, value) if !value.isEmpty ⇒

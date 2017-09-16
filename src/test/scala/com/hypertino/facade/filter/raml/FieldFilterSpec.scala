@@ -6,7 +6,7 @@ import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageEven
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
 import com.hypertino.facade.raml._
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, Forbidden, HRL, HeadersMap, Method, Ok}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, Forbidden, HRL, Headers, Method, Ok}
 import com.hypertino.hyperbus.transport.api.matchers.RequestMatcher
 import com.hypertino.parser.HParser
 import monix.eval.Task
@@ -53,7 +53,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     override protected implicit def scheduler: Scheduler = FieldFilterSpec.this.scheduler
     def filter(body: Value): Task[Value] = {
       import com.hypertino.hyperbus.model.MessagingContext.Implicits.emptyContext
-      filterBody(body, RequestContext(DynamicRequest(HRL("hb://test", query), Method.GET, EmptyBody, headersMap=HeadersMap(
+      filterBody(body, RequestContext(DynamicRequest(HRL("hb://test", query), Method.GET, EmptyBody, headers=Headers(
         FacadeHeaders.REMOTE_ADDRESS → "127.0.0.1"
       ))), stage)
     }

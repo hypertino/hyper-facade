@@ -18,23 +18,22 @@ import monix.execution.Ack
 import monix.execution.Ack.Continue
 import monix.reactive.observers.{BufferedSubscriber, Subscriber}
 import monix.reactive.{Observer, OverflowStrategy}
-import org.slf4j.LoggerFactory
 import scaldi.Injector
 
 import scala.concurrent.Future
 import com.hypertino.hyperbus.model
+import com.typesafe.scalalogging.StrictLogging
 
 class FeedSubscriptionActor(websocketWorker: ActorRef,
                             hyperbus: Hyperbus,
                             subscriptionManager: SubscriptionsManager)
                            (implicit val injector: Injector)
   extends Actor
-    with RequestProcessor {
+    with RequestProcessor with StrictLogging {
 
   val maxSubscriptionTries = config.getInt(FacadeConfigPaths.MAX_SUBSCRIPTION_TRIES)
   val maxStashedEventsCount = config.getInt(FacadeConfigPaths.FEED_MAX_STASHED_EVENTS_COUNT)
 
-  val log = LoggerFactory.getLogger(getClass)
   val scheduler = inject[monix.execution.Scheduler] // don't make this implicit
 
   def receive: Receive = stopStartSubscription orElse {
@@ -61,7 +60,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
         context.become(subscribedReliable(cwr, lastRevision, subscriptionSyncTries, subscriber) orElse stopStartSubscription)
       } else {
         context.become(waitForUnstash(cwr, Some(lastRevision), subscriptionSyncTries, stashedEvents.tail, subscriber) orElse stopStartSubscription)
-        log.debug(s"Reliable subscription will be started for ${cwr.originalHeaders.hrl} with revision $lastRevision after unstashing of all events")
+        logger.debug(s"Reliable subscription will be started for ${cwr.originalHeaders.hrl} with revision $lastRevision after unstashing of all events")
         unstash(stashedEvents.headOption)
       }
 
@@ -73,7 +72,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
         val subscriber = reliableEventsObserver(cwr)
         context.become(waitForUnstash(cwr, None, subscriptionSyncTries, stashedEvents.tail, subscriber) orElse stopStartSubscription)
 
-        log.debug(s"Unreliable subscription will be started for ${cwr.originalHeaders.hrl} after unstashing of all events")
+        logger.debug(s"Unreliable subscription will be started for ${cwr.originalHeaders.hrl} after unstashing of all events")
         unstash(stashedEvents.headOption)
       }
 
@@ -99,7 +98,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       unstash(stashedEvents.headOption)
 
     case UnstashingCompleted ⇒
-      log.debug(s"Reliable subscription started for ${cwr.originalHeaders.hrl} with revision $lastRevision")
+      logger.debug(s"Reliable subscription started for ${cwr.originalHeaders.hrl} with revision $lastRevision")
       if (stashedEvents.isEmpty) {
         lastRevision match {
           case Some(revision) ⇒
@@ -137,11 +136,9 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
   }
 
   def startSubscription(cwr: RequestContext, subscriptionSyncTries: Int): Unit = {
-    if (log.isTraceEnabled) {
-      log.trace(s"Starting subscription #$subscriptionSyncTries for ${cwr.originalHeaders.hrl}") // todo: shortcut to originalHeaders.hrl ?
-    }
+    logger.trace(s"Starting subscription #$subscriptionSyncTries for ${cwr.originalHeaders.hrl}") // todo: shortcut to originalHeaders.hrl ?
     if (subscriptionSyncTries > maxSubscriptionTries) {
-      log.error(s"Subscription sync attempts ($subscriptionSyncTries) has exceeded allowed limit ($maxSubscriptionTries) for ${cwr.request}")
+      logger.error(s"Subscription sync attempts ($subscriptionSyncTries) has exceeded allowed limit ($maxSubscriptionTries) for ${cwr.request}")
       context.stop(self)
     }
     subscriptionManager.off(self)
@@ -173,9 +170,9 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       subscriptionManager.subscribe(self, subscriptionUri, correlationId)
       implicit val mvx = MessagingContext(correlationId + self.path.toString) // todo: check what's here
       val message = cwrRaml.request.copy(
-        headers = Headers
+        headers = MessageHeaders
           .builder
-            .++=(cwrRaml.request.headers)
+          .++=(cwrRaml.request.headers)
           .withMethod(model.Method.GET)
           .requestHeaders()
       )
@@ -189,14 +186,12 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
   }
 
   def processEventWhileSubscribing(cwr: RequestContext, event: DynamicRequest, subscriptionSyncTries: Int, stashedEvents: Vector[StashedEvent]): Unit = {
-    if (log.isTraceEnabled) {
-      log.trace(s"Processing event while subscribing $event for ${cwr.originalHeaders.hrl}")
-    }
+    logger.trace(s"Processing event while subscribing $event for ${cwr.originalHeaders.hrl}")
 
     event.headers.get(Header.REVISION) match {
       // reliable feed
       case Some(_) ⇒
-        log.debug(s"event $event is stashed because resource state is not fetched yet")
+        logger.debug(s"event $event is stashed because resource state is not fetched yet")
         context.become(subscribing(cwr, subscriptionSyncTries, stashedEvents :+ StashedEvent(event)))
         if (stashedEvents.length > maxStashedEventsCount) {
           self ! RestartSubscription
@@ -209,9 +204,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
   }
 
   def processResourceState(cwr: RequestContext, resourceState: DynamicResponse, subscriptionSyncTries: Int) = {
-    if (log.isTraceEnabled) {
-      log.trace(s"Processing resource state $resourceState for ${cwr.originalHeaders.hrl}")
-    }
+    logger.trace(s"Processing resource state $resourceState for ${cwr.originalHeaders.hrl}")
 
     implicit val ec = scheduler
     FutureUtils.chain(resourceState, cwr.stages.map { _ ⇒
@@ -241,9 +234,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
   }
 
   def processUnreliableEvent(cwr: RequestContext, event: DynamicRequest): Unit = {
-    if (log.isTraceEnabled) {
-      log.trace(s"Processing unreliable event $event for ${cwr.originalHeaders.hrl}")
-    }
+    logger.trace(s"Processing unreliable event $event for ${cwr.originalHeaders.hrl}")
     implicit val ec = scheduler
 
     FutureUtils.chain(event, cwr.stages.map { _ ⇒
@@ -253,9 +244,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
         websocketWorker ! filteredRequest
       }
     } recover handleFilterExceptions(cwr) { response ⇒
-      if (log.isDebugEnabled) {
-        log.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
-      }
+      logger.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
     }
   }
 
@@ -267,9 +256,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     event.headers.get(Header.REVISION) match {
       case Some(revision) ⇒
         val revisionId = revision.toLong
-        if (log.isTraceEnabled) {
-          log.trace(s"Processing reliable event #$revisionId $event for ${cwr.originalHeaders.hrl}")
-        }
+        logger.trace(s"Processing reliable event #$revisionId $event for ${cwr.originalHeaders.hrl}")
 
         if (revisionId == lastRevisionId + 1) {
           subscriber.onNext(event)
@@ -279,12 +266,12 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
         if (revisionId > lastRevisionId + 1) {
           // we lost some events, start from the beginning
           self ! RestartSubscription
-          log.info(s"Subscription on ${cwr.originalHeaders.hrl} lost events from $lastRevisionId to $revisionId. Restarting...")
+          logger.info(s"Subscription on ${cwr.originalHeaders.hrl} lost events from $lastRevisionId to $revisionId. Restarting...")
         }
         // if revisionId <= lastRevisionId -- just ignore this event
 
       case _ ⇒
-        log.error(s"Received event: $event without revisionId for reliable feed: ${cwr.originalHeaders.hrl}")
+        logger.error(s"Received event: $event without revisionId for reliable feed: ${cwr.originalHeaders.hrl}")
     }
   }
 
@@ -332,9 +319,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
           val newCurrentFilteringFuture = filteringFuture map { filteredRequest ⇒
             websocketWorker ! filteredRequest
           } recover handleFilterExceptions(cwr) { response ⇒
-            if (log.isDebugEnabled) {
-              log.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
-            }
+            logger.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
           }
           currentFilteringFuture.set(Some(newCurrentFilteringFuture))
         } else {
@@ -343,9 +328,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
               filteringFuture map { filteredRequest ⇒
                 websocketWorker ! filteredRequest
               } recover handleFilterExceptions(cwr) { response ⇒
-                if (log.isDebugEnabled) {
-                  log.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
-                }
+                logger.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
               }
           }
           currentFilteringFuture.set(Some(newCurrentFilteringFuture))
@@ -356,11 +339,11 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       override def onError(ex: Throwable): Unit = {
         ex match {
           case _ : BufferOverflowException ⇒
-            log.error(s"Backpressure overflow. Restarting...")
+            logger.error(s"Backpressure overflow. Restarting...")
             self ! RestartSubscription
 
           case other ⇒
-            log.error(s"Error has occured on event processing. Restarting... $other")
+            logger.error(s"Error has occured on event processing. Restarting... $other")
             self ! RestartSubscription
         }
       }

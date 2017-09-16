@@ -44,7 +44,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       else {
         implicit val mcx = contextWithRequest.request
         Future.failed(new FilterInterruptException(
-          response = Ok(EmptyBody, Headers.builder.+=("x-http-header" → "Accept-Language").result()),
+          response = Ok(EmptyBody, MessageHeaders.builder.+=("x-http-header" → "Accept-Language").result()),
           message = "Interrupted by filter"
         ))
       }

@@ -33,7 +33,7 @@ class SimpleWebsocketTest extends TestBaseWithFacade("inproc-test.conf") {
 
     client ! DynamicRequest(HRL("/simple-resource-with-events/unreliable-feed"), "subscribe",
       EmptyBody,
-      Headers.builder
+      MessageHeaders.builder
         .withContentType(Some("application/vnd.feed-test+json"))
         .withMessageId("100500")
         .withCorrelation("abc100500")
@@ -46,7 +46,7 @@ class SimpleWebsocketTest extends TestBaseWithFacade("inproc-test.conf") {
 
     hyperbus.publish(DynamicRequest(HRL("hb://ws-test-service/unreliable-feed"), Method.FEED_POST,
       DynamicBody(Obj.from("integer_field" → 54321, "text_field" → "Bye")),
-      Headers.builder
+      MessageHeaders.builder
         .withContentType(Some("application/vnd.feed-test+json"))
         .withMessageId("100500")
         .withCorrelation("abc100500")
@@ -59,7 +59,7 @@ class SimpleWebsocketTest extends TestBaseWithFacade("inproc-test.conf") {
 
     client ! DynamicRequest(HRL("/simple-resource-with-events/unreliable-feed"), "unsubscribe",
       EmptyBody,
-      Headers.builder
+      MessageHeaders.builder
         .withContentType(Some("application/vnd.feed-test+json"))
         .withMessageId("100500")
         .withCorrelation("abc100500")

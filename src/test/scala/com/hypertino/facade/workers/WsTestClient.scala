@@ -39,7 +39,7 @@ class WsTestClient(connect: Http.Connect, val upgradeRequest: HttpRequest)
     case frame: TextFrame ⇒
       onMessage(frame)
 
-    case message: DynamicMessage ⇒
+    case message: DynamicMessage @unchecked ⇒
       connection ! MessageTransformer.messageToFrame(message)
 
     case _: Http.ConnectionClosed | Http.Closed ⇒

@@ -1,16 +1,16 @@
 package com.hypertino.facade.filter.http
 
 import com.hypertino.binders.value.{Null, Obj, Text, Value}
-import com.hypertino.facade.apiref.auth.{Validation, ValidationResult, ValidationsPost}
+import com.hypertino.facade.apiref.auth.{AuthHeader, Validation, ValidationResult, ValidationsPost}
 import com.hypertino.facade.apiref.user.UsersGet
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
+import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 import monix.execution.Scheduler
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -18,8 +18,7 @@ private[http] case class TaskResult(headerName: String, headerValue: Value, cont
 
 class AuthenticationRequestFilter(hyperbus: Hyperbus,
                                   protected val expressionEvaluator: ExpressionEvaluator,
-                                  protected implicit val scheduler: Scheduler) extends RequestFilter {
-  protected val log = LoggerFactory.getLogger(getClass)
+                                  protected implicit val scheduler: Scheduler) extends RequestFilter with StrictLogging {
 
   override def apply(requestContext: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
@@ -27,7 +26,7 @@ class AuthenticationRequestFilter(hyperbus: Hyperbus,
 
     Task.gatherUnordered(Seq(authenticationTask(requestContext), privelegeAuthorizationTask(requestContext))).map { results ⇒
       val removeHeaders = results.filter(_.headerValue.isEmpty).map(_.headerName)
-      val addHeaders = RequestHeaders(HeadersMap(
+      val addHeaders = RequestHeaders(Headers(
         results.filter(_.headerValue.isDefined).map(t ⇒ t.headerName → t.headerValue) :_*
       ))
       val contextObj = results.foldLeft[Value](Null) { (current: Value, t) ⇒
@@ -36,7 +35,7 @@ class AuthenticationRequestFilter(hyperbus: Hyperbus,
 
       requestContext.copy(
         request = requestContext.request.copy(
-          headers = RequestHeaders(HeadersMap(requestContext
+          headers = RequestHeaders(Headers(requestContext
             .request
             .headers
             .toSeq
@@ -51,7 +50,7 @@ class AuthenticationRequestFilter(hyperbus: Hyperbus,
     getAuthServiceNameFromCredentials(credentials) map { authServiceName ⇒
       val v = ValidationsPost(Validation(credentials))
       val authRequest = v.copy(headers =
-        Headers
+        MessageHeaders
           .builder
           .++=(v.headers)
           .withHRL(v.headers.hrl.copy(location = authServiceName))
@@ -71,7 +70,7 @@ class AuthenticationRequestFilter(hyperbus: Hyperbus,
       case Some(Text(credentials)) ⇒
         validateCredentials(credentials)
           .flatMap { validation ⇒
-            val userRequest = UsersGet($query = validation.identityKeys)
+            val userRequest = UsersGet(query = validation.identityKeys)
             hyperbus
               .ask(userRequest)
               .flatMap { users ⇒
@@ -86,7 +85,7 @@ class AuthenticationRequestFilter(hyperbus: Hyperbus,
                   Task.eval {
                     val user = userCollection.head
                     val userId = user.user_id
-                    TaskResult("Authorization-Result", Obj.from("user_id" → userId), Obj.from(
+                    TaskResult(AuthHeader.AUTHORIZATION_RESULT, Obj.from("user_id" → userId), Obj.from(
                       ContextStorage.USER → user
                     ))
                   }
@@ -96,7 +95,7 @@ class AuthenticationRequestFilter(hyperbus: Hyperbus,
           }
 
       case _ ⇒
-        Task.now(TaskResult("Authorization-Result", Null, Null))
+        Task.now(TaskResult(AuthHeader.AUTHORIZATION_RESULT, Null, Null))
     }
   }
 
@@ -104,13 +103,13 @@ class AuthenticationRequestFilter(hyperbus: Hyperbus,
     requestContext.originalHeaders.get(FacadeHeaders.PRIVILEGE_AUTHORIZATION) match {
       case Some(Text(credentials)) ⇒
         validateCredentials(credentials).map { v ⇒
-          TaskResult("Privilege-Authorization-Result", Obj.from(
+          TaskResult(AuthHeader.PRIVILEGE_AUTHORIZATION_RESULT, Obj.from(
             "identity_keys" → v.identityKeys,
             "extra" → v.extra
           ), Null)
         }
       case _ ⇒
-        Task.now(TaskResult("Privilege-Authorization-Result", Null, Null))
+        Task.now(TaskResult(AuthHeader.PRIVILEGE_AUTHORIZATION_RESULT, Null, Null))
     }
   }
   private def getAuthServiceNameFromCredentials(credentials: String): Option[String] = {

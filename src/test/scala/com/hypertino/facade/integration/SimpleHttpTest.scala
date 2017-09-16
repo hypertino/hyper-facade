@@ -2,7 +2,7 @@ package com.hypertino.facade.integration
 
 import com.hypertino.binders.value.{Lst, Number, Obj}
 import com.hypertino.facade.{TestBase, TestBaseWithFacade}
-import com.hypertino.hyperbus.model.{Created, DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, HRL, Header, Headers, Method, NoContent, Ok}
+import com.hypertino.hyperbus.model.{Created, DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, HRL, Header, Headers, MessageHeaders, Method, NoContent, Ok}
 import com.hypertino.hyperbus.transport.api.matchers.RequestMatcher
 import monix.execution.Ack.Continue
 
@@ -113,7 +113,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
         DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
       ).subscribe { implicit request =>
         request.reply(Success {
-          val headers = Headers
+          val headers = MessageHeaders
             .builder
             .+=(Header.COUNT → Number(3))
             .withLink(Map("next_page_url" → HRL("hb://test-service/{id}", Obj.from("id" → "100500"))))
@@ -142,7 +142,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
         DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
       ).subscribe { implicit request =>
         request.reply(Success {
-          val headers = Headers
+          val headers = MessageHeaders
             .builder
             .+=(Header.COUNT → Number(3))
             .withLink(Map("next_page_url" → HRL("hb://test-service/{id}", Obj.from("id" → "100500"))))

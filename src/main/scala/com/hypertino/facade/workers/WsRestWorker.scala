@@ -8,6 +8,7 @@ import com.hypertino.facade.utils.MessageTransformer
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, Ok}
 import com.hypertino.metrics.MetricsTracker
+import com.typesafe.scalalogging.StrictLogging
 import scaldi.{Injectable, Injector}
 import spray.can.server.UHttp
 import spray.can.websocket.FrameCommandFailed
@@ -26,7 +27,7 @@ class WsRestWorker(val serverConnection: ActorRef,
                   (implicit inj: Injector)
   extends HttpServiceActor
   with websocket.WebSocketServerWorker
-  with ActorLogging
+  with StrictLogging
   with Injectable {
 
   val metricsTrcker = inject[MetricsTracker]
@@ -113,7 +114,7 @@ class WsRestWorker(val serverConnection: ActorRef,
     case x: FrameCommandFailed =>
       log.error(s"Frame command $x failed from ${sender()}/$remoteAddress")
 
-    case message: DynamicMessage ⇒
+    case message: DynamicMessage @unchecked ⇒
       send(message)
   }
 
@@ -151,7 +152,7 @@ class WsRestWorker(val serverConnection: ActorRef,
         send(MessageTransformer.messageToFrame(message))
       } catch {
         case t: Throwable ⇒
-          log.error(t, s"Can't serialize $message to $serverConnection/$remoteAddress")
+          log.error(s"Can't serialize $message to $serverConnection/$remoteAddress", t)
       }
     }
   }

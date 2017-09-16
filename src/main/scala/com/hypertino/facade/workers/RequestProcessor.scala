@@ -13,15 +13,14 @@ import com.hypertino.hyperbus.transport.api.NoTransportRouteException
 import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import com.hypertino.metrics.MetricsTracker
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.StrictLogging
 import monix.execution.Scheduler
-import org.slf4j.Logger
 import scaldi.{Injectable, Injector}
 
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-trait RequestProcessor extends Injectable {
-  def log: Logger
+trait RequestProcessor extends Injectable with StrictLogging {
   implicit def injector: Injector
   implicit def scheduler: Scheduler
   val hyperbus = inject[Hyperbus]
@@ -71,9 +70,7 @@ trait RequestProcessor extends Injectable {
         if (filteredRequest.headers.hrl.location == cwr.request.headers.hrl.location) {
           Future.successful(filteredCWR)
         } else {
-          if (log.isDebugEnabled) {
-            log.debug(s"Request is restarted from ${cwr.request} to $filteredRequest")
-          }
+          logger.debug(s"Request is restarted from ${cwr.request} to $filteredRequest")
           val templatedRequest = withRamlResource(filteredRequest)
           val cwrNext = cwr.withNextStage(templatedRequest)
           processRequestWithRaml(cwrNext)
@@ -106,22 +103,20 @@ trait RequestProcessor extends Injectable {
   }
 
   def handleHyperbusExceptions(cwr: RequestContext) : PartialFunction[Throwable, DynamicResponse] = {
-    case hyperbusError: HyperbusError[ErrorBody] ⇒
-      if (log.isDebugEnabled) {
-        log.debug("Hyperbus error", hyperbusError)
-      }
+    case hyperbusError: ErrorResponseBase @unchecked ⇒
+      logger.debug("Hyperbus error", hyperbusError)
       hyperbusError
 
     case e: NoTransportRouteException ⇒
       implicit val mcf = cwr.request
       val errorId = SeqGenerator.create()
-      log.error(s"Service not found #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})", e)
+      logger.error(s"Service not found #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})", e)
       BadGateway(ErrorBody("service-not-found", Some(s"'Service for ${cwr.originalHeaders.hrl.location}' is not found.")))
 
     case _: AskTimeoutException ⇒
       implicit val mcf = cwr.request
       val errorId = SeqGenerator.create()
-      log.error(s"Timeout #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})")
+      logger.error(s"Timeout #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})")
       GatewayTimeout(ErrorBody("service-timeout", Some(s"Timeout while serving '${cwr.originalHeaders.hrl.location}'"), errorId = errorId))
 
     case NonFatal(nonFatal) ⇒
@@ -131,10 +126,10 @@ trait RequestProcessor extends Injectable {
   def handleFilterExceptions[T](cwr: RequestContext)(func: DynamicResponse ⇒ T) : PartialFunction[Throwable, T] = {
     case e: FilterInterruptException ⇒
       if (e.getCause != null) {
-        log.error(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
+        logger.error(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
       }
-      else if (log.isDebugEnabled) {
-        log.debug(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
+      else {
+        logger.debug(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
       }
       func(e.response)
 
@@ -145,7 +140,7 @@ trait RequestProcessor extends Injectable {
   def handleInternalError(exception: Throwable, cwr: RequestContext): DynamicResponse = {
     implicit val mcf = cwr.request
     val errorId = IdGenerator.create()
-    log.error(s"Exception #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})", exception)
+    logger.error(s"Exception #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})", exception)
     InternalServerError(ErrorBody("internal-server-error", Some(exception.getClass.getName + ": " + exception.getMessage), errorId = errorId))
   }
 }

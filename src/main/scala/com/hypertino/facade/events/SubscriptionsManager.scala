@@ -2,26 +2,24 @@ package com.hypertino.facade.events
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props, Terminated}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props, Terminated}
 import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{DynamicRequest, DynamicRequestObservableMeta, HRL, Header, HeaderHRL, Headers}
+import com.hypertino.hyperbus.model.{DynamicRequest, DynamicRequestObservableMeta, HRL, Header, HeaderHRL, Headers, MessageHeaders}
 import com.hypertino.hyperbus.transport.api.matchers.{RegexMatcher, RequestMatcher, Specific}
-import com.typesafe.config.Config
+import com.typesafe.scalalogging.StrictLogging
 import monix.execution.Ack.Continue
 import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.observers.Subscriber
-import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
 
-class SubscriptionsManager(implicit inj: Injector) extends Injectable {
+class SubscriptionsManager(implicit inj: Injector) extends Injectable with StrictLogging {
 
   val hyperbus = inject[Hyperbus]
-  val log = LoggerFactory.getLogger(SubscriptionsManager.this.getClass.getName)
   implicit val actorSystem = inject[ActorSystem]
   implicit val scheduler = inject[Scheduler]
   val watchRef = actorSystem.actorOf(Props(new SubscriptionWatch(this)))
@@ -47,18 +45,18 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
         override implicit def scheduler: Scheduler = SubscriptionsManager.this.scheduler
 
         override def onNext(elem: DynamicRequest): Future[Ack] = {
-          log.debug(s"Event received ($groupName): ${elem}")
+          logger.debug(s"Event received ($groupName): ${elem}")
           for (consumer: ClientSubscriptionData ← clientSubscriptions) {
             try {
               // todo: query matching!
               val matched = ResourcePatternMatcher.matchResource(consumer.hrl, elem.headers.hrl).isDefined
-              log.debug(s"Event #(${elem.headers.messageId}) ${if (matched) "forwarded" else "NOT matched"} to ${consumer.clientActorRef}/${consumer.correlationId}")
+              logger.debug(s"Event #(${elem.headers.messageId}) ${if (matched) "forwarded" else "NOT matched"} to ${consumer.clientActorRef}/${consumer.correlationId}")
               if (matched) {
                 val request = elem.copy(
-                  headers = Headers.builder
-                      .++=(elem.headers)
-                      .withCorrelation(consumer.correlationId)
-                      .requestHeaders()
+                  headers = MessageHeaders.builder
+                    .++=(elem.headers)
+                    .withCorrelation(consumer.correlationId)
+                    .requestHeaders()
                 )
                 // todo: back pressure!
                 consumer.clientActorRef ! request
@@ -66,14 +64,14 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
             }
             catch {
               case t: Throwable ⇒
-                log.error("Can't forward subscription event", t)
+                logger.error("Can't forward subscription event", t)
             }
           }
           Continue
         }
 
         override def onError(ex: Throwable): Unit = {
-          log.error(s"Error has occurred on event consumption from Hyperbus. $ex")
+          logger.error(s"Error has occurred on event consumption from Hyperbus. $ex")
         }
 
         override def onComplete(): Unit = {
@@ -101,7 +99,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
       def off() = {
         hyperbusSubscription match {
           case Some(subscription) ⇒ subscription.cancel()
-          case None ⇒ log.warn("You cannot unsubscribe because you are not subscribed yet!")
+          case None ⇒ logger.warn("You cannot unsubscribe because you are not subscribed yet!")
         }
       }
     }
@@ -139,14 +137,14 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable {
 
 case class NewSubscriber(actorRef: ActorRef)
 
-class SubscriptionWatch(subscriptionManager: SubscriptionsManager) extends Actor with ActorLogging {
+class SubscriptionWatch(subscriptionManager: SubscriptionsManager) extends Actor with StrictLogging {
   override def receive: Receive = {
     case NewSubscriber(actorRef) ⇒
-      log.debug(s"Watching new subscriber $actorRef")
+      logger.debug(s"Watching new subscriber $actorRef")
       context.watch(actorRef)
 
     case Terminated(actorRef) ⇒
-      log.debug(s"Actor $actorRef is died. Terminating subscription")
+      logger.debug(s"Actor $actorRef is died. Terminating subscription")
       subscriptionManager.off(actorRef)
   }
 }

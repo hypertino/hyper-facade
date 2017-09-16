@@ -6,7 +6,7 @@ import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvalua
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.SetAnnotation
 import com.hypertino.facade.utils.RequestUtils
-import com.hypertino.hyperbus.model.{HRL, Headers}
+import com.hypertino.hyperbus.model.{HRL, Headers, MessageHeaders}
 import com.hypertino.parser.{HParser, ast}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -45,7 +45,7 @@ class SetRequestFilter(set: SetAnnotation,
       result
     )
 
-    val request = contextWithRequest.request.copy(headers=Headers.builder.++=(headersObj).requestHeaders())
+    val request = contextWithRequest.request.copy(headers=MessageHeaders.builder.++=(headersObj).requestHeaders())
     contextWithRequest.copy(request=request)
   }
 
@@ -59,7 +59,7 @@ class SetRequestFilter(set: SetAnnotation,
     val existingHrl = contextWithRequest.request.headers.hrl
     val existingQuery = existingHrl.query match {
       case o: Obj ⇒ o
-      case Null ⇒ Obj.empty
+      case _ ⇒ Obj.empty
     }
     val newQuery = mergeObj(existingQuery,path,result) match {
       case o: Obj if o.isEmpty ⇒ Null

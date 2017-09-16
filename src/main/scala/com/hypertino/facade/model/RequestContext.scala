@@ -1,7 +1,7 @@
 package com.hypertino.facade.model
 
 import com.hypertino.binders.value.Obj
-import com.hypertino.hyperbus.model.{DynamicRequest, HeadersMap, MessagingContext, RequestHeaders}
+import com.hypertino.hyperbus.model.{DynamicRequest, Headers, MessagingContext, RequestHeaders}
 
 case class RequestContext(request: DynamicRequest,
                           stages: Seq[RequestHeaders],
@@ -10,7 +10,7 @@ case class RequestContext(request: DynamicRequest,
 
   // todo: original is http?
   lazy val originalHeaders: RequestHeaders = RequestHeaders(
-    HeadersMap(stages.reverse.head.toSeq.map(kv ⇒ FacadeHeaders.normalize(kv._1) → kv._2): _*)
+    Headers(stages.reverse.head.toSeq.map(kv ⇒ FacadeHeaders.normalize(kv._1) → kv._2): _*)
   )
   lazy val remoteAddress: String = originalHeaders(FacadeHeaders.REMOTE_ADDRESS).toString
 
@@ -21,6 +21,7 @@ case class RequestContext(request: DynamicRequest,
   )
 
   override def correlationId: String = request.correlationId
+  override def parentId: Option[String] = request.parentId
 }
 
 object RequestContext {

@@ -12,13 +12,11 @@ import org.raml.v2.api.model.v10.datamodel.{ObjectTypeDeclaration, TypeDeclarati
 import org.raml.v2.api.model.v10.methods
 import org.raml.v2.api.model.v10.methods.TraitRef
 import org.raml.v2.api.model.v10.resources.Resource
-import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
 import scala.collection.JavaConversions._
 
 class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Injectable {
-  private val log = LoggerFactory.getLogger(getClass)
   private val baseUri = api.baseUri().value
   private lazy val dataTypes: Map[String, TypeDefinition] = parseTypeDefinitions
 

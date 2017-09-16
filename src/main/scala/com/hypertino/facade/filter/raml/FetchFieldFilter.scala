@@ -7,9 +7,9 @@ import com.hypertino.facade.raml.{FetchAnnotation, RamlAnnotation, RamlConfigura
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, HyperbusError, MessagingContext, Method, NotFound, Ok}
+import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 import monix.execution.Scheduler
-import org.slf4j.LoggerFactory
 import scaldi.{Injectable, Injector}
 
 import scala.annotation.tailrec
@@ -20,9 +20,8 @@ class FetchFieldFilter(protected val annotation: FetchAnnotation,
                        protected val hyperbus: Hyperbus,
                        protected val expressionEvaluator: ExpressionEvaluator,
                        protected implicit val injector: Injector,
-                       protected implicit val scheduler: Scheduler) extends FieldFilter with FetchFilterBase with Injectable {
+                       protected implicit val scheduler: Scheduler) extends FieldFilter with FetchFilterBase with Injectable with StrictLogging{
 
-  protected val log = LoggerFactory.getLogger(getClass)
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
   def apply(context: FieldFilterContext): Task[Option[Value]] = {
@@ -49,7 +48,7 @@ class FetchFieldFilter(protected val annotation: FetchAnnotation,
       recursiveMatch(context.fieldPath, selectFields)
 
     case Failure(e) ⇒
-      log.error(s"Can't parse 'fields' parameter", e)
+      logger.error(s"Can't parse 'fields' parameter", e)
       false
   }
 

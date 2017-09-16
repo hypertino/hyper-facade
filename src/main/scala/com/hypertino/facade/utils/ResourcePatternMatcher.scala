@@ -98,20 +98,4 @@ object ResourcePatternMatcher {
       case other ⇒ other
     }
   }
-
-  /**
-    * It's like toString for iterator of URI tokens
-    * @param uriTail - string of merged URI tokens
-    * @param iter - remaining tokens
-    * @return
-    */
-  @tailrec private def foldUriTail(uriTail: String, iter: Iterator[Token]): String = {
-    if (iter.hasNext) {
-      val tokenStr = iter.next() match {
-        case TextToken(value) ⇒ value
-        case SlashToken ⇒ "/"
-      }
-      foldUriTail(uriTail + tokenStr, iter)
-    } else uriTail
-  }
 }

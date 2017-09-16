@@ -8,7 +8,7 @@ import com.hypertino.facade.filter.http.AuthenticationRequestFilter
 import com.hypertino.facade.filter.parser.DefaultExpressionEvaluator
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.hyperbus.model.annotations.request
-import com.hypertino.hyperbus.model.{Created, DefinedResponse, DynamicBody, DynamicRequest, EmptyBody, ErrorBody, Forbidden, HRL, HeadersMap, MessagingContext, Method, Ok, Request, ResponseBase}
+import com.hypertino.hyperbus.model.{Created, DefinedResponse, DynamicBody, DynamicRequest, EmptyBody, ErrorBody, Forbidden, HRL, Headers, MessagingContext, Method, Ok, Request, ResponseBase}
 import com.hypertino.hyperbus.subscribe.Subscribable
 import monix.eval.Task
 
@@ -55,7 +55,7 @@ class AuthenticationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.
     val filter = new AuthenticationRequestFilter(hyperbus, DefaultExpressionEvaluator, scheduler)
     implicit val mcx = MessagingContext.Implicits.emptyContext
     val rc = RequestContext(
-      DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, HeadersMap(
+      DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, Headers(
         "Authorization" → "Test ABC"
       ))
     )
@@ -68,7 +68,7 @@ class AuthenticationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.
     val filter = new AuthenticationRequestFilter(hyperbus, DefaultExpressionEvaluator, scheduler)
     implicit val mcx = MessagingContext.Implicits.emptyContext
     val rc = RequestContext(
-      DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, HeadersMap(
+      DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, Headers(
         "Privilege-Authorization" → "Test ABC"
       ))
     )

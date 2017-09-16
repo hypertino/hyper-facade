@@ -2,10 +2,9 @@ package com.hypertino.facade.workers
 
 import akka.actor.ActorSystem
 import com.hypertino.facade.metrics.MetricKeys
-import com.hypertino.facade.model._
 import com.hypertino.facade.utils.MessageTransformer
+import com.typesafe.scalalogging.StrictLogging
 import monix.execution.Scheduler
-import org.slf4j.LoggerFactory
 import scaldi.Injector
 import spray.http._
 import spray.routing.Directives._
@@ -14,7 +13,6 @@ import spray.routing._
 import scala.concurrent.Future
 
 class HttpWorker(implicit val injector: Injector) extends RequestProcessor {
-  val log = LoggerFactory.getLogger(getClass.getName)
   implicit val actorSystem = inject[ActorSystem]
   implicit val scheduler = inject[Scheduler]
   val trackHeartbeat = metrics.meter(MetricKeys.HEARTBEAT)

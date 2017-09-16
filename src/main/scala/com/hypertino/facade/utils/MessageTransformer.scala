@@ -5,7 +5,7 @@ import java.io.{StringReader, StringWriter}
 import com.hypertino.binders.value.Text
 import com.hypertino.facade.model.FacadeHeaders
 import com.hypertino.hyperbus.model.headers.PlainHeadersConverter
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Headers, NoContent}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Headers, MessageHeaders, NoContent}
 import com.hypertino.hyperbus.serialization.{JsonContentTypeConverter, MessageReader}
 import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode}
@@ -31,7 +31,7 @@ object MessageTransformer {
     )
 
     dynamicRequest.copy(
-      headers = Headers
+      headers = MessageHeaders
         .builder
         .++=(dynamicRequest.headers)
         .++=(httpRequest.headers.map(kv ⇒ kv.name → Text(kv.value)))
@@ -49,7 +49,7 @@ object MessageTransformer {
       DynamicBody(new StringReader(request.entity.asString(`UTF-8`)), None) // todo: content type/encoding from headers? !!!!
     }
 
-    val headers = Headers
+    val headers = MessageHeaders
       .builder
       .++=(request.headers.map(kv ⇒ kv.name → Text(kv.value)))
       .+=(FacadeHeaders.REMOTE_ADDRESS → remoteAddress)
@@ -65,7 +65,7 @@ object MessageTransformer {
       }
       .getOrElse {
         val messageId = SeqGenerator.create()
-        Headers
+        MessageHeaders
           .builder
           .++=(headers)
           .withMessageId(messageId)

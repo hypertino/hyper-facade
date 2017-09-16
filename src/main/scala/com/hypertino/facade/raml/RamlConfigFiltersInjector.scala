@@ -1,15 +1,13 @@
 package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.chain.{FilterChain, SimpleFilterChain}
-import com.hypertino.facade.filter.model.{RamlFilterFactory, MethodTarget, ResourceTarget}
-import org.slf4j.LoggerFactory
+import com.hypertino.facade.filter.model.{MethodTarget, RamlFilterFactory, ResourceTarget}
+import com.typesafe.scalalogging.StrictLogging
 import scaldi.{Injectable, Injector, StringIdentifier}
 
 import scala.util.control.NonFatal
 
-class RamlConfigFiltersInjector(resourcesByUri: Map[String, ResourceConfig])(implicit inj: Injector) extends Injectable {
-
-  val log = LoggerFactory.getLogger(getClass)
+class RamlConfigFiltersInjector(resourcesByUri: Map[String, ResourceConfig])(implicit inj: Injector) extends Injectable with StrictLogging {
   val resourcesWithFilters = Map.newBuilder[String, ResourceConfig]
 
   def withResourceFilters(): Map[String, ResourceConfig] = {
@@ -94,13 +92,13 @@ class RamlConfigFiltersInjector(resourcesByUri: Map[String, ResourceConfig])(imp
             filterChain ++ filterFactory.createFilterChain(target)
 
           case None ⇒
-            log.warn(s"Annotation '${annotation.name}' is not bound")
+            logger.warn(s"Annotation '${annotation.name}' is not bound")
             filterChain
         }
       }
       catch {
         case NonFatal(e) ⇒
-          log.error(s"Can't inject filter for $annotation", e)
+          logger.error(s"Can't inject filter for $annotation", e)
           filterChain
       }
     }

@@ -7,7 +7,7 @@ import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.HrlTransformer
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, HeaderHRL, Headers, HeadersMap, RequestHeaders, ResponseHeaders, StandardResponse}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, HeaderHRL, Headers, MessageHeaders, RequestHeaders, ResponseHeaders, StandardResponse}
 import com.typesafe.config.Config
 
 import scala.annotation.tailrec
@@ -40,7 +40,7 @@ class WsEventFilter(config: Config, ramlConfig: RamlConfiguration,
 
 
       val (newHeaders, newBody) = HttpWsFilter.filterMessage(request.headers.underlying, request.body, hrl ⇒ hrl) // todo: root/baseUri
-      val n = Headers
+      val n = MessageHeaders
         .builder
         .++=(newHeaders)
         .withHRL(request.headers.hrl)
@@ -67,8 +67,8 @@ object HttpWsFilter {
     }
   }
 
-  def filterMessage(headers: HeadersMap, body: DynamicBody, uriTransformer: (HRL ⇒ HRL)): (HeadersMap, DynamicBody) = {
-    val headersBuilder = Headers.builder
+  def filterMessage(headers: Headers, body: DynamicBody, uriTransformer: (HRL ⇒ HRL)): (Headers, DynamicBody) = {
+    val headersBuilder = MessageHeaders.builder
 
     headers.foreach {
       // todo: transform?
@@ -133,7 +133,7 @@ object HttpWsFilter {
 
   // todo: move wrap_collection to separate filter & make configurable
   def wrapCollection(contextWithRequest: RequestContext,
-                    message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (HeadersMap, DynamicBody) = {
+                    message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (Headers, DynamicBody) = {
 
     val wq = contextWithRequest.request.headers.hrl.query.wrap_collection.toBoolean
     if (wq || contextWithRequest.request.headers.get("X-Wrap-Collection").exists(_.toBoolean)) {
@@ -162,10 +162,10 @@ object HttpWsFilter {
       } ++ Map("items" → message.body.content)
 
 
-      (HeadersMap(message.headers.toSeq: _*), DynamicBody(Obj(vx), message.body.contentType))
+      (Headers(message.headers.toSeq: _*), DynamicBody(Obj(vx), message.body.contentType))
     }
     else {
-      (HeadersMap(message.headers.toSeq: _*), message.body)
+      (Headers(message.headers.toSeq: _*), message.body)
     }
   }
 }

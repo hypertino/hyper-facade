@@ -22,8 +22,8 @@ case class ExpressionEvaluatorContext(requestContext: RequestContext, extraConte
   override def binaryOperation: PartialFunction[(Value, Identifier, Value), Value] = IpParser.binaryOperation
   override def customOperators = Seq(IpParser.IP_MATCHES)
   override def function: PartialFunction[(Identifier, Seq[Value]), Value] = {
-    case (Identifier(Seq("newId")), _) ⇒ IdGenerator.create()
-    case (Identifier(Seq("newSeq")), _) ⇒ SeqGenerator.create()
+    case (Identifier(Seq("new_id")), _) ⇒ IdGenerator.create()
+    case (Identifier(Seq("new_seq")), _) ⇒ SeqGenerator.create()
   }
   override def unaryOperation = Map.empty
   override def binaryOperationLeftArgument = Map.empty
