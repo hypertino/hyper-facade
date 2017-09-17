@@ -7,3 +7,6 @@
 [submodule "api/hyperfacade-api"]
 	path = api/hyperfacade-api
 	url = git@github.com:hypertino/hyperfacade-api.git
+[submodule "api/idempotency-service-api"]
+	path = api/idempotency-service-api
+	url = git@github.com:hypertino/idempotency-service-api.git

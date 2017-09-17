@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.http
+package com.hypertino.facade.filter.chain.before
 
 import com.hypertino.binders.value.{Null, Obj, Text, Value}
 import com.hypertino.facade.apiref.auth.{AuthHeader, Validation, ValidationResult, ValidationsPost}
@@ -14,17 +14,17 @@ import monix.execution.Scheduler
 
 import scala.concurrent.{ExecutionContext, Future}
 
-private[http] case class TaskResult(headerName: String, headerValue: Value, contextValue: Value)
+private[before] case class TaskResult(headerName: String, headerValue: Value, contextValue: Value)
 
-class AuthenticationRequestFilter(hyperbus: Hyperbus,
-                                  protected val expressionEvaluator: ExpressionEvaluator,
-                                  protected implicit val scheduler: Scheduler) extends RequestFilter with StrictLogging {
+class AuthorizationRequestFilter(hyperbus: Hyperbus,
+                                 protected val expressionEvaluator: ExpressionEvaluator,
+                                 protected implicit val scheduler: Scheduler) extends RequestFilter with StrictLogging {
 
   override def apply(requestContext: RequestContext)
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     implicit val mcx = requestContext.request
 
-    Task.gatherUnordered(Seq(authenticationTask(requestContext), privelegeAuthorizationTask(requestContext))).map { results ⇒
+    Task.gatherUnordered(Seq(authorizationTask(requestContext), privelegeAuthorizationTask(requestContext))).map { results ⇒
       val removeHeaders = results.filter(_.headerValue.isEmpty).map(_.headerName)
       val addHeaders = RequestHeaders(Headers(
         results.filter(_.headerValue.isDefined).map(t ⇒ t.headerName → t.headerValue) :_*
@@ -65,7 +65,7 @@ class AuthenticationRequestFilter(hyperbus: Hyperbus,
     }
   }
 
-  private def authenticationTask(implicit requestContext: RequestContext): Task[TaskResult] = {
+  private def authorizationTask(implicit requestContext: RequestContext): Task[TaskResult] = {
     requestContext.originalHeaders.get(FacadeHeaders.AUTHORIZATION) match {
       case Some(Text(credentials)) ⇒
         validateCredentials(credentials)

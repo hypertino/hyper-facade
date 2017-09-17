@@ -9,9 +9,6 @@ import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.HrlTransformer
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, HeaderHRL, Headers, MessageHeaders, RequestHeaders, ResponseHeaders, StandardResponse}
 import com.typesafe.config.Config
-
-import scala.annotation.tailrec
-import scala.collection.immutable.ListMap
 import scala.concurrent.{ExecutionContext, Future}
 
 class HttpWsResponseFilter(config: Config,

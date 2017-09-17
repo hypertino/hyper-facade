@@ -59,5 +59,10 @@ ramlHyperbusSources := Seq(
     path = "api/user-service-api/user.raml",
     packageName = "com.hypertino.facade.apiref.user",
     isResource = false
+  ),
+  ramlSource(
+    path = "api/idempotency-service-api/idempotency.raml",
+    packageName = "com.hypertino.facade.apiref.idempotency",
+    isResource = false
   )
 )

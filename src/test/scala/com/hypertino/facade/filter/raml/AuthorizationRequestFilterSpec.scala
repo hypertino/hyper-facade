@@ -4,7 +4,7 @@ import com.hypertino.binders.value.{Lst, Null, Obj, Text}
 import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
 import com.hypertino.facade.apiref.auth.{Validation, ValidationResult}
 import com.hypertino.facade.apiref.user.UsersGet
-import com.hypertino.facade.filter.http.AuthenticationRequestFilter
+import com.hypertino.facade.filter.chain.before.AuthorizationRequestFilter
 import com.hypertino.facade.filter.parser.DefaultExpressionEvaluator
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.hyperbus.model.annotations.request
@@ -25,7 +25,7 @@ object TestValidationsPost extends com.hypertino.hyperbus.model.RequestMetaCompa
   type ResponseType = Created[ValidationResult]
 }
 
-class AuthenticationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") with Subscribable {
+class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") with Subscribable {
   Thread.sleep(500)
   import testServices._
   hyperbus.subscribe(this)
@@ -51,8 +51,8 @@ class AuthenticationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.
     }
   }
 
-  "AuthenticationRequestFilter" should "Authenticate if header Authorization is set" in {
-    val filter = new AuthenticationRequestFilter(hyperbus, DefaultExpressionEvaluator, scheduler)
+  "AuthorizationRequestFilter" should "Authenticate if header Authorization is set" in {
+    val filter = new AuthorizationRequestFilter(hyperbus, DefaultExpressionEvaluator, scheduler)
     implicit val mcx = MessagingContext.Implicits.emptyContext
     val rc = RequestContext(
       DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, Headers(
@@ -64,8 +64,8 @@ class AuthenticationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.
     result.request.headers.get("Authorization-Result") shouldBe Some(Obj.from("user_id" → "100500"))
   }
 
-  "AuthenticationRequestFilter" should "validate Privilege Authorization if header Privilege-Authorization is set" in {
-    val filter = new AuthenticationRequestFilter(hyperbus, DefaultExpressionEvaluator, scheduler)
+  it should "validate Privilege Authorization if header Privilege-Authorization is set" in {
+    val filter = new AuthorizationRequestFilter(hyperbus, DefaultExpressionEvaluator, scheduler)
     implicit val mcx = MessagingContext.Implicits.emptyContext
     val rc = RequestContext(
       DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, Headers(

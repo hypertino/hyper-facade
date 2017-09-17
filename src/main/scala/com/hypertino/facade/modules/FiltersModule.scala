@@ -1,8 +1,10 @@
 package com.hypertino.facade.modules
 
 import com.hypertino.facade.filter.SelectFieldsResponseFilter
+import com.hypertino.facade.filter.chain.after.IdempotencyResponseFilter
+import com.hypertino.facade.filter.chain.before.{AuthorizationRequestFilter, IdempotencyRequestFilter}
 import com.hypertino.facade.filter.chain.{FilterChain, RamlFilterChain, SimpleFilterChain}
-import com.hypertino.facade.filter.http.{AuthenticationRequestFilter, HttpWsRequestFilter, HttpWsResponseFilter, WsEventFilter}
+import com.hypertino.facade.filter.http.{HttpWsRequestFilter, HttpWsResponseFilter, WsEventFilter}
 import com.hypertino.facade.filter.model.{RamlFieldFilterFactory, RamlFilterFactory}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator}
 import com.hypertino.facade.filter.raml._
@@ -26,11 +28,13 @@ class FiltersModule extends Module {
 
   bind [FilterChain]                identifiedBy "beforeFilterChain"                    to SimpleFilterChain(
     requestFilters            = Seq(injected[HttpWsRequestFilter],
-                                    injected[AuthenticationRequestFilter])
+                                    injected[AuthorizationRequestFilter],
+                                    injected[IdempotencyRequestFilter])
   )
   bind [FilterChain]                identifiedBy "afterFilterChain"                     to SimpleFilterChain(
     responseFilters           = Seq(
       injected[SelectFieldsResponseFilter],
+      injected[IdempotencyResponseFilter],
       injected[HttpWsResponseFilter]
     ),
     eventFilters              = Seq(injected[WsEventFilter])
