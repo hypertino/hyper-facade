@@ -24,7 +24,7 @@ class SetFilterSpec extends TestBaseWithFacade("inproc-test.conf", Seq("set-filt
       }
     }
 
-    httpGet("http://localhost:54321/set-query") shouldBe """{"filter":"abc"}"""
+    httpGet(s"http://localhost:$httpPort/set-query") shouldBe """{"filter":"abc"}"""
   }
 
   it should "set headers" in {
@@ -42,7 +42,7 @@ class SetFilterSpec extends TestBaseWithFacade("inproc-test.conf", Seq("set-filt
       }
     }
 
-    httpGet("http://localhost:54321/set-headers") shouldBe """"abc""""
+    httpGet(s"http://localhost:$httpPort/set-headers") shouldBe """"abc""""
   }
 
   it should "set context" in {
@@ -60,6 +60,6 @@ class SetFilterSpec extends TestBaseWithFacade("inproc-test.conf", Seq("set-filt
       }
     }
 
-    httpGet("http://localhost:54321/set-context") shouldBe """{"x":"130"}"""
+    httpGet(s"http://localhost:$httpPort/set-context") shouldBe """{"x":"130"}"""
   }
 }

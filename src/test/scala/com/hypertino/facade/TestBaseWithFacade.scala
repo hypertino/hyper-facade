@@ -6,9 +6,10 @@ import org.asynchttpclient.Response
 
 import scala.concurrent.Await
 
-abstract class TestBaseWithFacade (val configFileName: String = "inproc-test.conf", val ramlConfigFiles: Seq[String] = Seq(
-  "simple.raml"
-)) extends TestBase with WsTestClientHelper {
+abstract class TestBaseWithFacade(
+                                   val configFileName: String = "inproc-test.conf",
+                                   val ramlConfigFiles: Seq[String] = Seq("simple.raml")
+                                 ) extends TestBase with WsTestClientHelper {
   protected var testObjects: TestServices = null
 
   def httpGet(url: String): String = {
@@ -38,7 +39,7 @@ abstract class TestBaseWithFacade (val configFileName: String = "inproc-test.con
   override def beforeEach(): Unit = {
     super.beforeEach()
     Thread.sleep(500)
-    testObjects = new TestServices(configFileName,ramlConfigFiles,extraModule)
+    testObjects = new TestServices(configFileName,ramlConfigFiles,extraModule,true)
   }
 
   override def afterEach(): Unit = {

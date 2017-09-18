@@ -24,7 +24,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
       }
     }
 
-    httpGet("http://localhost:54321/simple-resource") shouldBe """{"text_field":"Yey","integer_field":100500}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
   it should "filter fields" in {
@@ -42,7 +42,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
       }
     }
 
-    httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """{"text_field":"Yey"}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource?fields=text_field") shouldBe """{"text_field":"Yey"}"""
   }
 
   it should "filter collection fields" in {
@@ -65,7 +65,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
       }
     }
 
-    httpGet("http://localhost:54321/simple-resource?fields=text_field") shouldBe """[{"text_field":"Yey"},{"text_field":"Hey"}]"""
+    httpGet(s"http://localhost:$httpPort/simple-resource?fields=text_field") shouldBe """[{"text_field":"Yey"},{"text_field":"Hey"}]"""
   }
 
   it should "serve resource with pattern" in {
@@ -83,7 +83,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
       }
     }
 
-    httpGet("http://localhost:54321/simple-resource/100500") shouldBe """{"text_field":"Yey","integer_field":100500}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource/100500") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
   it should "foward (eval)" in {
@@ -101,7 +101,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
       }
     }
 
-    httpGet("http://localhost:54321/simple-forward") shouldBe """{"text_field":"Yey","integer_field":100500}"""
+    httpGet(s"http://localhost:$httpPort/simple-forward") shouldBe """{"text_field":"Yey","integer_field":100500}"""
   }
 
   it should "render link" in {
@@ -125,7 +125,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
       }
     }
 
-    val r = httpGetResponse("http://localhost:54321/simple-resource")
+    val r = httpGetResponse(s"http://localhost:$httpPort/simple-resource")
     r.getResponseBody shouldBe """["a","b","c"]"""
     import scala.collection.JavaConverters._
     r.getHeaders("Link").asScala.head shouldBe "</simple-resource/100500?>; rel=next_page_url"
@@ -154,7 +154,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
       }
     }
 
-    val r = httpGetResponse("http://localhost:54321/simple-resource?wrap_collection=1")
+    val r = httpGetResponse(s"http://localhost:$httpPort/simple-resource?wrap_collection=1")
     r.getResponseBody shouldBe """{"count":3,"link":{"next_page_url":"/simple-resource/100500"},"items":["a","b","c"]}"""
   }
 }

@@ -1,7 +1,7 @@
 package com.hypertino.facade.integration
 
 import com.hypertino.binders.value.Obj
-import com.hypertino.facade.{TestBase, TestBaseWithFacade}
+import com.hypertino.facade.{TestBase, TestBaseWithFacade, TestPortGenerator}
 import com.hypertino.facade.workers.TestQueue
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.transport.api.PublishResult
@@ -16,7 +16,7 @@ class SimpleWebsocketTest extends TestBaseWithFacade("inproc-test.conf") {
     import t._
 
     val q = new TestQueue
-    val client = createWsClient("unreliable-feed-client", "/", q.put)
+    val client = createWsClient("unreliable-feed-client", "/", q.put,port=t.httpPort)
     import MessagingContext.Implicits.emptyContext
 
     register {
