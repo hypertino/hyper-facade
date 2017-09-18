@@ -51,7 +51,7 @@ class IdempotencyRequestFilter(hyperbus: Hyperbus,
       .flatMap {
         case Success(_) ⇒
           Task.now(requestContext.copy(
-            contextStorage = requestContext.contextStorage % Obj.from("idempotent_response" → Obj.from("key" → idempotencyKey, "uri" → uri))
+            contextStorage = requestContext.contextStorage % Obj.from("idempotent_request" → Obj.from("key" → idempotencyKey, "uri" → uri))
           ))
 
         case Failure(PreconditionFailed(_, _)) ⇒

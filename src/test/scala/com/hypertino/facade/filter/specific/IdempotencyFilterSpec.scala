@@ -60,7 +60,7 @@ class IdempotencyFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") wit
       ))
     )
     val result = filter.apply(rc).futureValue
-    result.contextStorage.idempotent_response shouldBe Obj.from("key" → "ik_100500", "uri" → "hb://unprocessed")
+    result.contextStorage.idempotent_request shouldBe Obj.from("key" → "ik_100500", "uri" → "hb://unprocessed")
     isRequests.headOption.foreach(_ shouldBe a [IdempotentRequestPut])
     val p = isRequests.head.asInstanceOf[IdempotentRequestPut]
     p.uri shouldBe "hb://unprocessed"
