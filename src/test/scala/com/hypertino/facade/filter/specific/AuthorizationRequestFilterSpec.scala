@@ -1,7 +1,7 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filter.specific
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Text}
-import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
+import com.hypertino.facade.TestBaseWithHyperbus
 import com.hypertino.facade.apiref.auth.{Validation, ValidationResult}
 import com.hypertino.facade.apiref.user.UsersGet
 import com.hypertino.facade.filter.chain.before.AuthorizationRequestFilter
@@ -16,9 +16,9 @@ import monix.eval.Task
 case class TestValidationsPost(
                             body: Validation
                           ) extends Request[Validation]
-  with DefinedResponse[
-    Created[ValidationResult]
-    ]
+                            with DefinedResponse[
+                              Created[ValidationResult]
+                              ]
 
 object TestValidationsPost extends com.hypertino.hyperbus.model.RequestMetaCompanion[TestValidationsPost]{
   implicit val meta = this

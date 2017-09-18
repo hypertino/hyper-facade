@@ -4,7 +4,7 @@ import com.hypertino.binders.value.{Obj, Text}
 import com.hypertino.facade.apiref.idempotency._
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
-import com.hypertino.facade.model._
+import com.hypertino.facade.model.{FilterInterruptException, _}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
 import com.typesafe.scalalogging.StrictLogging
@@ -24,7 +24,7 @@ class IdempotencyRequestFilter(hyperbus: Hyperbus,
                     (implicit ec: ExecutionContext): Future[RequestContext] = {
     implicit val mcx: MessagingContext = requestContext
 
-    requestContext.request.headers.get(IdempotencyHeader.IDEMPOTENCY_KEY) match {
+    requestContext.originalHeaders.get(IdempotencyHeader.IDEMPOTENCY_KEY) match {
       case Some(Text(idempotencyKey)) ⇒ handleIdempotency(requestContext, idempotencyKey)
       case _ ⇒ Future(requestContext)
     }
@@ -57,23 +57,23 @@ class IdempotencyRequestFilter(hyperbus: Hyperbus,
         case Failure(PreconditionFailed(_, _)) ⇒
           hyperbus
             .ask(IdempotentResponseGet(uri, idempotencyKey))
-            .map { ok ⇒
-              val response = StandardResponse(DynamicBody(ok.body.body),
-                MessageHeaders.builder.++=(ok.body.headers.toMap.toSeq).responseHeaders()
-              ).asInstanceOf[DynamicResponse]
+            .materialize
+            .map {
+              case Success(ok) ⇒
+                val response = StandardResponse(DynamicBody(ok.body.body),
+                  MessageHeaders.builder.++=(ok.body.headers.toMap.toSeq).responseHeaders()
+                ).asInstanceOf[DynamicResponse]
 
-              Task.raiseError(new FilterInterruptException(
-                response, "idempotent response", null
-              ))
-            }
-            .onErrorRecoverWith {
-              case NonFatal(e) ⇒
+                Failure(new FilterInterruptException(
+                  response, "idempotent response", null
+                ))
+
+              case Failure(e) ⇒
                 val errorBody = ErrorBody("request-in-progress", Some("Idempotent request is already in progress and no response was saved"))
                 logger.warn(s"No response for a request ${requestContext.request} ${errorBody.errorId}", e)
-                Task.raiseError(Locked(errorBody))
+                Failure(Locked(errorBody))
             }
-
-          Task.now(requestContext)
+            .dematerialize
 
         case Failure(exception) ⇒
           Task.raiseError(exception)

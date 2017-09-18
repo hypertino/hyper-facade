@@ -22,7 +22,7 @@ class IdempotencyResponseFilter(hyperbus: Hyperbus,
                     (implicit ec: ExecutionContext): Future[DynamicResponse] = {
 
     implicit val mcx: MessagingContext = contextWithRequest
-    contextWithRequest.contextStorage.idempotent_response match {
+    contextWithRequest.contextStorage.idempotent_request match {
       case o: Obj ⇒ saveIdempotentResponse(o.uri.toString, o.key.toString, response)
       case _ ⇒ Future(response)
     }
