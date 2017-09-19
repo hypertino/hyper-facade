@@ -70,7 +70,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
         if (filteredRequest.headers.hrl.location == cwr.request.headers.hrl.location) {
           Future.successful(filteredCWR)
         } else {
-          logger.debug(s"Request is restarted from ${cwr.request} to $filteredRequest")
+          logger.trace(s"Request is restarted from ${cwr.request} to $filteredRequest")
           val templatedRequest = withRamlResource(filteredRequest)
           val cwrNext = cwr.withNextStage(templatedRequest)
           processRequestWithRaml(cwrNext)
@@ -129,7 +129,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
         logger.error(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
       }
       else {
-        logger.debug(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
+        logger.trace(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
       }
       func(e.response)
 

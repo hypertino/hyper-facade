@@ -45,12 +45,12 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable with Stric
         override implicit def scheduler: Scheduler = SubscriptionsManager.this.scheduler
 
         override def onNext(elem: DynamicRequest): Future[Ack] = {
-          logger.debug(s"Event received ($groupName): ${elem}")
+          logger.trace(s"Event received ($groupName): ${elem}")
           for (consumer: ClientSubscriptionData ← clientSubscriptions) {
             try {
               // todo: query matching!
               val matched = ResourcePatternMatcher.matchResource(consumer.hrl, elem.headers.hrl).isDefined
-              logger.debug(s"Event #(${elem.headers.messageId}) ${if (matched) "forwarded" else "NOT matched"} to ${consumer.clientActorRef}/${consumer.correlationId}")
+              logger.trace(s"Event #(${elem.headers.messageId}) ${if (matched) "forwarded" else "NOT matched"} to ${consumer.clientActorRef}/${consumer.correlationId}")
               if (matched) {
                 val request = elem.copy(
                   headers = MessageHeaders.builder

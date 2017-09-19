@@ -191,7 +191,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     event.headers.get(Header.REVISION) match {
       // reliable feed
       case Some(_) ⇒
-        logger.debug(s"event $event is stashed because resource state is not fetched yet")
+        logger.trace(s"event $event is stashed because resource state is not fetched yet")
         context.become(subscribing(cwr, subscriptionSyncTries, stashedEvents :+ StashedEvent(event)))
         if (stashedEvents.length > maxStashedEventsCount) {
           self ! RestartSubscription
@@ -244,7 +244,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
         websocketWorker ! filteredRequest
       }
     } recover handleFilterExceptions(cwr) { response ⇒
-      logger.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
+      logger.trace(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
     }
   }
 
@@ -319,7 +319,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
           val newCurrentFilteringFuture = filteringFuture map { filteredRequest ⇒
             websocketWorker ! filteredRequest
           } recover handleFilterExceptions(cwr) { response ⇒
-            logger.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
+            logger.trace(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
           }
           currentFilteringFuture.set(Some(newCurrentFilteringFuture))
         } else {
@@ -328,7 +328,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
               filteringFuture map { filteredRequest ⇒
                 websocketWorker ! filteredRequest
               } recover handleFilterExceptions(cwr) { response ⇒
-                logger.debug(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
+                logger.trace(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
               }
           }
           currentFilteringFuture.set(Some(newCurrentFilteringFuture))
