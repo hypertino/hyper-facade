@@ -62,7 +62,10 @@ trait FetchFilterBase extends StrictLogging{
 
   protected def handleError(s: String, context: ExpressionEvaluatorContext, e: Throwable): Task[Option[Value]] = {
     import FetchFieldFilter._
-    logger.trace(s"Can't fetch $s", e)
+    if (e.isInstanceOf[NotFound[_]])
+      logger.trace(s"$s is not found", e)
+    else
+      logger.debug(s"Can't fetch $s", e)
     if (annotation.onError == ON_ERROR_REMOVE) {
       Task.now(None)
     }
