@@ -91,7 +91,9 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
   private def respondWithCORSHeaders(allowedOrigins: Seq[String], allowedPaths: Seq[Pattern] = Nil): Directive0 =
     optionalHeaderValueByName("Origin") flatMap {
       case Some(origin) ⇒
-        if (allowedOrigins.isEmpty || allowedOrigins.exists(origin.endsWith)) {
+        val originUri = spray.http.Uri(origin)
+        val originHost = originUri.authority.host.address
+        if (allowedOrigins.isEmpty || allowedOrigins.exists(originHost.endsWith)) {
           requestInstance flatMap { request ⇒
             (if (request.method == HttpMethods.OPTIONS) {
               mapHttpResponse(resp ⇒ resp.copy(status = StatusCodes.OK, entity = HttpEntity.Empty, headers = resp.headers.filterNot(_.is("www-authenticate"))))
