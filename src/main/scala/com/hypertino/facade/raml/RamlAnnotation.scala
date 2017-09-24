@@ -16,15 +16,15 @@ trait RamlFieldAnnotation extends RamlAnnotation {
 // todo: make this injectable !!
 
 object RamlAnnotation {
-  val SET = "set"
-  val REWRITE = "rewrite"
-  val FORWARD = "forward"
-  val DENY = "deny"
-  val REMOVE = "remove"
-  val AUTHORIZE = "authorize"
-  val FETCH = "fetch"
-  val EXTRACT_ITEM = "extract_item"
-  val CONTEXT_FETCH = "context_fetch"
+  final val SET = "set"
+  final val REWRITE = "rewrite"
+  final val FORWARD = "forward"
+  final val DENY = "deny"
+  final val REMOVE = "remove"
+  final val AUTHORIZE = "authorize"
+  final val FETCH = "fetch"
+  final val EXTRACT_ITEM = "extract_item"
+  final val CONTEXT_FETCH = "context_fetch"
 
   import scala.collection.JavaConverters._
 
@@ -52,7 +52,7 @@ object RamlAnnotation {
   }
 
   def apply(name: String, properties: Seq[TypeInstanceProperty]): RamlAnnotation = {
-    val propMap = properties.map(property ⇒ property.name() → recursiveProperty(property.value())).toMap
+    val propMap = properties.map(property ⇒ property.name() → recursiveProperty(property)).toMap
     def propMapString(key: String, defaultValue: String): String = propMap.get(key).map(_.toString).getOrElse(defaultValue)
     def predicate = propMap.get("if").map(_.toString)
     def predicateExpression = predicate.map(PreparedExpression.apply)
