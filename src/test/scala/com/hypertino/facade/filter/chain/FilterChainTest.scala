@@ -3,15 +3,12 @@ package com.hypertino.facade.filter.chain
 import com.hypertino.binders.value.{Null, Text}
 import com.hypertino.facade.filter.model.{RequestFilter, ResponseFilter}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator}
-import com.hypertino.facade.model._
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, ErrorBody, Forbidden, HRL, Headers, Method, Ok}
+import com.hypertino.facade.model.{FilterInterruptException, _}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, ErrorBody, Forbidden, HRL, Method, Ok, _}
+import monix.eval.Task
+import monix.execution.Scheduler
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FreeSpec, Matchers}
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
-import com.hypertino.hyperbus.model._
 
 class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
 
@@ -22,28 +19,28 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
 
   class TestRequestFilter extends RequestFilter {
     override protected def expressionEvaluator: ExpressionEvaluator = DefaultExpressionEvaluator
-    override def  apply(contextWithRequest: RequestContext)
-             (implicit ec: ExecutionContext): Future[RequestContext] = {
-      if (contextWithRequest.request.headers.hrl.location != "/interrupted") {
-        Future(contextWithRequest)
+    override def  apply(requestContext: RequestContext)
+                       (implicit scheduler: Scheduler): Task[RequestContext] = {
+      if (requestContext.request.headers.hrl.location != "/interrupted") {
+        Task.now(requestContext)
       }
       else {
-        implicit val mcx = contextWithRequest.request
-        Future.failed(Forbidden(ErrorBody("Forbidden")))
+        implicit val mcx = requestContext.request
+        Task.raiseError(Forbidden(ErrorBody("Forbidden")))
       }
     }
   }
 
   class TestResponseFilter extends ResponseFilter {
     override protected def expressionEvaluator: ExpressionEvaluator = DefaultExpressionEvaluator
-    override def apply(contextWithRequest: RequestContext, output: DynamicResponse)
-                      (implicit ec: ExecutionContext): Future[DynamicResponse] = {
-      if (contextWithRequest.request.headers.hrl.location != "/interrupted") {
-        Future(output)
+    override def apply(requestContext: RequestContext, output: DynamicResponse)
+                      (implicit scheduler: Scheduler): Task[DynamicResponse] = {
+      if (requestContext.request.headers.hrl.location != "/interrupted") {
+        Task.now(output)
       }
       else {
-        implicit val mcx = contextWithRequest.request
-        Future.failed(new FilterInterruptException(
+        implicit val mcx = requestContext.request
+        Task.raiseError(new FilterInterruptException(
           response = Ok(EmptyBody, MessageHeaders.builder.+=("x-http-header" → "Accept-Language").result()),
           message = "Interrupted by filter"
         ))
@@ -52,20 +49,22 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
   }
 
   import MessagingContext.Implicits.emptyContext
+  import monix.execution.Scheduler.Implicits.global
 
   "FilterChain " - {
     "request filters with interruption" in {
       val request = DynamicRequest(HRL("/interrupted"), Method.GET, DynamicBody(Text("test body")))
 
-      intercept[Forbidden[ErrorBody]] {
-        filterChain.filterRequest(RequestContext(request)).awaitFuture
-      }
+      filterChain.filterRequest(RequestContext(request))
+        .runAsync
+        .failed
+        .futureValue shouldBe a[Forbidden[_]]
     }
 
     "request filters" in {
       val request = DynamicRequest(HRL("/successfull"), Method.GET, DynamicBody(Text("test body")))
 
-      val filteredRequest = filterChain.filterRequest(RequestContext(request)).futureValue.request
+      val filteredRequest = filterChain.filterRequest(RequestContext(request)).runAsync.futureValue.request
 
       filteredRequest.body shouldBe DynamicBody(Text("test body"))
       filteredRequest.headers.hrl shouldBe HRL("/successfull")
@@ -76,31 +75,27 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       val request = DynamicRequest(HRL("/interrupted"), Method.GET, DynamicBody(Text("test body")))
       val response = Created(DynamicBody("response body"))
 
-      val interrupt = intercept[FilterInterruptException] {
-        filterChain.filterResponse(RequestContext(request), response).awaitFuture
-      }
+      val interrupt = filterChain.filterResponse(RequestContext(request), response)
+        .runAsync
+        .failed
+        .futureValue
 
-      interrupt.response.body.content shouldBe Null
-      interrupt.response.headers should contain("x-http-header" → Text("Accept-Language"))
-      interrupt.response.headers.statusCode shouldBe 200
+      interrupt shouldBe a[FilterInterruptException]
+      val r = interrupt.asInstanceOf[FilterInterruptException].response
+      r.body.content shouldBe Null
+      r.headers should contain("x-http-header" → Text("Accept-Language"))
+      r.headers.statusCode shouldBe 200
     }
 
     "response filters" in {
       val request = DynamicRequest(HRL("/successfull"), Method.GET, DynamicBody(Text("test body")))
       val response = Created(DynamicBody("response body"))
 
-      val filteredResponse = filterChain.filterResponse(RequestContext(request), response).futureValue
+      val filteredResponse = filterChain.filterResponse(RequestContext(request), response).runAsync.futureValue
 
       filteredResponse.body.content shouldBe Text("response body")
       filteredResponse.headers shouldNot contain("x-http-header" → Text("Accept-Language"))
       filteredResponse.headers.statusCode shouldBe 201
-    }
-  }
-
-
-  implicit class TestAwait[T](future: Future[T]) {
-    def awaitFuture: T = {
-      Await.result(future, 10.seconds)
     }
   }
 }

@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.utils.MessageTransformer
 import com.typesafe.scalalogging.StrictLogging
+import monix.eval.Task
 import monix.execution.Scheduler
 import scaldi.Injector
 import spray.http._
@@ -23,13 +24,13 @@ class HttpWorker(implicit val injector: Injector) extends RequestProcessor {
       request { (request) ⇒
         clientIP { ip =>
           complete {
-            processRequest(request, ip.toString)
+            processRequest(request, ip.toString) runAsync
           }
         }
       }
   }
 
-  def processRequest(request: HttpRequest, remoteAddress: String): Future[HttpResponse] = {
+  def processRequest(request: HttpRequest, remoteAddress: String): Task[HttpResponse] = {
     trackHeartbeat.mark()
     val dynamicRequest = MessageTransformer.httpToRequest(request, remoteAddress)
     processRequestToFacade(com.hypertino.facade.model.RequestContext(dynamicRequest)) map { response ⇒

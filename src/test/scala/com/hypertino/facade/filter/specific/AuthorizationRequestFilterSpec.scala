@@ -59,7 +59,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
         "Authorization" → "Test ABC"
       ))
     )
-    val result = filter.apply(rc).futureValue
+    val result = filter.apply(rc).runAsync.futureValue
     result.contextStorage.user shouldBe Obj.from("user_id" → "100500")
     result.request.headers.get("Authorization-Result") shouldBe Some(Obj.from("user_id" → "100500"))
   }
@@ -72,7 +72,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
         "Privilege-Authorization" → "Test ABC"
       ))
     )
-    val result = filter.apply(rc).futureValue
+    val result = filter.apply(rc).runAsync.futureValue
     result.contextStorage.user shouldBe Null
     result.request.headers.get("Privilege-Authorization-Result") shouldBe Some(
       Obj.from("identity_keys" → Obj.from("user_id" → "100500", "email" → "info@example.com"), "extra" → Null)

@@ -1,11 +1,10 @@
 package com.hypertino.facade.filter.model
 
 import com.hypertino.facade.model.RequestContext
-
-import scala.concurrent.{ExecutionContext, Future}
-
+import monix.eval.Task
+import monix.execution.Scheduler
 
 trait RequestFilter extends Filter {
-  def apply(contextWithRequest: RequestContext)
-           (implicit ec: ExecutionContext): Future[RequestContext]
+  def apply(requestContext: RequestContext)
+           (implicit scheduler: Scheduler): Task[RequestContext]
 }

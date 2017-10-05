@@ -16,6 +16,7 @@ import com.hypertino.hyperbus.model.hrl.PlainQueryConverter
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.hyperbus.transport.api.matchers.Specific
 import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
+import monix.eval.Task
 import monix.execution.Scheduler
 import scaldi.Injector
 
@@ -25,11 +26,11 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
                           protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
-  override def apply(contextWithRequest: RequestContext)
-                    (implicit ec: ExecutionContext): Future[RequestContext] = {
-    Future {
+  override def apply(requestContext: RequestContext)
+                    (implicit scheduler: Scheduler): Task[RequestContext] = {
+    Task.now {
       try {
-        val request = contextWithRequest.request
+        val request = requestContext.request
         //val rootPathPrefix = config.getString(FacadeConfigPaths.RAML_ROOT_PATH_PREFIX)
         // val uriTransformer = chain(removeRootPathPrefix(ramlConfig.baseUri, _: HRL), rewriteLinkForward(_: HRL, rewriteCountLimit, ramlConfig))
 
@@ -39,7 +40,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
         val headersBuilder = MessageHeaders.builder
         var messageIdFound = false
 
-        contextWithRequest.originalHeaders.foreach { kv ⇒
+        requestContext.originalHeaders.foreach { kv ⇒
           (kv._1, kv._2) match {
             case (FacadeHeaders.CONTENT_TYPE, value) ⇒
               JsonContentTypeConverter.universalJsonContentTypeToSimple(value) match {
@@ -67,12 +68,12 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
         //todo: HAL ?
         //val transformedBodyContent = HalTransformer.transformEmbeddedObject(request.body.content, uriTransformer)
 
-        contextWithRequest.copy(
+        requestContext.copy(
           request = DynamicRequest(request.body, headersBuilder.requestHeaders())
         )
       } catch {
         case e: MalformedURLException ⇒
-          implicit val mcx = contextWithRequest.request
+          implicit val mcx = requestContext.request
           throw NotFound(ErrorBody("not-found", Some(e.getMessage)))
       }
     }

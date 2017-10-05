@@ -28,16 +28,16 @@ case class ExpressionEvaluatorContext(requestContext: RequestContext, extraConte
   override def unaryOperation = Map.empty
   override def binaryOperationLeftArgument = Map.empty
 
-  protected def preparePredicateContext(contextWithRequest: RequestContext): Obj = {
-    val request = contextWithRequest.request
+  protected def preparePredicateContext(requestContext: RequestContext): Obj = {
+    val request = requestContext.request
     Obj.from(
-      "context" → contextWithRequest.contextStorage,
+      "context" → requestContext.contextStorage,
       "headers" → Obj(request.headers),
       "location" → request.headers.hrl.location,
       "query" → request.headers.hrl.query,
       "method" → request.headers.method,
       "body" → request.body.content,
-      "remote_address" → contextWithRequest.remoteAddress
+      "remote_address" → requestContext.remoteAddress
     )
   }
 }

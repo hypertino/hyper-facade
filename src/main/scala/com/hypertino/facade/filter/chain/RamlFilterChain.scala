@@ -7,8 +7,8 @@ import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 
 class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
 
-  def findRequestFilters(contextWithRequest: RequestContext): Seq[RequestFilter] = {
-    val request = contextWithRequest.request
+  def findRequestFilters(requestContext: RequestContext): Seq[RequestFilter] = {
+    val request = requestContext.request
     val filters = requestOrEventFilters(request.headers.hrl.location, request.headers.method, request.headers.contentType).requestFilters
     filters
   }

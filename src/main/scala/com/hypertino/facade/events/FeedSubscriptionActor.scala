@@ -9,7 +9,7 @@ import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.{ClientSpecificMethod, RequestContext}
 import com.hypertino.facade.raml.Method
-import com.hypertino.facade.utils.FutureUtils
+import com.hypertino.facade.utils.{FutureUtils, TaskUtils}
 import com.hypertino.facade.workers.RequestProcessor
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
@@ -34,12 +34,12 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
   val maxSubscriptionTries = config.getInt(FacadeConfigPaths.MAX_SUBSCRIPTION_TRIES)
   val maxStashedEventsCount = config.getInt(FacadeConfigPaths.FEED_MAX_STASHED_EVENTS_COUNT)
 
-  val scheduler = inject[monix.execution.Scheduler] // don't make this implicit
+  val scheduler: monix.execution.Scheduler = inject[monix.execution.Scheduler] // don't make this implicit
 
   def receive: Receive = stopStartSubscription orElse {
     case cwr: RequestContext ⇒
       implicit val ec = scheduler
-      processRequestToFacade(cwr) pipeTo websocketWorker
+      processRequestToFacade(cwr) runAsync ec pipeTo websocketWorker
   }
 
   def filtering(subscriptionSyncTries: Int): Receive = {
@@ -149,10 +149,10 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     beforeFilterChain.filterRequest(cwr) map { unpreparedContextWithRequest ⇒
       val cwrBeforeRaml = prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest)
       BeforeFilterComplete(cwrBeforeRaml)
-    } recover handleFilterExceptions(cwr) { response ⇒
+    } onErrorRecover handleFilterExceptions(cwr) { response ⇒
       websocketWorker ! response
       PoisonPill
-    } pipeTo self
+    } runAsync ec pipeTo self
   }
 
   def continueSubscription(cwr: RequestContext,
@@ -177,10 +177,10 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
           .requestHeaders()
       )
 
-      hyperbus.ask(message).runAsync
-    } recover {
+      hyperbus.ask(message)
+    } onErrorRecover {
       handleHyperbusExceptions(cwr)
-    } andThen { case _ ⇒
+    } runAsync ec andThen { case _ ⇒
       trackRequestTime.stop
     } pipeTo self
   }
@@ -207,7 +207,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     logger.trace(s"Processing resource state $resourceState for ${cwr.originalHeaders.hrl}")
 
     implicit val ec = scheduler
-    FutureUtils.chain(resourceState, cwr.stages.map { _ ⇒
+    TaskUtils.chain(resourceState, cwr.stages.map { _ ⇒
       ramlFilterChain.filterResponse(cwr, _ : DynamicResponse)
     }) flatMap { filteredResponse ⇒
       afterFilterChain.filterResponse(cwr, filteredResponse) map { finalResponse ⇒
@@ -227,25 +227,24 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
           }
         }
       }
-    } recover handleFilterExceptions(cwr) { response ⇒
+    } onErrorRecover handleFilterExceptions(cwr) { response ⇒
       websocketWorker ! response
       PoisonPill
-    } pipeTo self
+    } runAsync ec pipeTo self
   }
 
   def processUnreliableEvent(cwr: RequestContext, event: DynamicRequest): Unit = {
     logger.trace(s"Processing unreliable event $event for ${cwr.originalHeaders.hrl}")
     implicit val ec = scheduler
-
-    FutureUtils.chain(event, cwr.stages.map { _ ⇒
+    TaskUtils.chain(event, cwr.stages.map { _ ⇒
       ramlFilterChain.filterEvent(cwr, _ : DynamicRequest)
     }) flatMap { e ⇒
       afterFilterChain.filterEvent(cwr, e) map { filteredRequest ⇒
         websocketWorker ! filteredRequest
       }
-    } recover handleFilterExceptions(cwr) { response ⇒
+    } onErrorRecover handleFilterExceptions(cwr) { response ⇒
       logger.trace(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
-    }
+    } runAsync
   }
 
   def processReliableEvent(cwr: RequestContext,
@@ -310,24 +309,24 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
       override def onNext(event: DynamicRequest): Future[Ack] = {
         implicit val ec = scheduler
-        val filteringFuture = FutureUtils.chain(event, cwr.stages.map { _ ⇒
+        val filteringTask = TaskUtils.chain(event, cwr.stages.map { _ ⇒
           ramlFilterChain.filterEvent(cwr, _: DynamicRequest)
         }) flatMap { e ⇒
           afterFilterChain.filterEvent(cwr, e)
         }
         if (currentFilteringFuture.get().isEmpty) {
-          val newCurrentFilteringFuture = filteringFuture map { filteredRequest ⇒
+          val newCurrentFilteringTask = filteringTask map { filteredRequest ⇒
             websocketWorker ! filteredRequest
-          } recover handleFilterExceptions(cwr) { response ⇒
+          } onErrorRecover handleFilterExceptions(cwr) { response ⇒
             logger.trace(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
           }
-          currentFilteringFuture.set(Some(newCurrentFilteringFuture))
+          currentFilteringFuture.set(Some(newCurrentFilteringTask.runAsync))
         } else {
           val newCurrentFilteringFuture = currentFilteringFuture.get().get andThen {
             case _ ⇒
-              filteringFuture map { filteredRequest ⇒
+              filteringTask map { filteredRequest ⇒
                 websocketWorker ! filteredRequest
-              } recover handleFilterExceptions(cwr) { response ⇒
+              } onErrorRecover handleFilterExceptions(cwr) { response ⇒
                 logger.trace(s"Event is discarded for ${cwr.originalHeaders.hrl} with filter response $response")
               }
           }

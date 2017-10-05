@@ -21,17 +21,17 @@ class IdempotencyRequestFilter(hyperbus: Hyperbus,
                                protected implicit val scheduler: Scheduler) extends RequestFilter with StrictLogging {
 
   override def apply(requestContext: RequestContext)
-                    (implicit ec: ExecutionContext): Future[RequestContext] = {
+                    (implicit scheduler: Scheduler): Task[RequestContext] = {
     implicit val mcx: MessagingContext = requestContext
 
     requestContext.originalHeaders.get(IdempotencyHeader.IDEMPOTENCY_KEY) match {
       case Some(Text(idempotencyKey)) ⇒ handleIdempotency(requestContext, idempotencyKey)
-      case _ ⇒ Future(requestContext)
+      case _ ⇒ Task.now(requestContext)
     }
   }
 
   private def handleIdempotency(requestContext: RequestContext, idempotencyKey: String)
-                               (implicit mcx: MessagingContext): Future[RequestContext] = {
+                               (implicit mcx: MessagingContext): Task[RequestContext] = {
     /*
       1. optimistic lock before request
       2. if request is already locked, then try to get response
@@ -78,6 +78,5 @@ class IdempotencyRequestFilter(hyperbus: Hyperbus,
         case Failure(exception) ⇒
           Task.raiseError(exception)
       }
-      .runAsync
   }
 }

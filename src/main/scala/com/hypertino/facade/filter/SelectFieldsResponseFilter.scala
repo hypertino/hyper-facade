@@ -7,19 +7,19 @@ import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicResponse, StandardResponse}
 import com.typesafe.scalalogging.StrictLogging
-
-import scala.concurrent.{ExecutionContext, Future}
+import monix.eval.Task
+import monix.execution.Scheduler
 import scala.util.control.NonFatal
 
 class SelectFieldsResponseFilter(
                                   protected val expressionEvaluator: ExpressionEvaluator
                                 ) extends ResponseFilter with StrictLogging {
 
-  override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
-                    (implicit ec: ExecutionContext): Future[DynamicResponse] = {
-    Future {
+  override def apply(requestContext: RequestContext, response: DynamicResponse)
+                    (implicit scheduler: Scheduler): Task[DynamicResponse] = {
+    Task.now {
       try {
-        contextWithRequest.request.headers.hrl.query.fields match {
+        requestContext.request.headers.hrl.query.fields match {
           case Null ⇒
             response
 

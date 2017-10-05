@@ -9,17 +9,20 @@ import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.HrlTransformer
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, HRL, Header, HeaderHRL, Headers, MessageHeaders, RequestHeaders, ResponseHeaders, StandardResponse}
 import com.typesafe.config.Config
+import monix.eval.Task
+import monix.execution.Scheduler
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class HttpWsResponseFilter(config: Config,
                            protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
-  override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
-                    (implicit ec: ExecutionContext): Future[DynamicResponse] = {
-    Future {
+  override def apply(requestContext: RequestContext, response: DynamicResponse)
+                    (implicit scheduler: Scheduler): Task[DynamicResponse] = {
+    Task.now {
       //todo: implement rewriting back
-      val (headersObj1, body1) = HttpWsFilter.wrapCollection(contextWithRequest, response, hrl ⇒ hrl)
+      val (headersObj1, body1) = HttpWsFilter.wrapCollection(requestContext, response, hrl ⇒ hrl)
       val (headersObj2, body2) = HttpWsFilter.filterMessage(headersObj1, body1,
         hrl ⇒ hrl
       )
@@ -31,11 +34,9 @@ class HttpWsResponseFilter(config: Config,
 class WsEventFilter(config: Config, ramlConfig: RamlConfiguration,
                     protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
-  override def apply(contextWithRequest: RequestContext, request: DynamicRequest)
-                    (implicit ec: ExecutionContext): Future[DynamicRequest] = {
-    Future {
-
-
+  override def apply(requestContext: RequestContext, request: DynamicRequest)
+                    (implicit scheduler: Scheduler): Task[DynamicRequest] = {
+    Task.now {
       val (newHeaders, newBody) = HttpWsFilter.filterMessage(request.headers.underlying, request.body, hrl ⇒ hrl) // todo: root/baseUri
       val n = MessageHeaders
         .builder
@@ -129,11 +130,11 @@ object HttpWsFilter {
   }
 
   // todo: move wrap_collection to separate filter & make configurable
-  def wrapCollection(contextWithRequest: RequestContext,
+  def wrapCollection(requestContext: RequestContext,
                     message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (Headers, DynamicBody) = {
 
-    val wq = contextWithRequest.request.headers.hrl.query.wrap_collection.toBoolean
-    if (wq || contextWithRequest.request.headers.get("X-Wrap-Collection").exists(_.toBoolean)) {
+    val wq = requestContext.request.headers.hrl.query.wrap_collection.toBoolean
+    if (wq || requestContext.request.headers.get("X-Wrap-Collection").exists(_.toBoolean)) {
 
       val vx: Map[String, Value] = message.headers.flatMap {
         // todo: transform?

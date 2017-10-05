@@ -21,13 +21,13 @@ class RequestFieldFilterAdapter(val typeDef: TypeDefinition,
 
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
-  def apply(contextWithRequest: RequestContext)
-           (implicit ec: ExecutionContext): Future[RequestContext] = {
-    filterBody(contextWithRequest.request.body.content, contextWithRequest, FieldFilterStageRequest).map { body ⇒
-      contextWithRequest.copy(
-        request = contextWithRequest.request.copy(body = DynamicBody(body))
+  def apply(requestContext: RequestContext)
+           (implicit scheduler: Scheduler): Task[RequestContext] = {
+    filterBody(requestContext.request.body.content, requestContext, FieldFilterStageRequest).map { body ⇒
+      requestContext.copy(
+        request = requestContext.request.copy(body = DynamicBody(body))
       )
-    }.runAsync
+    }
   }
 }
 
@@ -39,12 +39,12 @@ class ResponseFieldFilterAdapter(val typeDef: TypeDefinition,
 
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
-  def apply(contextWithRequest: RequestContext, response: DynamicResponse)
-           (implicit ec: ExecutionContext): Future[DynamicResponse] = {
-    filterBody(response.body.content, contextWithRequest, FieldFilterStageResponse).map { body ⇒
+  def apply(requestContext: RequestContext, response: DynamicResponse)
+           (implicit scheduler: Scheduler): Task[DynamicResponse] = {
+    filterBody(response.body.content, requestContext, FieldFilterStageResponse).map { body ⇒
       StandardResponse(body = DynamicBody(body), response.headers)
         .asInstanceOf[DynamicResponse]
-    }.runAsync
+    }
   }
 }
 
@@ -57,11 +57,11 @@ class EventFieldFilterAdapter(val typeDef: TypeDefinition,
 
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
-  def apply(contextWithRequest: RequestContext, event: DynamicRequest)
-           (implicit ec: ExecutionContext): Future[DynamicRequest] = {
-    filterBody(event.body.content, contextWithRequest, FieldFilterStageEvent).map { body ⇒
-      DynamicRequest(DynamicBody(body), contextWithRequest.request.headers)
-    }.runAsync
+  def apply(requestContext: RequestContext, event: DynamicRequest)
+           (implicit scheduler: Scheduler): Task[DynamicRequest] = {
+    filterBody(event.body.content, requestContext, FieldFilterStageEvent).map { body ⇒
+      DynamicRequest(DynamicBody(body), requestContext.request.headers)
+    }
   }
 }
 

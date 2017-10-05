@@ -2,10 +2,10 @@ package com.hypertino.facade.filter.model
 
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.hyperbus.model.DynamicResponse
-
-import scala.concurrent.{ExecutionContext, Future}
+import monix.eval.Task
+import monix.execution.Scheduler
 
 trait ResponseFilter extends Filter {
-  def apply(contextWithRequest: RequestContext, response: DynamicResponse)
-           (implicit ec: ExecutionContext): Future[DynamicResponse]
+  def apply(requestContext: RequestContext, response: DynamicResponse)
+           (implicit scheduler: Scheduler): Task[DynamicResponse]
 }

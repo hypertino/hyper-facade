@@ -6,6 +6,8 @@ import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvalua
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.{HrlTransformer, RequestUtils}
 import com.hypertino.hyperbus.model.{DynamicRequest, HRL, Headers}
+import monix.eval.Task
+import monix.execution.Scheduler
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -15,11 +17,11 @@ class ForwardRequestFilter(sourceHRL: HRL,
                            method: Option[PreparedExpression],
                            protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
-  override def apply(contextWithRequest: RequestContext)
-                    (implicit ec: ExecutionContext): Future[RequestContext] = {
-    Future {
-      val request = contextWithRequest.request
-      val ctx = ExpressionEvaluatorContext(contextWithRequest, Obj.empty)
+  override def apply(requestContext: RequestContext)
+                    (implicit scheduler: Scheduler): Task[RequestContext] = {
+    Task.now {
+      val request = requestContext.request
+      val ctx = ExpressionEvaluatorContext(requestContext, Obj.empty)
       val location = expressionEvaluator.evaluate(ctx, locationExpression).toString
       val query = queryExpressionMap.map { kv ⇒
         kv._1 → expressionEvaluator.evaluate(ctx, kv._2)
@@ -29,7 +31,7 @@ class ForwardRequestFilter(sourceHRL: HRL,
 
       // todo: should we preserve all query fields???
       val rewrittenUri = HrlTransformer.rewriteForwardWithPatterns(request.headers.hrl, sourceHRL, destinationHRL)
-      contextWithRequest.copy(
+      requestContext.copy(
         request = RequestUtils.copyWith(request, rewrittenUri, destinationMethod)
       )
     }

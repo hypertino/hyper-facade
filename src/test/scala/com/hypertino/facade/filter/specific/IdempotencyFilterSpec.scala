@@ -59,7 +59,7 @@ class IdempotencyFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") wit
         "Idempotency-Key" → "ik_100500"
       ))
     )
-    val result = filter.apply(rc).futureValue
+    val result = filter.apply(rc).runAsync.futureValue
     result.contextStorage.idempotent_request shouldBe Obj.from("key" → "ik_100500", "uri" → "hb://unprocessed")
     isRequests.headOption.foreach(_ shouldBe a [IdempotentRequestPut])
     val p = isRequests.head.asInstanceOf[IdempotentRequestPut]
@@ -77,6 +77,7 @@ class IdempotencyFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") wit
     )
     val result = filter
       .apply(rc)
+      .runAsync
       .failed
       .futureValue
 
@@ -102,7 +103,7 @@ class IdempotencyFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") wit
         contextStorage=Obj.from("idempotent_request" → Obj.from("key" → "ik_100500", "uri" → "hb://processed"))
       )
     val response = Ok(DynamicBody(Obj.from("user" → "John")))
-    val result = filter.apply(rc, response).futureValue
+    val result = filter.apply(rc, response).runAsync.futureValue
     result shouldBe response
     val r = isRequests.head.asInstanceOf[IdempotentResponsePut]
     r.key shouldBe "ik_100500"

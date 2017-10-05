@@ -5,68 +5,70 @@ import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvalua
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlAnnotation
 import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
+import monix.eval.Task
+import monix.execution.Scheduler
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: RequestFilter,
                                          protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
-  override def apply(contextWithRequest: RequestContext)
-                    (implicit ec: ExecutionContext): Future[RequestContext] = {
+  override def apply(requestContext: RequestContext)
+                    (implicit scheduler: Scheduler): Task[RequestContext] = {
     annotation.predicate match {
       case Some(p) ⇒
-        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Obj.empty), p)) match {
+        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(requestContext, Obj.empty), p)) match {
           case Success(true) ⇒
-            filter.apply(contextWithRequest)
+            filter.apply(requestContext)
           case Success(false) ⇒
-            Future(contextWithRequest)
+            Task.now(requestContext)
           case Failure(ex) ⇒
-            Future.failed(ex)
+            Task.raiseError(ex)
         }
       case None ⇒
-        filter.apply(contextWithRequest)
+        filter.apply(requestContext)
     }
   }
 }
 
 case class ConditionalResponseFilterProxy(annotation: RamlAnnotation, filter: ResponseFilter,
                                           protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter {
-  override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
-                    (implicit ec: ExecutionContext): Future[DynamicResponse] = {
+  override def apply(requestContext: RequestContext, response: DynamicResponse)
+                    (implicit scheduler: Scheduler): Task[DynamicResponse] = {
     annotation.predicate match {
       case Some(p) ⇒
-        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Obj.empty), p)) match {
+        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(requestContext, Obj.empty), p)) match {
           case Success(true) ⇒
-            filter.apply(contextWithRequest, response)
+            filter.apply(requestContext, response)
           case Success(false) ⇒
-            Future(response)
+            Task.now(response)
           case Failure(ex) ⇒
-            Future.failed(ex)
+            Task.raiseError(ex)
         }
 
       case None ⇒
-        filter.apply(contextWithRequest, response)
+        filter.apply(requestContext, response)
     }
   }
 }
 
 case class ConditionalEventFilterProxy(annotation: RamlAnnotation, filter: EventFilter,
                                        protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter {
-  override def apply(contextWithRequest: RequestContext, event: DynamicRequest)
-                    (implicit ec: ExecutionContext): Future[DynamicRequest] = {
+  override def apply(requestContext: RequestContext, event: DynamicRequest)
+                    (implicit scheduler: Scheduler): Task[DynamicRequest] = {
     annotation.predicate match {
       case Some(p) ⇒
-        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(contextWithRequest, Obj.empty), p)) match {
+        Try(filter.evaluatePredicate(ExpressionEvaluatorContext(requestContext, Obj.empty), p)) match {
           case Success(true) ⇒
-            filter.apply(contextWithRequest, event)
+            filter.apply(requestContext, event)
           case Success(false) ⇒
-            Future(event)
+            Task.now(event)
           case Failure(ex) ⇒
-            Future.failed(ex)
+            Task.raiseError(ex)
         }
 
       case None ⇒
-        filter.apply(contextWithRequest, event)
+        filter.apply(requestContext, event)
     }
   }
 }

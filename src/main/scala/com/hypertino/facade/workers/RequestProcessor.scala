@@ -6,7 +6,7 @@ import com.hypertino.facade.filter.chain.FilterChain
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
-import com.hypertino.facade.utils.FutureUtils
+import com.hypertino.facade.utils.{FutureUtils, MetricUtils, TaskUtils}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.transport.api.NoTransportRouteException
@@ -14,6 +14,7 @@ import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
 import com.hypertino.metrics.MetricsTracker
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
+import monix.eval.Task
 import monix.execution.Scheduler
 import scaldi.{Injectable, Injector}
 
@@ -32,35 +33,35 @@ trait RequestProcessor extends Injectable with StrictLogging {
   val metrics = inject[MetricsTracker]
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
-  def processRequestToFacade(cwr: RequestContext): Future[DynamicResponse] = {
+  def processRequestToFacade(cwr: RequestContext): Task[DynamicResponse] = {
     try {
-      metrics.timeOfFuture(MetricKeys.REQUEST_PROCESS_TIME) {
+      MetricUtils.timeOfTask(MetricKeys.REQUEST_PROCESS_TIME, metrics, {
         beforeFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
           val cwrBeforeRaml = prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest)
           processRequestWithRaml(cwrBeforeRaml) flatMap { cwrRaml ⇒
-            hyperbus.ask(cwrRaml.request).runAsync recover {
+            hyperbus.ask(cwrRaml.request) onErrorRecover {
               handleHyperbusExceptions(cwrRaml)
-            } flatMap { case response: DynamicResponse ⇒
-              FutureUtils.chain(response, cwrRaml.stages.map { _ ⇒
+            } flatMap { response: DynamicResponse ⇒
+              TaskUtils.chain(response, cwrRaml.stages.map { _ ⇒
                 ramlFilterChain.filterResponse(cwrRaml, _: DynamicResponse)
               }) flatMap { r ⇒
                 afterFilterChain.filterResponse(cwrRaml, r)
               }
             }
           }
-        } recover handleFilterExceptions(cwr) { response ⇒
+        } onErrorRecover handleFilterExceptions(cwr) { response ⇒
           response
         }
-      }
+      })
     } catch {
       case NonFatal(ex) ⇒
-        Future.failed(ex)
+        Task.raiseError(ex)
     }
   }
 
-  def processRequestWithRaml(cwr: RequestContext): Future[RequestContext] = {
+  def processRequestWithRaml(cwr: RequestContext): Task[RequestContext] = {
     if (cwr.stages.size > rewriteCountLimit) {
-      Future.failed(
+      Task.raiseError(
         new RewriteLimitReachedException(cwr.stages.size, rewriteCountLimit)
       )
     }
@@ -68,7 +69,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
       ramlFilterChain.filterRequest(cwr) flatMap { filteredCWR ⇒
         val filteredRequest = filteredCWR.request
         if (filteredRequest.headers.hrl.location == cwr.request.headers.hrl.location) {
-          Future.successful(filteredCWR)
+          Task.now(filteredCWR)
         } else {
           logger.trace(s"Request is restarted from ${cwr.request} to $filteredRequest")
           val templatedRequest = withRamlResource(filteredRequest)

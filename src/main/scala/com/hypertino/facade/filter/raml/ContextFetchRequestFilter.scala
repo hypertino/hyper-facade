@@ -18,19 +18,19 @@ class ContextFetchRequestFilter(protected val annotation: ContextFetchAnnotation
                                 protected val expressionEvaluator: ExpressionEvaluator,
                                 protected implicit val scheduler: Scheduler) extends RequestFilter with FetchFilterBase {
 
-  override def apply(contextWithRequest: RequestContext)
-                    (implicit ec: ExecutionContext): Future[RequestContext] = {
+  override def apply(requestContext: RequestContext)
+                    (implicit scheduler: Scheduler): Task[RequestContext] = {
 
-    fetchAndReturn(contextWithRequest).map {
+    fetchAndReturn(requestContext).map {
       case Some(v) ⇒
-        contextWithRequest.copy(contextStorage = contextWithRequest.contextStorage + Obj.from(annotation.target → v))
+        requestContext.copy(contextStorage = requestContext.contextStorage + Obj.from(annotation.target → v))
       case None ⇒
-        contextWithRequest.copy(contextStorage = contextWithRequest.contextStorage - Lst.from(annotation.target))
-    }.runAsync
+        requestContext.copy(contextStorage = requestContext.contextStorage - Lst.from(annotation.target))
+    }
   }
 
-  protected def fetchAndReturn(contextWithRequest: RequestContext): Task[Option[Value]] = {
-    val ctx = ExpressionEvaluatorContext(contextWithRequest, Obj.empty)
+  protected def fetchAndReturn(requestContext: RequestContext): Task[Option[Value]] = {
+    val ctx = ExpressionEvaluatorContext(requestContext, Obj.empty)
     try {
       val location = expressionEvaluator.evaluate(ctx, annotation.location).toString
       val query = annotation.query.map { kv ⇒
@@ -38,7 +38,7 @@ class ContextFetchRequestFilter(protected val annotation: ContextFetchAnnotation
       }
       val hrl = HRL(location, query)
 
-      implicit val mcx = contextWithRequest
+      implicit val mcx = requestContext
       ask(hrl, ctx).
         onErrorRecoverWith {
           case NonFatal(e) ⇒

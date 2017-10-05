@@ -8,6 +8,7 @@ import com.hypertino.facade.model.RequestContext
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.{DynamicResponse, MessagingContext}
 import com.typesafe.scalalogging.StrictLogging
+import monix.eval.Task
 import monix.execution.Scheduler
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -18,18 +19,18 @@ class IdempotencyResponseFilter(hyperbus: Hyperbus,
                                 protected val expressionEvaluator: ExpressionEvaluator,
                                 protected implicit val scheduler: Scheduler) extends ResponseFilter with StrictLogging {
 
-  override def apply(contextWithRequest: RequestContext, response: DynamicResponse)
-                    (implicit ec: ExecutionContext): Future[DynamicResponse] = {
+  override def apply(requestContext: RequestContext, response: DynamicResponse)
+                    (implicit scheduler: Scheduler): Task[DynamicResponse] = {
 
-    implicit val mcx: MessagingContext = contextWithRequest
-    contextWithRequest.contextStorage.idempotent_request match {
+    implicit val mcx: MessagingContext = requestContext
+    requestContext.contextStorage.idempotent_request match {
       case o: Obj ⇒ saveIdempotentResponse(o.uri.toString, o.key.toString, response)
-      case _ ⇒ Future(response)
+      case _ ⇒ Task.now(response)
     }
   }
 
   private def saveIdempotentResponse(uri: String, key: String, response: DynamicResponse)
-                                    (implicit mcx: MessagingContext): Future[DynamicResponse] = {
+                                    (implicit mcx: MessagingContext): Task[DynamicResponse] = {
     val responseWrapper = ResponseWrapper(Obj(response.headers.underlying), response.body.content)
     hyperbus
       .ask(IdempotentResponsePut(uri,key,responseWrapper))
@@ -43,6 +44,5 @@ class IdempotencyResponseFilter(hyperbus: Hyperbus,
           logger.error(s"Failed to save idempotent response for $uri/$key, this may lead to locked resource", e)
           response
       }
-      .runAsync
   }
 }

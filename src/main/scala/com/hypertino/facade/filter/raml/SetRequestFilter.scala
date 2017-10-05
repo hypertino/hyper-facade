@@ -8,6 +8,8 @@ import com.hypertino.facade.raml.SetAnnotation
 import com.hypertino.facade.utils.RequestUtils
 import com.hypertino.hyperbus.model.{HRL, Headers, MessageHeaders}
 import com.hypertino.parser.{HParser, ast}
+import monix.eval.Task
+import monix.execution.Scheduler
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,29 +36,29 @@ class SetRequestFilter(set: SetAnnotation,
     }
   }
 
-  private def setContext(contextWithRequest: RequestContext, path: Seq[String], result: Value): RequestContext = {
-    contextWithRequest.copy(contextStorage = mergeObj(contextWithRequest.contextStorage,path,result))
+  private def setContext(requestContext: RequestContext, path: Seq[String], result: Value): RequestContext = {
+    requestContext.copy(contextStorage = mergeObj(requestContext.contextStorage,path,result))
   }
 
-  private def setHeader(contextWithRequest: RequestContext, path: Seq[String], result: Value): RequestContext = {
+  private def setHeader(requestContext: RequestContext, path: Seq[String], result: Value): RequestContext = {
     val headersObj = mergeObj(
-      Obj(contextWithRequest.request.headers.underlying),
+      Obj(requestContext.request.headers.underlying),
       path,
       result
     )
 
-    val request = contextWithRequest.request.copy(headers=MessageHeaders.builder.++=(headersObj).requestHeaders())
-    contextWithRequest.copy(request=request)
+    val request = requestContext.request.copy(headers=MessageHeaders.builder.++=(headersObj).requestHeaders())
+    requestContext.copy(request=request)
   }
 
-  private def setLocation(contextWithRequest: RequestContext, path: Seq[String], result: Value): RequestContext = {
+  private def setLocation(requestContext: RequestContext, path: Seq[String], result: Value): RequestContext = {
     val hrl = HRL.fromURL(result.toString)
-    val request = RequestUtils.copyWith(contextWithRequest.request, hrl)
-    contextWithRequest.copy(request=request)
+    val request = RequestUtils.copyWith(requestContext.request, hrl)
+    requestContext.copy(request=request)
   }
 
-  private def setQuery(contextWithRequest: RequestContext, path: Seq[String], result: Value): RequestContext = {
-    val existingHrl = contextWithRequest.request.headers.hrl
+  private def setQuery(requestContext: RequestContext, path: Seq[String], result: Value): RequestContext = {
+    val existingHrl = requestContext.request.headers.hrl
     val existingQuery = existingHrl.query match {
       case o: Obj ⇒ o
       case _ ⇒ Obj.empty
@@ -67,36 +69,36 @@ class SetRequestFilter(set: SetAnnotation,
     }
 
     val hrl = HRL(existingHrl.location, newQuery)
-    val request = RequestUtils.copyWith(contextWithRequest.request, hrl)
-    contextWithRequest.copy(request=request)
+    val request = RequestUtils.copyWith(requestContext.request, hrl)
+    requestContext.copy(request=request)
   }
 
-  private def setMethod(contextWithRequest: RequestContext, path: Seq[String], result: Value): RequestContext = {
-    val hrl = contextWithRequest.request.headers.hrl
-    val request = RequestUtils.copyWith(contextWithRequest.request, hrl, Some(result.toString))
-    contextWithRequest.copy(request=request)
+  private def setMethod(requestContext: RequestContext, path: Seq[String], result: Value): RequestContext = {
+    val hrl = requestContext.request.headers.hrl
+    val request = RequestUtils.copyWith(requestContext.request, hrl, Some(result.toString))
+    requestContext.copy(request=request)
   }
 
-  override def apply(contextWithRequest: RequestContext)
-                    (implicit ec: ExecutionContext): Future[RequestContext] = {
-    Future {
-      val result = expressionEvaluator.evaluate(ExpressionEvaluatorContext(contextWithRequest, Obj.empty), set.source)
+  override def apply(requestContext: RequestContext)
+                    (implicit scheduler: Scheduler): Task[RequestContext] = {
+    Task.now {
+      val result = expressionEvaluator.evaluate(ExpressionEvaluatorContext(requestContext, Obj.empty), set.source)
 
       targetIdentifier.segments.head match {
         case "context" ⇒
-          setContext(contextWithRequest, targetIdentifier.segments.tail, result)
+          setContext(requestContext, targetIdentifier.segments.tail, result)
 
         case "headers" =>
-          setHeader(contextWithRequest, targetIdentifier.segments.tail, result)
+          setHeader(requestContext, targetIdentifier.segments.tail, result)
 
         case "location" ⇒
-          setLocation(contextWithRequest, targetIdentifier.segments.tail, result)
+          setLocation(requestContext, targetIdentifier.segments.tail, result)
 
         case "query" ⇒
-          setQuery(contextWithRequest, targetIdentifier.segments.tail, result)
+          setQuery(requestContext, targetIdentifier.segments.tail, result)
 
         case "method" ⇒
-          setMethod(contextWithRequest, targetIdentifier.segments.tail, result)
+          setMethod(requestContext, targetIdentifier.segments.tail, result)
 
         case other ⇒
           throw new IllegalArgumentException(s"Can't set unknown variable '$other'")

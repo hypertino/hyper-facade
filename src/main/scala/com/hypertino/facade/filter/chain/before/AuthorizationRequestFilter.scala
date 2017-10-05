@@ -21,7 +21,7 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
                                  protected implicit val scheduler: Scheduler) extends RequestFilter with StrictLogging {
 
   override def apply(requestContext: RequestContext)
-                    (implicit ec: ExecutionContext): Future[RequestContext] = {
+                    (implicit scheduler: Scheduler): Task[RequestContext] = {
     implicit val mcx = requestContext.request
 
     Task.gatherUnordered(Seq(authorizationTask(requestContext), privelegeAuthorizationTask(requestContext))).map { results ⇒
@@ -43,7 +43,7 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
         ),
         contextStorage = requestContext.contextStorage + contextObj
       )
-    }.runAsync
+    }
   }
 
   private def validateCredentials(credentials: String)(implicit mcx: MessagingContext): Task[ValidationResult]= {
