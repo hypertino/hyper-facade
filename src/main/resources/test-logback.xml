@@ -6,10 +6,10 @@
         </encoder>
     </appender>
     <logger name="org.apache.zookeeper">
-        <level value="WARN" />
+        <level value="WARN"/>
     </logger>
     <logger name="org.apache.kafka">
-        <level value="WARN" />
+        <level value="WARN"/>
     </logger>
     <root level="TRACE">
         <appender-ref ref="stdout"/>

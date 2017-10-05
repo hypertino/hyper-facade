@@ -9,7 +9,7 @@ publishTo := {
 }
 
 publishArtifact in Test := false
-pomIncludeRepository := { _ => false}
+pomIncludeRepository := { _ => false }
 
 pomExtra :=
   <url>https://github.com/hypertino/hyperfacade</url>

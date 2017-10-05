@@ -1,13 +1,11 @@
 package com.hypertino.facade.utils
 
-import java.net.{MalformedURLException, URLDecoder}
-import java.security.URIParameter
+import java.net.URLDecoder
 
-import com.hypertino.binders.value.{Null, Obj, Text, Value}
-import com.hypertino.facade.raml.{IndexKey, RamlAnnotation, RamlConfiguration, RewriteIndexHolder}
+import com.hypertino.binders.value.{Null, Obj, Value}
+import com.hypertino.facade.raml.{RamlAnnotation, RamlConfiguration, RewriteIndexHolder}
 import com.hypertino.hyperbus.model.HRL
 import com.hypertino.hyperbus.utils.uri._
-import spray.http.Uri.Path
 
 // todo: refactor this and make it injectable!!!
 object HrlTransformer {
@@ -17,14 +15,16 @@ object HrlTransformer {
 
   def rewriteForwardWithPatterns(hrl: HRL, sourcePattern: HRL, destPattern: HRL): HRL = {
     val flattenHRL = HRL.fromURL(hrl.toURL())
-    ResourcePatternMatcher.matchResource(flattenHRL, sourcePattern.copy(query=Null)).map { matched ⇒
-      val q = {destPattern.query match {
-        case Obj(els) ⇒ Obj(els.map{ kv ⇒
-          kv._1 → flattenPath(kv._2.toString, matched.query)
-        })
+    ResourcePatternMatcher.matchResource(flattenHRL, sourcePattern.copy(query = Null)).map { matched ⇒
+      val q = {
+        destPattern.query match {
+          case Obj(els) ⇒ Obj(els.map { kv ⇒
+            kv._1 → flattenPath(kv._2.toString, matched.query)
+          })
 
-        case _ ⇒ matched.query
-      }}
+          case _ ⇒ matched.query
+        }
+      }
       destPattern.copy(query = q + flattenHRL.query)
     }.getOrElse {
       hrl
@@ -85,7 +85,7 @@ object HrlTransformer {
 
   def rewriteBackWithPatterns(hrl: HRL, sourcePattern: HRL, destinationPattern: HRL): HRL = {
     val flattenHRL = HRL.fromURL(hrl.toURL())
-    ResourcePatternMatcher.matchResource(flattenHRL, sourcePattern.copy(query=Null)).map { matched ⇒
+    ResourcePatternMatcher.matchResource(flattenHRL, sourcePattern.copy(query = Null)).map { matched ⇒
       val destPathTokens = UriPathParser.tokens(destinationPattern.path).toSeq
       val destPathParams = destPathTokens.collect {
         case ParameterToken(str) ⇒ str
@@ -119,7 +119,7 @@ object HrlTransformer {
           }
         }
 
-        destinationPattern.copy(query=destQuery match {
+        destinationPattern.copy(query = destQuery match {
           case Obj(v) if v.isEmpty ⇒ Null
           case other ⇒ other
         })

@@ -6,12 +6,12 @@ import akka.actor.ActorSystem
 import akka.event.Logging._
 import akka.util.Timeout
 import com.hypertino.facade.FacadeConfigPaths
-import com.typesafe.config.Config
-import com.hypertino.service.config.ConfigExtenders._
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.metrics.{MetricsTracker, ProcessMetrics}
 import com.hypertino.metrics.loaders.MetricsReporterLoader
+import com.hypertino.metrics.{MetricsTracker, ProcessMetrics}
+import com.hypertino.service.config.ConfigExtenders._
 import com.hypertino.service.control.api.Service
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import monix.execution.Scheduler
 import scaldi.{Injectable, Injector, TypeTagIdentifier}
@@ -21,8 +21,8 @@ import spray.routing._
 import spray.routing.directives.LogEntry
 
 import scala.collection.JavaConversions._
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
@@ -34,15 +34,15 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
   implicit val actorSystem = inject[ActorSystem]
   implicit val scheduler = inject[Scheduler]
 
-  private val rootConf = inject [Config]
+  private val rootConf = inject[Config]
 
-  val config = inject [Config]
+  val config = inject[Config]
   val restConfig = config.getConfig(FacadeConfigPaths.HTTP)
   val metricsTracker = inject[MetricsTracker]
 
   val shutdownTimeout = config.getFiniteDuration(FacadeConfigPaths.SHUTDOWN_TIMEOUT)
 
-  val hyperBus = inject [Hyperbus]  // it's time to initialize hyperbus
+  val hyperBus = inject[Hyperbus] // it's time to initialize hyperbus
 
   val interface = restConfig.getString("host")
   val port = restConfig.getInt("port")

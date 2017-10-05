@@ -7,12 +7,14 @@ import org.raml.v2.api.model.v10.datamodel.{TypeInstance, TypeInstanceProperty}
 
 trait RamlAnnotation {
   def name: String
+
   def predicate: Option[PreparedExpression]
 }
 
 trait RamlFieldAnnotation extends RamlAnnotation {
   def stages: Set[FieldFilterStage]
 }
+
 // todo: make this injectable !!
 
 object RamlAnnotation {
@@ -53,19 +55,26 @@ object RamlAnnotation {
 
   def apply(name: String, properties: Seq[TypeInstanceProperty]): RamlAnnotation = {
     val propMap = properties.map(property ⇒ property.name() → recursiveProperty(property)).toMap
+
     def propMapString(key: String, defaultValue: String): String = propMap.get(key).map(_.toString).getOrElse(defaultValue)
+
     def predicate = propMap.get("if").map(_.toString)
+
     def predicateExpression = predicate.map(PreparedExpression.apply)
+
     def locationExpression = PreparedExpression(propMap("location").toString)
+
     def queryExpressionMap = propMap.getOrElse("query", Null).toMap.map(kv ⇒ kv._1 → PreparedExpression(kv._2.toString)).toMap
+
     def stages(default: Seq[String]): Set[FieldFilterStage] = propMap.getOrElse("stages", Lst(default.map(Text))).toSeq.map(l ⇒ FieldFilterStage.apply(l.toString)).toSet
+
     def defaultStatuses(default: Int): Set[Int] = propMap.getOrElse("default_statuses", Lst.from(default)).toSeq.map(_.toInt).toSet
 
     name match {
       case DENY ⇒
         DenyAnnotation(predicate = predicateExpression, stages = stages(Seq(FieldFilterStageRequest.stringValue)))
       case REMOVE ⇒
-        RemoveAnnotation(predicate = predicateExpression, stages = stages(Seq(FieldFilterStageResponse.stringValue,FieldFilterStageEvent.stringValue)))
+        RemoveAnnotation(predicate = predicateExpression, stages = stages(Seq(FieldFilterStageResponse.stringValue, FieldFilterStageEvent.stringValue)))
       case SET ⇒
         SetAnnotation(predicate = predicateExpression,
           source = PreparedExpression(propMap("source").toString),
@@ -97,16 +106,16 @@ object RamlAnnotation {
           defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString)))
       case FETCH ⇒
         FetchAnnotation(predicate = predicateExpression,
-            location = locationExpression,
-            query = queryExpressionMap,
-            expects = propMapString("expects", "document"),
-            onError = propMapString("on_error", "fail"),
-            defaultStatuses = defaultStatuses(404),
-            defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString)),
-            stages = stages(Seq(FieldFilterStageResponse.stringValue,FieldFilterStageEvent.stringValue)),
-            selector = propMap.get("selector").map(o ⇒ PreparedExpression(o.toString)),
-            always = propMap.getOrElse("always", False).toBoolean
-          )
+          location = locationExpression,
+          query = queryExpressionMap,
+          expects = propMapString("expects", "document"),
+          onError = propMapString("on_error", "fail"),
+          defaultStatuses = defaultStatuses(404),
+          defaultValue = propMap.get("default").map(o ⇒ PreparedExpression(o.toString)),
+          stages = stages(Seq(FieldFilterStageResponse.stringValue, FieldFilterStageEvent.stringValue)),
+          selector = propMap.get("selector").map(o ⇒ PreparedExpression(o.toString)),
+          always = propMap.getOrElse("always", False).toBoolean
+        )
       case annotationName ⇒
         RegularAnnotation(annotationName, predicateExpression, (propMap - "if").map(kv ⇒ kv._1 → kv._2.toString))
     }
@@ -127,17 +136,23 @@ case class ForwardAnnotation(name: String = RamlAnnotation.FORWARD,
 
 case class ExtractItemAnnotation(name: String = RamlAnnotation.EXTRACT_ITEM,
                                  predicate: Option[PreparedExpression]
-                            ) extends RamlAnnotation
+                                ) extends RamlAnnotation
 
 trait FetchAnnotationBase {
   def name: String
+
   def predicate: Option[PreparedExpression]
+
   def location: PreparedExpression
+
   def query: Map[String, PreparedExpression]
+
   def expects: String //todo: this should be enum
   def onError: String //todo: this should be enum
   def defaultStatuses: Set[Int]
+
   def selector: Option[PreparedExpression]
+
   def defaultValue: Option[PreparedExpression]
 }
 

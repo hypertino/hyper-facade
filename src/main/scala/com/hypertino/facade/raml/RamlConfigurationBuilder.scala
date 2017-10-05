@@ -1,7 +1,6 @@
 package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.chain.SimpleFilterChain
-import com.hypertino.facade.filter.model.RamlFieldFilterFactory
 import com.hypertino.facade.filter.raml.FieldFilterAdapterFactory
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.inflector.naming.CamelCaseToDashCaseConverter
@@ -27,7 +26,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
         val currentRelativeUri = resource.relativeUri().value()
         val resourceData = parseResource(currentRelativeUri, resource, Seq.empty)
         resourcesByUriAcc ++= resourceData
-    }
+      }
     val resourceMapWithFilters = new RamlConfigFiltersInjector(resourcesByUriAcc.result()).withResourceFilters()
     val prefix = if (baseUri.startsWith("http://") || baseUri.startsWith("https://")) {
       ""
@@ -141,7 +140,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
       val ramlContentType = typeName match {
         case Some(name) ⇒ RamlTypeUtils.getTypeDefinition(name, dataTypes) match {
           case Some(typeDef) ⇒
-            val filterChain = if(typeHaveFieldAnnotations(typeDef)) {
+            val filterChain = if (typeHaveFieldAnnotations(typeDef)) {
               inject[FieldFilterAdapterFactory].createFilters(typeDef)
             } else {
               SimpleFilterChain.empty
@@ -181,7 +180,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
   private def contentTypeFromTypeName(typeName: String): String = {
     val s = CamelCaseToDashCaseConverter.convert(typeName)
     if (s.endsWith("[]")) {
-      s.substring(0, s.length-2) + "-collection"
+      s.substring(0, s.length - 2) + "-collection"
     }
     else {
       s

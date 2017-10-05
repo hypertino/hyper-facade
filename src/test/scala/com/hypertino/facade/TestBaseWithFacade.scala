@@ -1,7 +1,7 @@
 package com.hypertino.facade
 
 import com.hypertino.facade.workers.WsTestClientHelper
-import monix.execution.{Cancelable, Scheduler}
+import monix.execution.Cancelable
 import org.asynchttpclient.Response
 
 import scala.concurrent.Await
@@ -39,7 +39,7 @@ abstract class TestBaseWithFacade(
   override def beforeEach(): Unit = {
     super.beforeEach()
     Thread.sleep(500)
-    testObjects = new TestServices(configFileName,ramlConfigFiles,extraModule,true)
+    testObjects = new TestServices(configFileName, ramlConfigFiles, extraModule, true)
   }
 
   override def afterEach(): Unit = {

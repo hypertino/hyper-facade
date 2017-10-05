@@ -5,15 +5,14 @@ import java.io.{StringReader, StringWriter}
 import com.hypertino.binders.value.Text
 import com.hypertino.facade.model.FacadeHeaders
 import com.hypertino.hyperbus.model.headers.PlainHeadersConverter
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, Headers, MessageHeaders, NoContent}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, MessageHeaders, NoContent}
 import com.hypertino.hyperbus.serialization.{JsonContentTypeConverter, MessageReader}
-import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
-import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode}
+import com.hypertino.hyperbus.util.SeqGenerator
 import spray.can.websocket.frame.{Frame, TextFrame}
 import spray.http.HttpCharsets._
 import spray.http.HttpHeaders.RawHeader
 import spray.http.MediaTypes._
-import spray.http._
+import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode, _}
 
 object MessageTransformer {
   def frameToRequest(frame: Frame, remoteAddress: String, httpRequest: HttpRequest): DynamicRequest = {

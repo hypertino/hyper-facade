@@ -49,11 +49,15 @@ case class RamlResourceMethodConfig(method: Method,
                                     methodFilters: SimpleFilterChain)
 
 case class RamlRequests(ramlContentTypes: Map[Option[ContentType], RamlContentTypeConfig])
+
 case class RamlResponses(ramlContentTypes: Map[Option[ContentType], RamlContentTypeConfig])
+
 case class RamlContentTypeConfig(headers: Seq[Header], typeDefinition: TypeDefinition, filterChain: SimpleFilterChain)
 
 case class Traits(commonTraits: Seq[Trait], methodSpecificTraits: Map[Method, Seq[Trait]])
+
 case class Trait(name: String, parameters: Map[String, String])
+
 object Trait {
   def apply(name: String): Trait = {
     Trait(name, Map())

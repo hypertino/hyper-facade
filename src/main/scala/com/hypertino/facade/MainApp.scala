@@ -17,27 +17,31 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 class MainServiceModule extends Module {
-  bind [Service]          identifiedBy 'mainService        to inject[FacadeService]
+  bind[Service] identifiedBy 'mainService to inject[FacadeService]
 }
 
 object MainApp extends App with Injectable with StrictLogging {
   private implicit val injector =
     new ConsoleModule ::
-    new SystemServicesModule ::
-    new MetricsModule ::
-    new FacadeServiceModule ::
-    new MainServiceModule ::
-    new FiltersModule ::
-    new RamlConfigModule ::
-    ConfigModule()
+      new SystemServicesModule ::
+      new MetricsModule ::
+      new FacadeServiceModule ::
+      new MainServiceModule ::
+      new FiltersModule ::
+      new RamlConfigModule ::
+      ConfigModule()
 
   private implicit val scheduler = inject[Scheduler]
 
   inject[ServiceController].run().andThen {
     case _ ⇒
       val timeout = 10.seconds
-      Try{Await.result(inject[Hyperbus].shutdown(timeout).runAsync, timeout + 0.5.seconds)}.recover(logException)
-      Try{Await.result(inject[ActorSystem].terminate(), timeout + 0.5.seconds)}.recover(logException)
+      Try {
+        Await.result(inject[Hyperbus].shutdown(timeout).runAsync, timeout + 0.5.seconds)
+      }.recover(logException)
+      Try {
+        Await.result(inject[ActorSystem].terminate(), timeout + 0.5.seconds)
+      }.recover(logException)
   }
 
   private def logException: PartialFunction[Throwable, Unit] = {

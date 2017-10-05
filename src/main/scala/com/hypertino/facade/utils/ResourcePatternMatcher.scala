@@ -7,7 +7,6 @@ import com.hypertino.binders.value.{Obj, Text}
 import com.hypertino.hyperbus.model.HRL
 import com.hypertino.hyperbus.utils.uri._
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 // todo: this also needs total refactoring

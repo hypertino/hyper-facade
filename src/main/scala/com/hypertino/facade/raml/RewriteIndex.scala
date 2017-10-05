@@ -2,9 +2,6 @@ package com.hypertino.facade.raml
 
 import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.model.HRL
-import com.hypertino.hyperbus.utils.uri.UriPathParser
-
-import scala.collection.immutable.SortedMap
 
 case class IndexKey(hrl: HRL, method: Option[Method])
 

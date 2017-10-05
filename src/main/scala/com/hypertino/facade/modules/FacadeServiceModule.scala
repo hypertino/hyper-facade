@@ -6,7 +6,7 @@ import com.hypertino.facade.workers.HttpWorker
 import scaldi.Module
 
 class FacadeServiceModule extends Module {
-  bind [HttpWorker]             identifiedBy 'httpWorker           to injected[HttpWorker]
-  bind [SubscriptionsManager]   identifiedBy 'subscriptionsManager to injected[SubscriptionsManager]
-  bind [FacadeService]          identifiedBy 'facadeService        to injected[FacadeService]
+  bind[HttpWorker] identifiedBy 'httpWorker to injected[HttpWorker]
+  bind[SubscriptionsManager] identifiedBy 'subscriptionsManager to injected[SubscriptionsManager]
+  bind[FacadeService] identifiedBy 'facadeService to injected[FacadeService]
 }

@@ -2,10 +2,10 @@ package com.hypertino.facade.raml
 
 import com.hypertino.binders.value.Obj
 import com.hypertino.facade.utils.HrlTransformer
-import com.hypertino.facade.{CleanRewriteIndex, TestBase, TestBaseWithHyperbus}
+import com.hypertino.facade.{CleanRewriteIndex, TestBaseWithHyperbus}
 import com.hypertino.hyperbus.model
 import com.hypertino.hyperbus.model.HRL
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.Matchers
 
 class RewriteIndexSpec extends TestBaseWithHyperbus() with CleanRewriteIndex with Matchers {
   "RewriteIndex" should "rewriteLinkToOriginal" in {

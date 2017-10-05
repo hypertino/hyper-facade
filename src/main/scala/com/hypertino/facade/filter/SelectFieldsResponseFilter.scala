@@ -9,6 +9,7 @@ import com.hypertino.hyperbus.model.{DynamicBody, DynamicResponse, StandardRespo
 import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 import monix.execution.Scheduler
+
 import scala.util.control.NonFatal
 
 class SelectFieldsResponseFilter(
@@ -37,6 +38,7 @@ class SelectFieldsResponseFilter(
     }
   }
 }
+
 object SelectFieldsResponseFilter {
   def filterFields(v: Value, selectFields: Map[String, SelectField]): Value = {
     recursiveFilterFields(v, selectFields)
@@ -47,14 +49,14 @@ object SelectFieldsResponseFilter {
       v match {
         case Obj(inner) ⇒ Obj(
           inner.flatMap { case (k, i) ⇒
-              selectFields.get(k).map {
-                sf ⇒ k → recursiveFilterFields(i, sf.children)
-              }.orElse(if(selectFields.contains("*")) {
-                Option(k -> i)
-              } else {
-                None
-              })
+            selectFields.get(k).map {
+              sf ⇒ k → recursiveFilterFields(i, sf.children)
+            }.orElse(if (selectFields.contains("*")) {
+              Option(k -> i)
+            } else {
+              None
             })
+          })
 
         case Lst(inner) ⇒
           Lst(

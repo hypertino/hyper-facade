@@ -55,9 +55,9 @@ object SelectFields {
           expectsEndBrace = true
 
         case '}' ⇒
-//          if (!expectsEndBrace) {
-//            throw new SelectFieldsParseError("'}' was unexpected", selector)
-//          }
+          //          if (!expectsEndBrace) {
+          //            throw new SelectFieldsParseError("'}' was unexpected", selector)
+          //          }
           exit = level > 0
           expectsEndBrace = false
 

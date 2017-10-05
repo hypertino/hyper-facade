@@ -8,11 +8,11 @@ import akka.pattern.pipe
 import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.{ClientSpecificMethod, RequestContext}
-import com.hypertino.facade.raml.Method
-import com.hypertino.facade.utils.{FutureUtils, TaskUtils}
+import com.hypertino.facade.utils.TaskUtils
 import com.hypertino.facade.workers.RequestProcessor
-import com.hypertino.hyperbus.Hyperbus
+import com.hypertino.hyperbus.{Hyperbus, model}
 import com.hypertino.hyperbus.model._
+import com.typesafe.scalalogging.StrictLogging
 import monix.execution
 import monix.execution.Ack
 import monix.execution.Ack.Continue
@@ -21,8 +21,6 @@ import monix.reactive.{Observer, OverflowStrategy}
 import scaldi.Injector
 
 import scala.concurrent.Future
-import com.hypertino.hyperbus.model
-import com.typesafe.scalalogging.StrictLogging
 
 class FeedSubscriptionActor(websocketWorker: ActorRef,
                             hyperbus: Hyperbus,
@@ -169,13 +167,13 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       subscriptionManager.off(self)
       subscriptionManager.subscribe(self, subscriptionUri, correlationId)
       implicit val mvx = MessagingContext(correlationId + self.path.toString) // todo: check what's here
-      val message = cwrRaml.request.copy(
-        headers = MessageHeaders
-          .builder
-          .++=(cwrRaml.request.headers)
-          .withMethod(model.Method.GET)
-          .requestHeaders()
-      )
+    val message = cwrRaml.request.copy(
+      headers = MessageHeaders
+        .builder
+        .++=(cwrRaml.request.headers)
+        .withMethod(model.Method.GET)
+        .requestHeaders()
+    )
 
       hyperbus.ask(message)
     } onErrorRecover {
@@ -208,7 +206,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
     implicit val ec = scheduler
     TaskUtils.chain(resourceState, cwr.stages.map { _ ⇒
-      ramlFilterChain.filterResponse(cwr, _ : DynamicResponse)
+      ramlFilterChain.filterResponse(cwr, _: DynamicResponse)
     }) flatMap { filteredResponse ⇒
       afterFilterChain.filterResponse(cwr, filteredResponse) map { finalResponse ⇒
         websocketWorker ! finalResponse
@@ -237,7 +235,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     logger.trace(s"Processing unreliable event $event for ${cwr.originalHeaders.hrl}")
     implicit val ec = scheduler
     TaskUtils.chain(event, cwr.stages.map { _ ⇒
-      ramlFilterChain.filterEvent(cwr, _ : DynamicRequest)
+      ramlFilterChain.filterEvent(cwr, _: DynamicRequest)
     }) flatMap { e ⇒
       afterFilterChain.filterEvent(cwr, e) map { filteredRequest ⇒
         websocketWorker ! filteredRequest
@@ -261,13 +259,12 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
           subscriber.onNext(event)
           context.become(subscribedReliable(cwr, lastRevisionId + 1, 0, subscriber) orElse stopStartSubscription)
         }
-        else
-        if (revisionId > lastRevisionId + 1) {
+        else if (revisionId > lastRevisionId + 1) {
           // we lost some events, start from the beginning
           self ! RestartSubscription
           logger.info(s"Subscription on ${cwr.originalHeaders.hrl} lost events from $lastRevisionId to $revisionId. Restarting...")
         }
-        // if revisionId <= lastRevisionId -- just ignore this event
+      // if revisionId <= lastRevisionId -- just ignore this event
 
       case _ ⇒
         logger.error(s"Received event: $event without revisionId for reliable feed: ${cwr.originalHeaders.hrl}")
@@ -337,7 +334,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
       override def onError(ex: Throwable): Unit = {
         ex match {
-          case _ : BufferOverflowException ⇒
+          case _: BufferOverflowException ⇒
             logger.error(s"Backpressure overflow. Restarting...")
             self ! RestartSubscription
 
@@ -353,10 +350,15 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 }
 
 case class BecomeReliable(lastRevision: Long)
+
 case object BecomeUnreliable
+
 case object RestartSubscription
+
 case class BeforeFilterComplete(cwr: RequestContext)
+
 case class StashedEvent(event: DynamicRequest)
+
 case object UnstashingCompleted
 
 object FeedSubscriptionActor {

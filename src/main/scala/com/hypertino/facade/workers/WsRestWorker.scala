@@ -26,9 +26,9 @@ class WsRestWorker(val serverConnection: ActorRef,
                    clientAddress: String)
                   (implicit inj: Injector)
   extends HttpServiceActor
-  with websocket.WebSocketServerWorker
-  with StrictLogging
-  with Injectable {
+    with websocket.WebSocketServerWorker
+    with StrictLogging
+    with Injectable {
 
   val metricsTrcker = inject[MetricsTracker]
   val trackWsTimeToLive = metricsTrcker.timer(MetricKeys.WS_LIFE_TIME).time()
@@ -51,6 +51,7 @@ class WsRestWorker(val serverConnection: ActorRef,
     super.postStop()
     trackWsTimeToLive.stop()
   }
+
   // order is really important, watchConnection should be before httpRequests, otherwise there is a memory leak
   override def receive = watchConnection orElse businessLogic orElse httpRequests
 
@@ -114,7 +115,7 @@ class WsRestWorker(val serverConnection: ActorRef,
     case x: FrameCommandFailed =>
       log.error(s"Frame command $x failed from ${sender()}/$remoteAddress")
 
-    case message: DynamicMessage @unchecked ⇒
+    case message: DynamicMessage@unchecked ⇒
       send(message)
   }
 

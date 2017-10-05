@@ -19,13 +19,13 @@ import scala.concurrent.Future
 
 class WsRestServiceApp(implicit inj: Injector)
   extends RestServiceApp
-  with Injectable {
+    with Injectable {
 
   private val trackActiveConnections = metricsTracker.counter(MetricKeys.ACTIVE_CONNECTIONS)
   private val rejectedConnectionsMeter = metricsTracker.meter(MetricKeys.REJECTED_CONNECTS)
 
-  val hyperbus = inject [Hyperbus]
-  val subscriptionsManager = inject [SubscriptionsManager]
+  val hyperbus = inject[Hyperbus]
+  val subscriptionsManager = inject[SubscriptionsManager]
 
   override def startServer(interface: String,
                            port: Int,

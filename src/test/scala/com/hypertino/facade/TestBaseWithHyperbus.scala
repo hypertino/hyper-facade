@@ -2,15 +2,13 @@ package com.hypertino.facade
 
 import com.hypertino.facade.workers.WsTestClientHelper
 import monix.execution.Cancelable
-import org.asynchttpclient.Response
 import org.scalatest.BeforeAndAfterAll
-
-import scala.concurrent.Await
 
 abstract class TestBaseWithHyperbus(val configFileName: String = "inproc-test.conf",
                                     val ramlConfigFiles: Seq[String] = Seq("simple.raml")) extends TestBase with WsTestClientHelper with BeforeAndAfterAll {
 
-  protected val testServices = new TestServices(configFileName,ramlConfigFiles,extraModule,false)
+  protected val testServices = new TestServices(configFileName, ramlConfigFiles, extraModule, false)
+
   import testServices._
 
   override def beforeEach(): Unit = {

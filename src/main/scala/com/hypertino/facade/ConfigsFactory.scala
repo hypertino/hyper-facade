@@ -2,8 +2,8 @@ package com.hypertino.facade
 
 import java.io.{File, FileNotFoundException}
 
-import com.typesafe.config.Config
 import com.hypertino.facade.raml.{RamlConfigException, RamlConfiguration, RamlConfigurationBuilder}
+import com.typesafe.config.Config
 import org.raml.v2.api.RamlModelBuilder
 import scaldi.Injector
 
@@ -24,7 +24,7 @@ object ConfigsFactory {
         throw new RamlConfigException(buildApi.getValidationResults.asScala.mkString("\n"))
       }
       RamlConfigurationBuilder(api).build
-    }.foldLeft(RamlConfiguration("", Map.empty, Map.empty)){ (set: RamlConfiguration, i: RamlConfiguration) ⇒
+    }.foldLeft(RamlConfiguration("", Map.empty, Map.empty)) { (set: RamlConfiguration, i: RamlConfiguration) ⇒
       // todo: don't merge RAML configs !!!!
       RamlConfiguration(mergeBaseUri(set.baseUri, i.baseUri), set.resourcesByPattern ++ i.resourcesByPattern, set.dataTypes ++ i.dataTypes)
     }

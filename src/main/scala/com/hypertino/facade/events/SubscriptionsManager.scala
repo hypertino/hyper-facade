@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import akka.actor.{Actor, ActorRef, ActorSystem, Props, Terminated}
 import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{DynamicRequest, DynamicRequestObservableMeta, HRL, Header, HeaderHRL, Headers, MessageHeaders}
+import com.hypertino.hyperbus.model.{DynamicRequest, DynamicRequestObservableMeta, HRL, Header, HeaderHRL, MessageHeaders}
 import com.hypertino.hyperbus.transport.api.matchers.{RegexMatcher, RequestMatcher, Specific}
 import com.typesafe.scalalogging.StrictLogging
 import monix.execution.Ack.Continue
@@ -13,9 +13,9 @@ import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.observers.Subscriber
 import scaldi.{Injectable, Injector}
 
+import scala.collection.JavaConversions._
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.Future
-import scala.collection.JavaConversions._
 
 class SubscriptionsManager(implicit inj: Injector) extends Injectable with StrictLogging {
 
@@ -26,12 +26,14 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable with Stric
 
   def subscribe(clientActorRef: ActorRef, uri: HRL, correlationId: String): Unit =
     subscriptionManager.subscribe(clientActorRef, uri, correlationId)
+
   def off(clientActorRef: ActorRef) = subscriptionManager.off(clientActorRef)
+
   private val subscriptionManager = new Manager
 
   class Manager {
     val groupName = hyperbus.defaultGroupName
-    val groupSubscriptions = scala.collection.mutable.Map[HRL,GroupSubscription]()
+    val groupSubscriptions = scala.collection.mutable.Map[HRL, GroupSubscription]()
     val groupSubscriptionById = TrieMap[ActorRef, HRL]()
 
     case class ClientSubscriptionData(clientActorRef: ActorRef, hrl: HRL, correlationId: String)
@@ -87,6 +89,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable with Stric
 
 
       def addClient(subscription: ClientSubscriptionData) = clientSubscriptions.add(subscription)
+
       def removeClient(clientActorRef: ActorRef): Boolean = {
         import scala.collection.JavaConversions._
         for (consumer: ClientSubscriptionData ← clientSubscriptions) {
@@ -133,6 +136,7 @@ class SubscriptionsManager(implicit inj: Injector) extends Injectable with Stric
       }
     }
   }
+
 }
 
 case class NewSubscriber(actorRef: ActorRef)

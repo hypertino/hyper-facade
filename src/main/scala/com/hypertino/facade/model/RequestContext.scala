@@ -17,17 +17,18 @@ case class RequestContext(request: DynamicRequest,
   def withNextStage(newRequest: DynamicRequest, ramlEntryHeaders: Option[RequestHeaders] = None): RequestContext = copy(
     stages = Seq(request.headers) ++ stages,
     request = newRequest,
-    ramlEntryHeaders=this.ramlEntryHeaders.orElse(ramlEntryHeaders)
+    ramlEntryHeaders = this.ramlEntryHeaders.orElse(ramlEntryHeaders)
   )
 
   override def correlationId: String = request.correlationId
+
   override def parentId: Option[String] = request.parentId
 }
 
 object RequestContext {
   def apply(request: DynamicRequest): RequestContext = RequestContext(
     request,
-    stages=Seq.empty,
-    contextStorage=Obj.empty
+    stages = Seq.empty,
+    contextStorage = Obj.empty
   ).withNextStage(request)
 }

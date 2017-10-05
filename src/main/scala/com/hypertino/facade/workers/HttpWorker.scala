@@ -3,7 +3,6 @@ package com.hypertino.facade.workers
 import akka.actor.ActorSystem
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.utils.MessageTransformer
-import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 import monix.execution.Scheduler
 import scaldi.Injector
@@ -11,11 +10,9 @@ import spray.http._
 import spray.routing.Directives._
 import spray.routing._
 
-import scala.concurrent.Future
-
 class HttpWorker(implicit val injector: Injector) extends RequestProcessor {
   implicit val actorSystem = inject[ActorSystem]
-  implicit val scheduler = inject[Scheduler]
+  implicit val scheduler: Scheduler = inject[Scheduler]
   val trackHeartbeat = metrics.meter(MetricKeys.HEARTBEAT)
 
   val restRoutes = new RestRoutes {

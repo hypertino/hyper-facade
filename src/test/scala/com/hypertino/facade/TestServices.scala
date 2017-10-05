@@ -5,7 +5,7 @@ import com.hypertino.facade.modules.{FacadeServiceModule, FiltersModule, RamlCon
 import com.hypertino.facade.raml.{RamlConfiguration, RewriteIndexHolder}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.metrics.modules.MetricsModule
-import com.hypertino.service.config.{ConfigLoader, ConfigModule}
+import com.hypertino.service.config.ConfigLoader
 import com.typesafe.config.{Config, ConfigValueFactory}
 import monix.eval.Task
 import monix.execution.{Cancelable, Scheduler}
@@ -15,7 +15,7 @@ import scaldi.{Injectable, Injector, Module}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class TestServices(configFileName: String, val ramlConfigFiles: Seq[String], extraModule: Injector,initHttpFacade: Boolean)
+class TestServices(configFileName: String, val ramlConfigFiles: Seq[String], extraModule: Injector, initHttpFacade: Boolean)
                   (protected implicit val scheduler: Scheduler, protected val timeout: akka.util.Timeout)
   extends AutoCloseable with Injectable {
   System.setProperty(FacadeConfigPaths.RAML_FILES, ramlConfigFiles.map(
@@ -25,7 +25,7 @@ class TestServices(configFileName: String, val ramlConfigFiles: Seq[String], ext
   val fullConfigPath = "./src/test/resources/" + configFileName
   implicit val injector = extraModule :: new FiltersModule :: new MetricsModule ::
     new SystemServicesModule :: new FacadeServiceModule :: new RamlConfigModule ::
-    new TestConfigModule(httpPort, configFiles=Seq(fullConfigPath), failIfConfigNotFound = true, loadDefaults = true)
+    new TestConfigModule(httpPort, configFiles = Seq(fullConfigPath), failIfConfigNotFound = true, loadDefaults = true)
 
   injector.initNonLazy()
 
@@ -61,7 +61,7 @@ class TestServices(configFileName: String, val ramlConfigFiles: Seq[String], ext
 class TestConfigModule(port: Integer,
                        configFiles: Seq[String],
                        failIfConfigNotFound: Boolean,
-                       loadDefaults: Boolean)  extends Module {
+                       loadDefaults: Boolean) extends Module {
   val rootConfig = ConfigLoader(configFiles, failIfConfigNotFound, loadDefaults).withValue("hyperfacade.http-transport.port", ConfigValueFactory.fromAnyRef(port))
   bind[Config] identifiedBy 'config toNonLazy rootConfig
 }

@@ -9,6 +9,7 @@ import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import scaldi._
+
 import scala.concurrent.duration._
 import scala.util.Try
 

@@ -6,7 +6,7 @@ import com.hypertino.facade.filter.chain.FilterChain
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
-import com.hypertino.facade.utils.{FutureUtils, MetricUtils, TaskUtils}
+import com.hypertino.facade.utils.{MetricUtils, TaskUtils}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.transport.api.NoTransportRouteException
@@ -18,12 +18,13 @@ import monix.eval.Task
 import monix.execution.Scheduler
 import scaldi.{Injectable, Injector}
 
-import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 trait RequestProcessor extends Injectable with StrictLogging {
   implicit def injector: Injector
+
   implicit def scheduler: Scheduler
+
   val hyperbus = inject[Hyperbus]
   val ramlConfig = inject[RamlConfiguration]
   val beforeFilterChain = inject[FilterChain]("beforeFilterChain")
@@ -82,7 +83,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
 
   def prepareContextAndRequestBeforeRaml(cwr: RequestContext) = {
     val facadeRequestWithRamlUri = withRamlResource(cwr.request)
-    cwr.withNextStage(facadeRequestWithRamlUri, ramlEntryHeaders=Some(facadeRequestWithRamlUri.headers))
+    cwr.withNextStage(facadeRequestWithRamlUri, ramlEntryHeaders = Some(facadeRequestWithRamlUri.headers))
   }
 
   def withRamlResource(implicit request: DynamicRequest): DynamicRequest = {
@@ -103,8 +104,8 @@ trait RequestProcessor extends Injectable with StrictLogging {
     request.copy(headers = RequestHeaders(newHeaders))
   }
 
-  def handleHyperbusExceptions(cwr: RequestContext) : PartialFunction[Throwable, DynamicResponse] = {
-    case hyperbusError: ErrorResponseBase @unchecked ⇒
+  def handleHyperbusExceptions(cwr: RequestContext): PartialFunction[Throwable, DynamicResponse] = {
+    case hyperbusError: ErrorResponseBase@unchecked ⇒
       logger.debug("Hyperbus error", hyperbusError)
       hyperbusError
 
@@ -124,7 +125,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
       handleInternalError(nonFatal, cwr)
   }
 
-  def handleFilterExceptions[T](cwr: RequestContext)(func: DynamicResponse ⇒ T) : PartialFunction[Throwable, T] = {
+  def handleFilterExceptions[T](cwr: RequestContext)(func: DynamicResponse ⇒ T): PartialFunction[Throwable, T] = {
     case e: FilterInterruptException ⇒
       if (e.getCause != null) {
         logger.error(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
