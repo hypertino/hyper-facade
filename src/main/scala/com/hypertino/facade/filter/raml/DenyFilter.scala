@@ -7,8 +7,6 @@ import com.hypertino.hyperbus.model.{ErrorBody, Forbidden}
 import monix.eval.Task
 import monix.execution.Scheduler
 
-import scala.concurrent.{ExecutionContext, Future}
-
 class DenyRequestFilter(protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
   override def apply(requestContext: RequestContext)

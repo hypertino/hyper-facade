@@ -6,12 +6,10 @@ import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvalua
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.SetAnnotation
 import com.hypertino.facade.utils.RequestUtils
-import com.hypertino.hyperbus.model.{HRL, Headers, MessageHeaders}
+import com.hypertino.hyperbus.model.{HRL, MessageHeaders}
 import com.hypertino.parser.{HParser, ast}
 import monix.eval.Task
 import monix.execution.Scheduler
-
-import scala.concurrent.{ExecutionContext, Future}
 
 class SetRequestFilter(set: SetAnnotation,
                        protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {

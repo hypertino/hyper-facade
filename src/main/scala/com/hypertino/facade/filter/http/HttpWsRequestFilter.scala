@@ -4,23 +4,16 @@ import java.net.MalformedURLException
 
 import com.hypertino.facade.FacadeConfigPaths
 import com.typesafe.config.Config
-import com.hypertino.binders.value.{Null, Text}
+import com.hypertino.binders.value.Text
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
-import com.hypertino.facade.utils.FunctionUtils.chain
-import com.hypertino.facade.utils.HrlTransformer._
 import com.hypertino.hyperbus.model._
-import com.hypertino.hyperbus.model.hrl.PlainQueryConverter
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
-import com.hypertino.hyperbus.transport.api.matchers.Specific
-import com.hypertino.hyperbus.util.{IdGenerator, SeqGenerator}
+import com.hypertino.hyperbus.util.SeqGenerator
 import monix.eval.Task
 import monix.execution.Scheduler
-import scaldi.Injector
-
-import scala.concurrent.{ExecutionContext, Future}
 
 class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
                           protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {

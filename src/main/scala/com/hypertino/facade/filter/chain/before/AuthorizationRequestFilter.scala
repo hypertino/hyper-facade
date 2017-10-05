@@ -12,8 +12,6 @@ import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 import monix.execution.Scheduler
 
-import scala.concurrent.{ExecutionContext, Future}
-
 private[before] case class TaskResult(headerName: String, headerValue: Value, contextValue: Value)
 
 class AuthorizationRequestFilter(hyperbus: Hyperbus,

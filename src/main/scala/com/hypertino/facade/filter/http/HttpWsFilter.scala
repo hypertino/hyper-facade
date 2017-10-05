@@ -12,8 +12,6 @@ import com.typesafe.config.Config
 import monix.eval.Task
 import monix.execution.Scheduler
 
-import scala.concurrent.{ExecutionContext, Future}
-
 class HttpWsResponseFilter(config: Config,
                            protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter {
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)

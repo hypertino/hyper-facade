@@ -8,8 +8,6 @@ import com.hypertino.hyperbus.model.{DynamicRequest, HRL}
 import monix.eval.Task
 import monix.execution.Scheduler
 
-import scala.concurrent.{ExecutionContext, Future}
-
 class RewriteRequestFilter(sourceHRL: HRL, destinationHRL: HRL, protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
   override def apply(requestContext: RequestContext)

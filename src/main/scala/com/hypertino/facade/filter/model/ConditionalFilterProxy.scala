@@ -1,6 +1,6 @@
 package com.hypertino.facade.filter.model
 
-import com.hypertino.binders.value.{Null, Obj}
+import com.hypertino.binders.value.Obj
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlAnnotation
@@ -8,7 +8,6 @@ import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 import monix.eval.Task
 import monix.execution.Scheduler
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 case class ConditionalRequestFilterProxy(annotation: RamlAnnotation, filter: RequestFilter,

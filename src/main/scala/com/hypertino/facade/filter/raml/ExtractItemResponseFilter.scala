@@ -8,8 +8,6 @@ import com.hypertino.hyperbus.model.{DynamicBody, DynamicResponse, ErrorBody, In
 import monix.eval.Task
 import monix.execution.Scheduler
 
-import scala.concurrent.{ExecutionContext, Future}
-
 class ExtractItemResponseFilter(protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter {
 
   override def apply(requestContext: RequestContext, response: DynamicResponse)

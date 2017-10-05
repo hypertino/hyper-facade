@@ -1,6 +1,6 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Lst, Null, Obj, Value}
+import com.hypertino.binders.value.{Lst, Obj, Value}
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model._
@@ -10,7 +10,6 @@ import com.hypertino.hyperbus.model.HRL
 import monix.eval.Task
 import monix.execution.Scheduler
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class ContextFetchRequestFilter(protected val annotation: ContextFetchAnnotation,

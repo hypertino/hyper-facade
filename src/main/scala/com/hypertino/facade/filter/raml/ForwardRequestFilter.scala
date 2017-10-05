@@ -1,15 +1,13 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Null, Obj}
+import com.hypertino.binders.value.Obj
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext, PreparedExpression}
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.{HrlTransformer, RequestUtils}
-import com.hypertino.hyperbus.model.{DynamicRequest, HRL, Headers}
+import com.hypertino.hyperbus.model.HRL
 import monix.eval.Task
 import monix.execution.Scheduler
-
-import scala.concurrent.{ExecutionContext, Future}
 
 class ForwardRequestFilter(sourceHRL: HRL,
                            locationExpression: PreparedExpression,

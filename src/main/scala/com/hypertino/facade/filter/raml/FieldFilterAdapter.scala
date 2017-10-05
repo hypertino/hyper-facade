@@ -11,8 +11,6 @@ import monix.eval.Task
 import monix.execution.Scheduler
 import scaldi.{Injectable, Injector}
 
-import scala.concurrent.{ExecutionContext, Future}
-
 class RequestFieldFilterAdapter(val typeDef: TypeDefinition,
                                 protected val expressionEvaluator: ExpressionEvaluator,
                                 protected implicit val injector: Injector,
