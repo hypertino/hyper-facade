@@ -93,6 +93,18 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
       .filter shouldBe a[RewriteRequestFilter]
   }
 
+  it should "have multiple filters defined as list" in {
+    val ma = originalRamlConfig
+      .resourcesByPattern("/multiple-annotations")
+      .annotations
+
+    ma.size shouldBe 4
+    ma(0) shouldBe a[RewriteAnnotation]
+    ma(1) shouldBe a[RewriteAnnotation]
+    ma(2) shouldBe a[DenyAnnotation]
+    ma(3) shouldBe a[DenyAnnotation]
+  }
+
   //
   //  "response filters" in {
   //    val usersFilterChain = ramlConfig.resourcesByUri("/status").methods(Method(GET)).responses(200).ramlContentTypes(None).filters

@@ -189,21 +189,43 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     }
   }
 
-  private def extractRamlAnnotations(annotable: Annotable): Seq[RamlAnnotation] = {
-    annotable.annotations.map { annotation ⇒
+  private def extractRamlAnnotationsWith[T <: RamlAnnotation](annotable: Annotable, injector: (String, Value) => T): Seq[T] = {
+    annotable.annotations.flatMap { annotation ⇒
       val name = annotation.annotation().name()
-      val filterFactory = inject[RamlFilterFactory](name)
-      filterFactory.createRamlAnnotation(name, typeInstanceToValue(annotation.structuredValue()))
+      val v = typeInstanceToValue(annotation.structuredValue())
+      if (name == "apply") {
+        v match {
+          case Obj(items) if items.size == 1 && items.head._1.endsWith(".apply)") && items.head._2.isInstanceOf[Lst] =>
+            val lst = items.head._2.asInstanceOf[Lst]
+            lst.v.map {
+              case Obj(li) if li.size == 1 =>
+                injector(li.head._1, li.head._2)
+
+              case li => throw RamlConfigException(s"Unexpected 'apply' annotation item: $li")
+            }
+          case other =>
+            throw RamlConfigException(s"Unexpected 'apply' annotation arguments: $other")
+        }
+      }
+      else {
+        Seq(injector(name, v))
+      }
     }
   }
 
-  private def extractRamlFieldAnnotations(annotable: Annotable): Seq[RamlFieldAnnotation] = {
-    annotable.annotations.map { annotation ⇒
-      val name = annotation.annotation().name()
-      val filterFactory = inject[RamlFieldFilterFactory](name + "_field")
-      filterFactory.createRamlAnnotation(name, typeInstanceToValue(annotation.structuredValue()))
+  private def extractRamlAnnotations(annotable: Annotable): Seq[RamlAnnotation] = extractRamlAnnotationsWith[RamlAnnotation](
+    annotable, (name, value) => {
+      val filterFactory = inject[RamlFilterFactory](name)
+      filterFactory.createRamlAnnotation(name, value)
     }
-  }
+  )
+
+  private def extractRamlFieldAnnotations(annotable: Annotable): Seq[RamlFieldAnnotation] = extractRamlAnnotationsWith[RamlFieldAnnotation](
+    annotable, (name, value) => {
+      val filterFactory = inject[RamlFieldFilterFactory](name + "_field")
+      filterFactory.createRamlAnnotation(name, value)
+    }
+  )
 
   import scala.collection.JavaConverters._
 
