@@ -1,12 +1,12 @@
 package com.hypertino.facade.filter.raml
 
-import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
+import com.hypertino.binders.value.{Null, Value}
 import com.hypertino.facade.filter.model._
-import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
-import com.hypertino.facade.raml.{FetchAnnotation, RamlAnnotation, RamlConfiguration, RamlFieldAnnotation}
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
+import com.hypertino.facade.raml.{RamlAnnotation, RamlConfiguration, RamlFieldAnnotation}
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, HyperbusError, MessagingContext, Method, NotFound, Ok}
+import com.hypertino.hyperbus.model.HRL
 import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 import monix.execution.Scheduler
@@ -16,7 +16,23 @@ import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-class FetchFieldFilter(protected val annotation: FetchAnnotation,
+case class FetchFieldAnnotation(
+                                 predicate: Option[PreparedExpression],
+                                 location: PreparedExpression,
+                                 query: Map[String, PreparedExpression],
+                                 expects: String, //todo: this should be enum
+                                 onError: String, //todo: this should be enum
+                                 defaultStatuses: Set[Int],
+                                 default: Option[PreparedExpression],
+                                 stages: Set[FieldFilterStage],
+                                 selector: Option[PreparedExpression],
+                                 always: Boolean
+                          ) extends RamlFieldAnnotation with FetchAnnotationBase {
+  def name: String = "fetch"
+}
+
+
+class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
                        protected val hyperbus: Hyperbus,
                        protected val expressionEvaluator: ExpressionEvaluator,
                        protected implicit val injector: Injector,
@@ -91,7 +107,14 @@ class FetchFieldFilterFactory(hyperbus: Hyperbus,
                               protected implicit val injector: Injector,
                               protected implicit val scheduler: Scheduler) extends RamlFieldFilterFactory {
   def createFieldFilter(fieldName: String, typeName: String, annotation: RamlFieldAnnotation): FieldFilter = {
-    new FetchFieldFilter(annotation.asInstanceOf[FetchAnnotation], hyperbus, predicateEvaluator, injector, scheduler)
+    new FetchFieldFilter(annotation.asInstanceOf[FetchFieldAnnotation], hyperbus, predicateEvaluator, injector, scheduler)
+  }
+
+  override def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation = {
+    import com.hypertino.hyperbus.serialization.SerializationOptions._
+    import FieldFilterStage._
+    import PreparedExpression._
+    value.to[FetchFieldAnnotation]
   }
 }
 

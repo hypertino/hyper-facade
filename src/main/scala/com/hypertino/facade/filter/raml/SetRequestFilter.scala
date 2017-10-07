@@ -4,7 +4,6 @@ import com.hypertino.binders.value.{Null, Obj, Value}
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model._
-import com.hypertino.facade.raml.SetAnnotation
 import com.hypertino.facade.utils.RequestUtils
 import com.hypertino.hyperbus.model.{HRL, MessageHeaders}
 import com.hypertino.parser.{HParser, ast}

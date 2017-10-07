@@ -43,9 +43,9 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
 
     fa.size shouldBe 2
     fa.head.fieldName shouldBe "clientIp"
-    fa.head.annotations.map(_.annotation).head shouldBe a[SetAnnotation]
+    fa.head.annotations.map(_.annotation).head shouldBe a[SetFieldAnnotation]
     fa.head.annotations.map(_.filter).head shouldBe a[SetFieldFilter]
-    fa(1).annotations.map(_.annotation).head shouldBe a[RemoveAnnotation]
+    fa(1).annotations.map(_.annotation).head shouldBe a[RemoveFieldAnnotation]
     fa(1).annotations.map(_.filter).head shouldBe RemoveFieldFilter
 
     statusServiceFilterChain
@@ -76,7 +76,7 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
 
     fa.size shouldBe 1
     fa.head.fieldName shouldBe "password"
-    fa(0).annotations.map(_.annotation).head shouldBe a[RemoveAnnotation]
+    fa(0).annotations.map(_.annotation).head shouldBe a[RemoveFieldAnnotation]
     fa(0).annotations.map(_.filter).head shouldBe RemoveFieldFilter
 
     rffa.typeDef.fields.keySet should contain("inner")

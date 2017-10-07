@@ -4,7 +4,6 @@ import com.hypertino.binders.value.{Lst, Obj, Value}
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model._
-import com.hypertino.facade.raml.ContextFetchAnnotation
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.HRL
 import monix.eval.Task

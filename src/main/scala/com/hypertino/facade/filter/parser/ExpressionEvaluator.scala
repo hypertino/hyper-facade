@@ -1,5 +1,6 @@
 package com.hypertino.facade.filter.parser
 
+import com.hypertino.binders.core.ImplicitDeserializer
 import com.hypertino.binders.value.{Obj, _}
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.model.{ErrorBody, InternalServerError}
@@ -44,6 +45,10 @@ case class ExpressionEvaluatorContext(requestContext: RequestContext, extraConte
 
 object PreparedExpression {
   def apply(source: String): PreparedExpression = PreparedExpression(source, HParser(source))
+
+  implicit object PreparedExpressionDeserializer extends ImplicitDeserializer[PreparedExpression, ValueDeserializer[_]] {
+    override def read(deserializer: ValueDeserializer[_]): PreparedExpression = PreparedExpression(deserializer.readString())
+  }
 }
 
 trait ExpressionEvaluator extends StrictLogging {

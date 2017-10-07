@@ -147,7 +147,7 @@ object HrlTransformer {
       ramlConfig.resourcesByPattern.get(from.location)
     val rewriteAllowed = resourceConfigOpt match {
       case Some(resourceConfig) ⇒
-        resourceConfig.annotations.exists(_.name == RamlAnnotation.REWRITE)
+        resourceConfig.annotations.exists(_.name == "rewrite")
       case None ⇒
         true
     }

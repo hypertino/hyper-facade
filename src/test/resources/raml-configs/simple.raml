@@ -60,3 +60,18 @@ types:
     location: hb://test-service-with-args/{path}
     query:
       path: def/{some_id}
+
+#/multiple-annotations:
+#  (facade.apply):
+#    - rewrite:
+#        location: hb://1
+#        if: "false"
+#    - rewrite:
+#        location: hb://2
+#        if: "true"
+#    - deny:
+#        if: "true"
+#    - deny:
+#        if: "false"
+
+

@@ -28,7 +28,6 @@ object MainApp extends App with Injectable with StrictLogging {
       new FacadeServiceModule ::
       new MainServiceModule ::
       new FiltersModule ::
-      new RamlConfigModule ::
       ConfigModule()
 
   private implicit val scheduler = inject[Scheduler]

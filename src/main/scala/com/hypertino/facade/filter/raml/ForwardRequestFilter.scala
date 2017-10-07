@@ -10,8 +10,8 @@ import monix.eval.Task
 import monix.execution.Scheduler
 
 class ForwardRequestFilter(sourceHRL: HRL,
-                           locationExpression: PreparedExpression,
-                           queryExpressionMap: Map[String, PreparedExpression],
+                           location: PreparedExpression,
+                           query: Map[String, PreparedExpression],
                            method: Option[PreparedExpression],
                            protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
@@ -20,11 +20,11 @@ class ForwardRequestFilter(sourceHRL: HRL,
     Task.now {
       val request = requestContext.request
       val ctx = ExpressionEvaluatorContext(requestContext, Obj.empty)
-      val location = expressionEvaluator.evaluate(ctx, locationExpression).toString
-      val query = queryExpressionMap.map { kv ⇒
+      val locationEvaluated = expressionEvaluator.evaluate(ctx, location).toString
+      val queryEvaluated = query.map { kv ⇒
         kv._1 → expressionEvaluator.evaluate(ctx, kv._2)
       }
-      val destinationHRL = HRL(location, query)
+      val destinationHRL = HRL(locationEvaluated, queryEvaluated)
       val destinationMethod = method.map(expressionEvaluator.evaluate(ctx, _).toString)
 
       // todo: should we preserve all query fields???

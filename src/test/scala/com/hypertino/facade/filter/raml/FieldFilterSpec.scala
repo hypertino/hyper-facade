@@ -71,7 +71,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
   def rf(name: String, stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        RemoveAnnotation(predicate=None,stages=stages),
+        RemoveFieldAnnotation(predicate=None,stages=stages),
         name,
         "string"
       )
@@ -81,7 +81,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
   def df(name: String, stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        DenyAnnotation(predicate=None,stages=stages),
+        DenyFieldAnnotation(predicate=None,stages=stages),
         name,
         "string"
       )
@@ -97,14 +97,14 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
          defaultValue: Option[String] = None, stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent), selector: Option[String] = None, always: Boolean=false) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        FetchAnnotation(predicate=None,
+        FetchFieldAnnotation(predicate=None,
           location=PreparedExpression(source),
           query=query.map(kv ⇒ kv._1 → PreparedExpression(kv._2)),
           expects=expects,
           onError=onError,
           defaultStatuses=defaultStatuses,
           selector=selector.map(PreparedExpression(_)),
-          defaultValue=defaultValue.map(PreparedExpression(_)),stages=stages,always=always),
+          default=defaultValue.map(PreparedExpression(_)),stages=stages,always=always),
         name,
         "string"
       )
@@ -117,7 +117,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
 
     Map(name → Field(name, t, Seq(
       new FieldAnnotationWithFilter(
-        SetAnnotation(predicate=None,source=pp,stages=stages,target=None),
+        SetFieldAnnotation(predicate=None,source=pp,stages=stages),
         name,
         t
       )
