@@ -6,7 +6,7 @@ import com.hypertino.facade.utils.ResourcePatternMatcher
 import com.hypertino.hyperbus.model.HRL
 import scaldi.{Injectable, Injector}
 
-case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, ResourceConfig], dataTypes: Map[String, TypeDefinition]) {
+case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, RamlResource], dataTypes: Map[String, TypeDefinition]) {
   val resourcePatternHRLs = resourcesByPattern.keySet.map(HRL(_))
 
   def traitNames(uriPattern: String, method: String): Seq[String] = {
@@ -23,7 +23,7 @@ case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, Re
     )
   }
 
-  private def traits(uriPattern: String, method: String): Seq[Trait] = {
+  private def traits(uriPattern: String, method: String): Seq[RamlTrait] = {
     resourcesByPattern.get(uriPattern) match {
       case Some(configuration) ⇒
         val traits = configuration.traits
@@ -35,18 +35,20 @@ case class RamlConfiguration(baseUri: String, resourcesByPattern: Map[String, Re
   def getTypeDefinition(fieldType: String): Option[TypeDefinition] = RamlTypeUtils.getTypeDefinition(fieldType, dataTypes)
 }
 
-case class ResourceConfig(
-                           traits: Traits,
-                           annotations: Seq[RamlAnnotation],
-                           methods: Map[Method, RamlResourceMethodConfig],
-                           filters: SimpleFilterChain
+case class RamlResource(
+                         traits: RamlTraits,
+                         annotations: Seq[RamlAnnotation],
+                         methods: Map[Method, RamlResourceMethod],
+                         filters: SimpleFilterChain
                          )
 
-case class RamlResourceMethodConfig(method: Method,
-                                    annotations: Seq[RamlAnnotation],
-                                    requests: RamlRequests,
-                                    responses: Map[Int, RamlResponses],
-                                    methodFilters: SimpleFilterChain)
+case class RamlResourceMethod(method: Method,
+                              annotations: Seq[RamlAnnotation],
+                              requests: RamlRequests,
+                              responses: Map[Int, RamlResponses],
+                              methodFilters: SimpleFilterChain,
+                              queryParameters: Map[String, Field]
+                             )
 
 case class RamlRequests(ramlContentTypes: Map[Option[ContentType], RamlContentTypeConfig])
 
@@ -54,13 +56,13 @@ case class RamlResponses(ramlContentTypes: Map[Option[ContentType], RamlContentT
 
 case class RamlContentTypeConfig(headers: Seq[Header], typeDefinition: TypeDefinition, filterChain: SimpleFilterChain)
 
-case class Traits(commonTraits: Seq[Trait], methodSpecificTraits: Map[Method, Seq[Trait]])
+case class RamlTraits(commonTraits: Seq[RamlTrait], methodSpecificTraits: Map[Method, Seq[RamlTrait]])
 
-case class Trait(name: String, parameters: Map[String, String])
+case class RamlTrait(name: String, parameters: Map[String, String])
 
-object Trait {
-  def apply(name: String): Trait = {
-    Trait(name, Map())
+object RamlTrait {
+  def apply(name: String): RamlTrait = {
+    RamlTrait(name, Map())
   }
 }
 
@@ -92,7 +94,7 @@ class FieldAnnotationWithFilter(val annotation: RamlFieldAnnotation, fieldName: 
   }
 }
 
-case class Field(fieldName: String, fieldTypeName: String, annotations: Seq[FieldAnnotationWithFilter])
+case class Field(fieldName: String, fieldTypeName: String, annotations: Seq[FieldAnnotationWithFilter], defaultValue: Option[String])
                 (implicit injector: Injector) extends Injectable {
 
   lazy val typeDefinition: Option[TypeDefinition] = {

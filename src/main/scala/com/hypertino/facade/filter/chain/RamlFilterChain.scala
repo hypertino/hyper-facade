@@ -2,7 +2,7 @@ package com.hypertino.facade.filter.chain
 
 import com.hypertino.facade.filter.model.{EventFilter, RequestFilter, ResponseFilter}
 import com.hypertino.facade.model._
-import com.hypertino.facade.raml.{ContentType, Method, RamlConfiguration, RamlResourceMethodConfig}
+import com.hypertino.facade.raml.{ContentType, Method, RamlConfiguration, RamlResourceMethod}
 import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 
 class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
@@ -66,7 +66,7 @@ class RamlFilterChain(ramlConfig: RamlConfiguration) extends FilterChain {
     }
   }
 
-  private def filtersOrMethod(uri: String, method: String): Either[SimpleFilterChain, RamlResourceMethodConfig] = {
+  private def filtersOrMethod(uri: String, method: String): Either[SimpleFilterChain, RamlResourceMethod] = {
     ramlConfig.resourcesByPattern.get(uri) match {
       case Some(resource) ⇒
         resource.methods.get(Method(method)) match {

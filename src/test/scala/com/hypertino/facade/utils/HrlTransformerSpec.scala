@@ -34,5 +34,15 @@ class HrlTransformerSpec extends FlatSpec with Matchers {
       "hb://test/{id}", Obj.from("id" → "100500", "q" → "100")
     )
   }
+
+  it should "rewrite and append query parameters" in {
+    val hrl = HRL("/test/100500", Obj.from("q" → "100", "x" -> "1"))
+    val sourcePattern = HRL("/test/{id}")
+    val destPattern = HRL("hb://test/{id}", Obj.from("id" -> "{id}", "x" -> "2"))
+
+    HrlTransformer.rewriteForwardWithPatterns(hrl, sourcePattern, destPattern) shouldBe HRL(
+      "hb://test/{id}", Obj.from("id" → "100500", "q" → "100", "x" -> "2")
+    )
+  }
 }
 

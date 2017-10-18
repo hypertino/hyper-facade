@@ -20,7 +20,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
   private lazy val dataTypes: Map[String, TypeDefinition] = parseTypeDefinitions
 
   def build: RamlConfiguration = {
-    val resourcesByUriAcc = Map.newBuilder[String, ResourceConfig]
+    val resourcesByUriAcc = Map.newBuilder[String, RamlResource]
     api.resources()
       .foreach { resource ⇒
         val currentRelativeUri = resource.relativeUri().value()
@@ -40,7 +40,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
   private def parseTypeDefinitions: Map[String, TypeDefinition] = {
     val typeDefinitions = api.types().map { ramlTypeRaw ⇒
       val ramlType = ramlTypeRaw.asInstanceOf[ObjectTypeDeclaration]
-      val fields = ramlType.properties().map(parseField).toMap
+      val fields = ramlType.properties().map(parseTypeDeclaration).toMap
       val typeName = ramlType.name
       val parentTypeName = ramlType.`type`.isEmpty match {
         case true ⇒ None
@@ -54,25 +54,25 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     typeDefinitions
   }
 
-  private def parseField(ramlField: TypeDeclaration): (String, Field) = {
-    val name = ramlField.name
-    val typeName = ramlField.`type`
-    val annotations = extractAnnotations(ramlField).map { annotation ⇒
+  private def parseTypeDeclaration(typeDeclaration: TypeDeclaration): (String, Field) = {
+    val name = typeDeclaration.name
+    val typeName = typeDeclaration.`type`
+    val annotations = extractAnnotations(typeDeclaration).map { annotation ⇒
       new FieldAnnotationWithFilter(annotation.asInstanceOf[RamlFieldAnnotation], name, typeName)
     }
-    name → Field(name, typeName, annotations)
+    name → Field(name, typeName, annotations, Option(typeDeclaration.defaultValue()))
   }
 
-  private def parseResource(currentUri: String, resource: Resource, parentAnnotations: Seq[RamlAnnotation]): (Map[String, ResourceConfig]) = {
+  private def parseResource(currentUri: String, resource: Resource, parentAnnotations: Seq[RamlAnnotation]): (Map[String, RamlResource]) = {
     val traits = extractResourceTraits(resource) // todo: eliminate?
 
     val adjustedParentAnnotations = adjustParentAnnotations(resource.relativeUri.value(), parentAnnotations)
     val resourceAnnotations = adjustedParentAnnotations ++ extractAnnotations(resource)
     val resourceMethods = extractResourceMethods(currentUri, resource)
 
-    val resourceConfig = ResourceConfig(traits, resourceAnnotations, resourceMethods, SimpleFilterChain.empty)
+    val resourceConfig = RamlResource(traits, resourceAnnotations, resourceMethods, SimpleFilterChain.empty)
 
-    val configuration = Map.newBuilder[String, ResourceConfig]
+    val configuration = Map.newBuilder[String, RamlResource]
     configuration += (currentUri → resourceConfig)
     resource.resources().foldLeft(configuration) { (configuration, childResource) ⇒
       val childResourceRelativeUri = childResource.relativeUri().value()
@@ -82,15 +82,15 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     configuration.result()
   }
 
-  private def extractResourceMethods(currentUri: String, resource: Resource): Map[Method, RamlResourceMethodConfig] = {
-    val builder = Map.newBuilder[Method, RamlResourceMethodConfig]
+  private def extractResourceMethods(currentUri: String, resource: Resource): Map[Method, RamlResourceMethod] = {
+    val builder = Map.newBuilder[Method, RamlResourceMethod]
     resource.methods.foreach { ramlMethod ⇒
       builder += Method(ramlMethod.method) → extractResourceMethod(currentUri, ramlMethod, resource)
     }
     builder.result()
   }
 
-  private def extractResourceMethod(currentUri: String, ramlMethod: methods.Method, resource: Resource): RamlResourceMethodConfig = {
+  private def extractResourceMethod(currentUri: String, ramlMethod: methods.Method, resource: Resource): RamlResourceMethod = {
     val methodAnnotations = extractAnnotations(ramlMethod)
     val method = Method(ramlMethod.method())
 
@@ -103,7 +103,13 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
       ramlResponses += statusCode → RamlResponses(responseRamlContentTypes)
     }
 
-    RamlResourceMethodConfig(method, methodAnnotations, ramlRequests, ramlResponses.result(), SimpleFilterChain.empty)
+    RamlResourceMethod(
+      method,
+      methodAnnotations, ramlRequests,
+      ramlResponses.result(),
+      SimpleFilterChain.empty,
+      ramlMethod.queryParameters().map(parseTypeDeclaration).toMap
+    )
   }
 
   private def adjustParentAnnotations(childResourceRelativeUri: String, parentAnnotations: Seq[RamlAnnotation]): Seq[RamlAnnotation] = {
@@ -193,21 +199,21 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     }
   }
 
-  private def extractResourceTraits(resource: Resource): Traits = {
+  private def extractResourceTraits(resource: Resource): RamlTraits = {
     val commonResourceTraits = extractTraits(resource.is())
-    val methodSpecificTraits = resource.methods().foldLeft(Map.newBuilder[Method, Seq[Trait]]) { (specificTraits, ramlMethod) ⇒
+    val methodSpecificTraits = resource.methods().foldLeft(Map.newBuilder[Method, Seq[RamlTrait]]) { (specificTraits, ramlMethod) ⇒
       val method = Method(ramlMethod.method)
       val methodTraits = extractTraits(ramlMethod.is())
       specificTraits += (method → (methodTraits ++ commonResourceTraits))
     }.result()
-    Traits(commonResourceTraits, methodSpecificTraits)
+    RamlTraits(commonResourceTraits, methodSpecificTraits)
   }
 
-  private def extractTraits(traits: java.util.List[TraitRef]): Seq[Trait] = {
-    traits.foldLeft(Seq.newBuilder[Trait]) {
+  private def extractTraits(traits: java.util.List[TraitRef]): Seq[RamlTrait] = {
+    traits.foldLeft(Seq.newBuilder[RamlTrait]) {
       (accumulator, traitRef) ⇒
         val traitName = traitRef.`trait`().name()
-        accumulator += Trait(traitName)
+        accumulator += RamlTrait(traitName)
     }.result()
   }
 }

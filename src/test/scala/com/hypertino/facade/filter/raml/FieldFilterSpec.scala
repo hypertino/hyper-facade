@@ -64,7 +64,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
 
   def tt(args: (String,String)*): Map[String, Field] = {
     args.map { case (k,t) ⇒
-      k -> Field(k, t, Seq.empty)
+      k -> Field(k, t, Seq.empty, None)
     } toMap
   }
 
@@ -75,7 +75,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
         name,
         "string"
       )
-    )))
+    ), None))
   }
 
   def df(name: String, stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
@@ -85,7 +85,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
         name,
         "string"
       )
-    )))
+    ), None))
   }
 
   def ff(name: String,
@@ -108,7 +108,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
         name,
         "string"
       )
-    )))
+    ), None))
   }
 
   def sf(name: String, expression: String = "1", t:String = "string", stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
@@ -121,7 +121,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
         name,
         t
       )
-    )))
+    ), None))
   }
 
   "FieldFilterBase" should "leave body as-is if no filter on fields are defined" in {

@@ -7,10 +7,10 @@ import scaldi.{Injectable, Injector, StringIdentifier}
 
 import scala.util.control.NonFatal
 
-class RamlConfigFiltersInjector(resourcesByUri: Map[String, ResourceConfig])(implicit inj: Injector) extends Injectable with StrictLogging {
-  val resourcesWithFilters = Map.newBuilder[String, ResourceConfig]
+class RamlConfigFiltersInjector(resourcesByUri: Map[String, RamlResource])(implicit inj: Injector) extends Injectable with StrictLogging {
+  val resourcesWithFilters = Map.newBuilder[String, RamlResource]
 
-  def withResourceFilters(): Map[String, ResourceConfig] = {
+  def withResourceFilters(): Map[String, RamlResource] = {
     resourcesWithFilters ++= resourcesByUri
     resourcesByUri.foreach { uriToConfig ⇒
       val (uri, resourceConfig) = uriToConfig
@@ -19,9 +19,9 @@ class RamlConfigFiltersInjector(resourcesByUri: Map[String, ResourceConfig])(imp
     resourcesWithFilters.result()
   }
 
-  def injectResourceFilters(uri: String, resourceConfig: ResourceConfig): ResourceConfig = {
+  def injectResourceFilters(uri: String, resourceConfig: RamlResource): RamlResource = {
     val resourceFilters = createFilters(uri, None, resourceConfig.annotations)
-    val resourceMethodsAcc = Map.newBuilder[Method, RamlResourceMethodConfig]
+    val resourceMethodsAcc = Map.newBuilder[Method, RamlResourceMethod]
     resourceConfig.methods.foreach { ramlResourceMethod ⇒
       val (method, resourceMethodConfig) = ramlResourceMethod
       resourceMethodsAcc += method → injectMethodFilters(uri, method, resourceMethodConfig, resourceFilters)
@@ -32,7 +32,7 @@ class RamlConfigFiltersInjector(resourcesByUri: Map[String, ResourceConfig])(imp
     )
   }
 
-  def injectMethodFilters(uri: String, method: Method, resourceMethodConfig: RamlResourceMethodConfig, resourceFilters: SimpleFilterChain): RamlResourceMethodConfig = {
+  def injectMethodFilters(uri: String, method: Method, resourceMethodConfig: RamlResourceMethod, resourceFilters: SimpleFilterChain): RamlResourceMethod = {
     val methodFilterChain = resourceFilters ++ createFilters(uri, Some(method.name), resourceMethodConfig.annotations)
     val updatedRequests = injectRequestsFilters(resourceMethodConfig.requests, methodFilterChain)
     val updatedResponses = injectResponsesFilters(resourceMethodConfig.responses, methodFilterChain)

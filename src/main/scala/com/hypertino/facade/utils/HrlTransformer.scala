@@ -25,7 +25,7 @@ object HrlTransformer {
           case _ ⇒ matched.query
         }
       }
-      destPattern.copy(query = q + flattenHRL.query)
+      destPattern.copy(query = flattenHRL.query % q)
     }.getOrElse {
       hrl
     }
