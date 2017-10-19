@@ -4,13 +4,13 @@ import com.hypertino.hyperbus.model.Header
 import com.hypertino.inflector.naming._
 
 object FacadeHeaders {
-  val CONTENT_TYPE = "Content-Type"
-  val REMOTE_ADDRESS = "Remote-Address"
-  val AUTHORIZATION = "Authorization"
-  val PRIVILEGE_AUTHORIZATION = "Privilege-Authorization"
-  val LOCATION = "Location"
-  val LINK = "Link"
-  val COUNT = "X-Count"
+  final val CONTENT_TYPE = "Content-Type"
+  final val REMOTE_ADDRESS = "Remote-Address"
+  final val AUTHORIZATION = "Authorization"
+  final val PRIVILEGE_AUTHORIZATION = "Privilege-Authorization"
+  final val LOCATION = "Location"
+  final val LINK = "Link"
+  final val COUNT = "X-Count"
 
   val directHeaderMapping = Set(
     Header.METHOD,

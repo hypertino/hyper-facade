@@ -9,7 +9,7 @@ import monix.eval.Task
 
 case class DenyFieldAnnotation(
                            predicate: Option[PreparedExpression],
-                           stages: Set[FieldFilterStage]
+                           stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)
                          ) extends RamlFieldAnnotation {
   def name: String = "deny"
 }

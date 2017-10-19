@@ -73,7 +73,7 @@ case class ContentType(mediaType: String)
 case class Header(name: String)
 
 object DataType {
-  val DEFAULT_TYPE_NAME = "string"
+  final val DEFAULT_TYPE_NAME = "string"
 }
 
 case class TypeDefinition(typeName: String,

@@ -85,7 +85,7 @@ class SetRequestFilter(set: SetAnnotation,
         case "context" ⇒
           setContext(requestContext, targetIdentifier.segments.tail, result)
 
-        case "headers" =>
+        case "headers" ⇒
           setHeader(requestContext, targetIdentifier.segments.tail, result)
 
         case "location" ⇒

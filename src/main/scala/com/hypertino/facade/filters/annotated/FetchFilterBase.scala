@@ -14,7 +14,7 @@ trait FetchFilterBase extends StrictLogging{
 
   protected def ask(hrl: HRL, context: ExpressionEvaluatorContext)(implicit mcx: MessagingContext): Task[Option[Value]] = {
     annotation.expects match {
-      case "collection_link" ⇒
+      case FetchFilter.EXPECTS_COLLECTION_LINK ⇒
         val hrlCollectionLink = hrl.copy(query = hrl.query + Obj.from("per_page" → 0))
         hyperbus.ask(DynamicRequest(hrlCollectionLink, Method.GET, EmptyBody)).map {
           case response @ Ok(_: DynamicBody, _) ⇒
@@ -25,7 +25,7 @@ trait FetchFilterBase extends StrictLogging{
             ))
         }
 
-      case "collection_top" ⇒
+      case FetchFilter.EXPECTS_COLLECTION_TOP ⇒
         hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
           case response @ Ok(body: DynamicBody, _) ⇒
             Some(
@@ -37,7 +37,7 @@ trait FetchFilterBase extends StrictLogging{
             )
         }
 
-      case "single_item" ⇒
+      case FetchFilter.EXPECTS_SINGLE_ITEM ⇒
         hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
           case response @ Ok(body: DynamicBody, _) ⇒
             body.content match {
@@ -51,7 +51,7 @@ trait FetchFilterBase extends StrictLogging{
             }
         }
 
-      case "document" ⇒
+      case FetchFilter.EXPECTS_DOCUMENT ⇒
         hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
           case Ok(body: DynamicBody, _) ⇒
             Some(applySelector(body.content, context))
@@ -60,7 +60,7 @@ trait FetchFilterBase extends StrictLogging{
   }
 
   protected def handleError(s: String, context: ExpressionEvaluatorContext, e: Throwable): Task[Option[Value]] = {
-    import FetchFieldFilter._
+    import FetchFilter._
     if (e.isInstanceOf[NotFound[_]])
       logger.trace(s"$s is not found", e)
     else
@@ -97,4 +97,15 @@ trait FetchFilterBase extends StrictLogging{
       v
     }
   }
+}
+
+object FetchFilter {
+  final val EXPECTS_COLLECTION_LINK = "collection_link"
+  final val EXPECTS_COLLECTION_TOP = "collection_top"
+  final val EXPECTS_SINGLE_ITEM = "single_item"
+  final val EXPECTS_DOCUMENT = "document"
+
+  final val ON_ERROR_FAIL = "fail"
+  final val ON_ERROR_REMOVE = "remove"
+  final val ON_ERROR_DEFAULT = "default"
 }

@@ -20,13 +20,13 @@ case class FetchFieldAnnotation(
                                  predicate: Option[PreparedExpression],
                                  location: PreparedExpression,
                                  query: Map[String, PreparedExpression],
-                                 expects: String, //todo: this should be enum
-                                 onError: String, //todo: this should be enum
-                                 defaultStatuses: Set[Int],
-                                 default: Option[PreparedExpression],
-                                 stages: Set[FieldFilterStage],
-                                 selector: Option[PreparedExpression],
-                                 always: Boolean
+                                 expects: String = FetchFilter.EXPECTS_DOCUMENT,   //todo: this should be enum
+                                 onError: String = FetchFilter.ON_ERROR_FAIL,      //todo: this should be enum
+                                 defaultStatuses: Set[Int] = Set(404),
+                                 default: Option[PreparedExpression] = None,
+                                 stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse, FieldFilterStageEvent),
+                                 selector: Option[PreparedExpression] = None,
+                                 always: Boolean = false
                           ) extends RamlFieldAnnotation with FetchAnnotationBase {
   def name: String = "fetch"
 }
@@ -113,10 +113,4 @@ class FetchFieldFilterFactory(hyperbus: Hyperbus,
   override def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation = {
     value.to[FetchFieldAnnotation]
   }
-}
-
-object FetchFieldFilter {
-  final val ON_ERROR_FAIL = "fail"
-  final val ON_ERROR_REMOVE = "remove"
-  final val ON_ERROR_DEFAULT = "default"
 }

@@ -26,6 +26,7 @@ case class RequestContext(request: DynamicRequest,
 }
 
 object RequestContext {
+
   def apply(request: DynamicRequest): RequestContext = RequestContext(
     request,
     stages = Seq.empty,

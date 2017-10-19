@@ -9,7 +9,7 @@ import monix.eval.Task
 case class SetFieldAnnotation(
                          predicate: Option[PreparedExpression],
                          source: PreparedExpression,
-                         stages: Set[FieldFilterStage]
+                         stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)
                         ) extends RamlFieldAnnotation {
   def name: String = "set"
 }

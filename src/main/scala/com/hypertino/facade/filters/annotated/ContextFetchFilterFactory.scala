@@ -25,11 +25,11 @@ case class ContextFetchAnnotation(
                                    target: String,
                                    location: PreparedExpression,
                                    query: Map[String, PreparedExpression],
-                                   expects: String, //todo: this should be enum
-                                   onError: String, //todo: this should be enum
-                                   defaultStatuses: Set[Int],
-                                   selector: Option[PreparedExpression],
-                                   default: Option[PreparedExpression]
+                                   expects: String = FetchFilter.EXPECTS_DOCUMENT,   //todo: this should be enum
+                                   onError: String = FetchFilter.ON_ERROR_FAIL,      //todo: this should be enum
+                                   defaultStatuses: Set[Int] = Set(404),
+                                   selector: Option[PreparedExpression] = None,
+                                   default: Option[PreparedExpression] = None
                                  ) extends RamlAnnotation with FetchAnnotationBase {
   def name: String = "context_fetch"
 }
@@ -53,4 +53,15 @@ class ContextFetchFilterFactory(hyperbus: Hyperbus,
   override def createRamlAnnotation(name: String, value: Value): RamlAnnotation = {
     value.to[ContextFetchAnnotation]
   }
+}
+
+object ContextFetchFilter {
+  final val EXPECTS_COLLECTION_LINK = "collection_link"
+  final val EXPECTS_COLLECTION_TOP = "collection_top"
+  final val EXPECTS_SINGLE_ITEM = "single_item"
+  final val EXPECTS_DOCUMENT = "document"
+
+  final val ON_ERROR_FAIL = "fail"
+  final val ON_ERROR_REMOVE = "remove"
+  final val ON_ERROR_DEFAULT = "default"
 }

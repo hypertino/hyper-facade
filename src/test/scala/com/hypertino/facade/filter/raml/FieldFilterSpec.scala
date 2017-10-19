@@ -93,7 +93,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
          source: String,
          query: Map[String,String] = Map.empty,
          expects: String = "document",
-         onError: String = FetchFieldFilter.ON_ERROR_FAIL,
+         onError: String = FetchFilter.ON_ERROR_FAIL,
          defaultStatuses: Set[Int] = Set(404),
          defaultValue: Option[String] = None, stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent), selector: Option[String] = None, always: Boolean=false) = {
     Map(name → Field(name, "string", Seq(

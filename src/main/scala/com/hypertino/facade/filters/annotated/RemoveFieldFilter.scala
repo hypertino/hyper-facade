@@ -8,7 +8,7 @@ import monix.eval.Task
 
 case class RemoveFieldAnnotation(
                             predicate: Option[PreparedExpression],
-                            stages: Set[FieldFilterStage]
+                            stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse, FieldFilterStageEvent)
                            ) extends RamlFieldAnnotation {
   def name: String = "remove"
 }
