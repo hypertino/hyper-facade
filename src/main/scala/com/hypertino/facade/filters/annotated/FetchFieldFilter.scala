@@ -1,5 +1,6 @@
 package com.hypertino.facade.filters.annotated
 
+import com.hypertino.binders.annotations.fieldName
 import com.hypertino.binders.value.{DefaultValueSerializerFactory, Null, Value}
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
@@ -18,7 +19,7 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 case class FetchFieldAnnotation(
-                                 predicate: Option[PreparedExpression],
+                                 @fieldName("if") predicate: Option[PreparedExpression],
                                  location: PreparedExpression,
                                  query: Map[String, PreparedExpression],
                                  expects: String = FetchFilter.EXPECTS_DOCUMENT,   //todo: this should be enum

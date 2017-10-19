@@ -1,5 +1,6 @@
 package com.hypertino.facade.filters.annotated
 
+import com.hypertino.binders.annotations.fieldName
 import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model._
@@ -9,7 +10,7 @@ import com.typesafe.config.Config
 import scaldi.Injectable
 
 case class SetAnnotation(
-                          predicate: Option[PreparedExpression],
+                          @fieldName("if") predicate: Option[PreparedExpression],
                           source: PreparedExpression,
                           target: Option[String]
                         ) extends RamlAnnotation {

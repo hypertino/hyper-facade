@@ -1,5 +1,6 @@
 package com.hypertino.facade.filters.annotated
 
+import com.hypertino.binders.annotations.fieldName
 import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.PreparedExpression
@@ -8,9 +9,9 @@ import com.hypertino.hyperbus.model.{ErrorBody, Forbidden}
 import monix.eval.Task
 
 case class DenyFieldAnnotation(
-                           predicate: Option[PreparedExpression],
-                           stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)
-                         ) extends RamlFieldAnnotation {
+                                @fieldName("if") predicate: Option[PreparedExpression],
+                                stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)
+                              ) extends RamlFieldAnnotation {
   def name: String = "deny"
 }
 

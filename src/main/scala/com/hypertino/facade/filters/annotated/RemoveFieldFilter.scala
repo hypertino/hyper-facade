@@ -1,5 +1,6 @@
 package com.hypertino.facade.filters.annotated
 
+import com.hypertino.binders.annotations.fieldName
 import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.PreparedExpression
@@ -7,9 +8,9 @@ import com.hypertino.facade.raml.RamlFieldAnnotation
 import monix.eval.Task
 
 case class RemoveFieldAnnotation(
-                            predicate: Option[PreparedExpression],
-                            stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse, FieldFilterStageEvent)
-                           ) extends RamlFieldAnnotation {
+                                  @fieldName("if") predicate: Option[PreparedExpression],
+                                  stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse, FieldFilterStageEvent)
+                                ) extends RamlFieldAnnotation {
   def name: String = "remove"
 }
 
