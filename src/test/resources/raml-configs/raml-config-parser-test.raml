@@ -23,6 +23,11 @@ types:
         (facade.remove):
         type: string
       inner: TestInnerFields
+      fetched:
+        (facade.fetch):
+          location: '"hb://fetch"'
+          expects: document
+          on_error: remove
 
   TestRequest:
     type: object
@@ -78,3 +83,8 @@ types:
       if: "true"
   - deny:
       if: "false"
+  - context_fetch:
+      target: "abc"
+      location: '"hb://fetch"'
+      expects: document
+      on_error: remove

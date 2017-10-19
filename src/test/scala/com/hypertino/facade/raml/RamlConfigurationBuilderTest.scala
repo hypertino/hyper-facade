@@ -75,10 +75,15 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
 
     val fa = rffa.typeDef.fields.values.filter(_.annotations.nonEmpty).toSeq
 
-    fa.size shouldBe 1
-    fa.head.fieldName shouldBe "password"
+    fa.size shouldBe 2
+    fa(0).fieldName shouldBe "password"
     fa(0).annotations.map(_.annotation).head shouldBe a[RemoveFieldAnnotation]
     fa(0).annotations.map(_.filter).head shouldBe RemoveFieldFilter
+
+    fa(1).fieldName shouldBe "fetched"
+    fa(1).annotations.map(_.annotation).head shouldBe a[FetchFieldAnnotation]
+    val ffa = fa(1).annotations.map(_.annotation).head.asInstanceOf[FetchFieldAnnotation]
+    ffa.onError shouldBe "remove"
 
     rffa.typeDef.fields.keySet should contain("inner")
     val inner = rffa.typeDef.fields("inner")
@@ -99,11 +104,14 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
       .resourcesByPattern("/multiple-annotations")
       .annotations
 
-    ma.size shouldBe 4
+    ma.size shouldBe 5
     ma(0) shouldBe a[RewriteAnnotation]
     ma(1) shouldBe a[RewriteAnnotation]
     ma(2) shouldBe a[DenyAnnotation]
     ma(3) shouldBe a[DenyAnnotation]
+    ma(4) shouldBe a[ContextFetchAnnotation]
+
+    ma(4).asInstanceOf[ContextFetchAnnotation].onError shouldBe "remove"
   }
 
   //

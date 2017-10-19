@@ -1,9 +1,10 @@
 package com.hypertino.facade.filter.model
 
-import com.hypertino.binders.value.Value
+import com.hypertino.binders.value.{DefaultValueSerializerFactory, Value}
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext, PreparedExpression}
 import com.hypertino.facade.raml.{RamlAnnotation, RamlFieldAnnotation}
+import com.hypertino.inflector.naming.CamelCaseToSnakeCaseConverter
 
 trait Filter {
   protected def expressionEvaluator: ExpressionEvaluator
@@ -13,6 +14,7 @@ trait Filter {
 }
 
 trait RamlFilterFactory {
+  protected implicit val defaultValueSerializerFactory = new DefaultValueSerializerFactory[CamelCaseToSnakeCaseConverter.type]
   def createFilters(target: RamlFilterTarget): SimpleFilterChain
   def createRamlAnnotation(name: String, value: Value): RamlAnnotation
   protected def predicateEvaluator: ExpressionEvaluator
@@ -40,6 +42,7 @@ trait RamlFilterFactory {
 }
 
 trait RamlFieldFilterFactory {
+  protected implicit val defaultValueSerializerFactory = new DefaultValueSerializerFactory[CamelCaseToSnakeCaseConverter.type]
   def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation
   def createFieldFilter(fieldName: String, fieldTypeName: String, annotation: RamlFieldAnnotation): FieldFilter
 }
