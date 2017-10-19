@@ -20,7 +20,7 @@ class SelectFieldsResponseFilter(
                     (implicit scheduler: Scheduler): Task[DynamicResponse] = {
     Task.now {
       try {
-        requestContext.request.headers.hrl.query.fields match {
+        requestContext.request.headers.hrl.query.dynamic.fields match {
           case Null ⇒
             response
 

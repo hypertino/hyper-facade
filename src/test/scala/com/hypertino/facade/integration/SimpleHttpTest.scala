@@ -77,7 +77,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
         DynamicRequestObservableMeta(RequestMatcher("hb://test-service/{id}", Method.GET, None))
       ).subscribe { implicit command =>
         command.reply(Success {
-          Ok(DynamicBody(Obj.from("integer_field" → command.request.headers.hrl.query.id.toLong, "text_field" → "Yey")))
+          Ok(DynamicBody(Obj.from("integer_field" → command.request.headers.hrl.query.dynamic.id.toLong, "text_field" → "Yey")))
         })
         Continue
       }
@@ -95,7 +95,7 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
         DynamicRequestObservableMeta(RequestMatcher("hb://test-service/{id}", Method.GET, None))
       ).subscribe { implicit command =>
         command.reply(Success {
-          Ok(DynamicBody(Obj.from("integer_field" → command.request.headers.hrl.query.id.toLong, "text_field" → "Yey")))
+          Ok(DynamicBody(Obj.from("integer_field" → command.request.headers.hrl.query.dynamic.id.toLong, "text_field" → "Yey")))
         })
         Continue
       }

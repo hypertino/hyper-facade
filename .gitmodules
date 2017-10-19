@@ -10,3 +10,6 @@
 [submodule "api/idempotency-service-api"]
 	path = api/idempotency-service-api
 	url = git@github.com:hypertino/idempotency-service-api.git
+[submodule "travis"]
+	path = travis
+	url = git@github.com:hypertino/scala-travis-script.git

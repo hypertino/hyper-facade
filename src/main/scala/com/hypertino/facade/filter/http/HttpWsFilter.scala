@@ -131,7 +131,7 @@ object HttpWsFilter {
   def wrapCollection(requestContext: RequestContext,
                     message: DynamicMessage, uriTransformer: (HRL ⇒ HRL)): (Headers, DynamicBody) = {
 
-    val wq = requestContext.request.headers.hrl.query.wrap_collection.toBoolean
+    val wq = requestContext.request.headers.hrl.query.dynamic.wrap_collection.toBoolean
     if (wq || requestContext.request.headers.get("X-Wrap-Collection").exists(_.toBoolean)) {
 
       val vx: Map[String, Value] = message.headers.flatMap {

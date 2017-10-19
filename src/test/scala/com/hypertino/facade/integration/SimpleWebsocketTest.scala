@@ -51,7 +51,7 @@ class SimpleWebsocketTest extends TestBaseWithFacade("inproc-test.conf") {
         .withMessageId("100500")
         .withCorrelation("abc100500")
         .result()
-    )).runAsync.futureValue shouldBe a[PublishResult]
+    )).runAsync.futureValue shouldBe a[Seq[_]]
 
     val event1 = q.nextEvent().futureValue
     event1.headers.method shouldBe Method.FEED_POST

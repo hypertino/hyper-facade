@@ -41,7 +41,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
     }
 
   def onUsersGet(implicit get: UsersGet) = Task.eval[ResponseBase] {
-    val email = get.headers.hrl.query.email
+    val email = get.headers.hrl.query.dynamic.email
     if (email == Text("info@example.com")) {
       Ok(DynamicBody(Lst.from(Obj.from(
         "user_id" → "100500"
@@ -60,7 +60,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
       ))
     )
     val result = filter.apply(rc).runAsync.futureValue
-    result.contextStorage.user shouldBe Obj.from("user_id" → "100500")
+    result.contextStorage.dynamic.user shouldBe Obj.from("user_id" → "100500")
     result.request.headers.get("Authorization-Result") shouldBe Some(Obj.from("user_id" → "100500"))
   }
 
@@ -73,7 +73,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
       ))
     )
     val result = filter.apply(rc).runAsync.futureValue
-    result.contextStorage.user shouldBe Null
+    result.contextStorage.dynamic.user shouldBe Null
     result.request.headers.get("Privilege-Authorization-Result") shouldBe Some(
       Obj.from("identity_keys" → Obj.from("user_id" → "100500", "email" → "info@example.com"), "extra" → Null)
     )

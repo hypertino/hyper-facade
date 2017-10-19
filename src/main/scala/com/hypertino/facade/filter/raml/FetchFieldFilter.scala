@@ -28,7 +28,7 @@ class FetchFieldFilter(protected val annotation: FetchAnnotation,
     if (annotation.always) {
       fetchAndReturnField(context)
     } else {
-      context.requestContext.request.headers.hrl.query.fields match {
+      context.requestContext.request.headers.hrl.query.dynamic.fields match {
         case Null ⇒
           Task.now(None)
 

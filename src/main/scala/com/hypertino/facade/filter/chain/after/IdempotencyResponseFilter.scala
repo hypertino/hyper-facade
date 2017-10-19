@@ -22,8 +22,8 @@ class IdempotencyResponseFilter(hyperbus: Hyperbus,
                     (implicit scheduler: Scheduler): Task[DynamicResponse] = {
 
     implicit val mcx: MessagingContext = requestContext
-    requestContext.contextStorage.idempotent_request match {
-      case o: Obj ⇒ saveIdempotentResponse(o.uri.toString, o.key.toString, response)
+    requestContext.contextStorage.dynamic.idempotent_request match {
+      case o: Obj ⇒ saveIdempotentResponse(o.dynamic.uri.toString, o.dynamic.key.toString, response)
       case _ ⇒ Task.now(response)
     }
   }
