@@ -2,7 +2,6 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
-import com.hypertino.facade.raml.FetchAnnotationBase
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, EmptyBody, ErrorBody, HRL, Header, HyperbusError, InternalServerError, MessagingContext, Method, NotFound, Ok}
 import com.typesafe.scalalogging.StrictLogging
@@ -83,7 +82,7 @@ trait FetchFilterBase extends StrictLogging{
   }
 
   def defaultValue(context: ExpressionEvaluatorContext): Task[Option[Value]] = Task.now {
-    annotation.defaultValue.map { defV ⇒
+    annotation.default.map { defV ⇒
       Some(expressionEvaluator.evaluate(context, defV))
     } getOrElse {
       Some(Null)

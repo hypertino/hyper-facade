@@ -1,6 +1,7 @@
 package com.hypertino.facade.filter.model
 
-import com.hypertino.binders.value.Value
+import com.hypertino.binders.core.ImplicitDeserializer
+import com.hypertino.binders.value.{Value, ValueDeserializer}
 import com.hypertino.facade.filter.parser.ExpressionEvaluatorContext
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.raml.Field
@@ -25,6 +26,14 @@ object FieldFilterStage {
     case str if str == FieldFilterStageResponse.stringValue ⇒ FieldFilterStageResponse
     case str if str == FieldFilterStageEvent.stringValue ⇒ FieldFilterStageEvent
     case _ ⇒ throw new IllegalArgumentException(s"'$s' doesn't represents a stage [request/response/event]")
+  }
+
+  implicit object FieldFilterStageSetDeserializer extends ImplicitDeserializer[Set[FieldFilterStage], ValueDeserializer[_]] {
+    override def read(deserializer: ValueDeserializer[_]): Set[FieldFilterStage] = deserializer
+      .readString()
+      .split(',')
+      .map(FieldFilterStage(_))
+      .toSet
   }
 }
 

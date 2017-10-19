@@ -65,3 +65,16 @@ types:
       test:
         type: string
         default: abc
+
+/multiple-annotations:
+  (facade.apply):
+  - rewrite:
+      location: hb://1
+      if: "false"
+  - rewrite:
+      location: hb://2
+      if: "true"
+  - deny:
+      if: "true"
+  - deny:
+      if: "false"

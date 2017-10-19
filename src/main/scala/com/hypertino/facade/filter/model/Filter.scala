@@ -1,5 +1,6 @@
 package com.hypertino.facade.filter.model
 
+import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext, PreparedExpression}
 import com.hypertino.facade.raml.{RamlAnnotation, RamlFieldAnnotation}
@@ -13,6 +14,7 @@ trait Filter {
 
 trait RamlFilterFactory {
   def createFilters(target: RamlFilterTarget): SimpleFilterChain
+  def createRamlAnnotation(name: String, value: Value): RamlAnnotation
   protected def predicateEvaluator: ExpressionEvaluator
 
   def createFilterChain(target: RamlFilterTarget): SimpleFilterChain = {
@@ -38,6 +40,7 @@ trait RamlFilterFactory {
 }
 
 trait RamlFieldFilterFactory {
+  def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation
   def createFieldFilter(fieldName: String, fieldTypeName: String, annotation: RamlFieldAnnotation): FieldFilter
 }
 

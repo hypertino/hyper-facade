@@ -17,21 +17,21 @@ class FiltersModule extends Module {
   bind[RamlFilterFactory] identifiedBy "rewrite" to injected[RewriteFilterFactory]
   bind[RamlFilterFactory] identifiedBy "context_fetch" to injected[ContextFetchFilterFactory]
   bind[RamlFilterFactory] identifiedBy "extract_item" to injected[ExtractItemFilterFactory]
-  bind[FieldFilterAdapterFactory] identifiedBy "fieldFilterAdapter" to injected[FieldFilterAdapterFactory]
+  bind[FieldFilterAdapterFactory] identifiedBy "field_filter_adapter" to injected[FieldFilterAdapterFactory]
   bind[RamlFilterFactory] identifiedBy "set" to injected[SetFilterFactory]
   bind[RamlFilterFactory] identifiedBy "forward" to injected[ForwardFilterFactory]
 
-  bind[RamlFieldFilterFactory] identifiedBy "removeField" to injected[RemoveFieldFilterFactory]
-  bind[RamlFieldFilterFactory] identifiedBy "setField" to injected[SetFieldFilterFactory]
-  bind[RamlFieldFilterFactory] identifiedBy "fetchField" to injected[FetchFieldFilterFactory]
-  bind[RamlFieldFilterFactory] identifiedBy "denyField" to injected[DenyFieldFilterFactory]
+  bind[RamlFieldFilterFactory] identifiedBy "remove_field" to injected[RemoveFieldFilterFactory]
+  bind[RamlFieldFilterFactory] identifiedBy "set_field" to injected[SetFieldFilterFactory]
+  bind[RamlFieldFilterFactory] identifiedBy "fetch_field" to injected[FetchFieldFilterFactory]
+  bind[RamlFieldFilterFactory] identifiedBy "deny_field" to injected[DenyFieldFilterFactory]
 
-  bind[FilterChain] identifiedBy "beforeFilterChain" to SimpleFilterChain(
+  bind[FilterChain] identifiedBy "before_filter_chain" to SimpleFilterChain(
     requestFilters = Seq(injected[HttpWsRequestFilter],
       injected[AuthorizationRequestFilter],
       injected[IdempotencyRequestFilter])
   )
-  bind[FilterChain] identifiedBy "afterFilterChain" to SimpleFilterChain(
+  bind[FilterChain] identifiedBy "after_filter_chain" to SimpleFilterChain(
     responseFilters = Seq(
       injected[SelectFieldsResponseFilter],
       injected[IdempotencyResponseFilter],
@@ -39,6 +39,6 @@ class FiltersModule extends Module {
     ),
     eventFilters = Seq(injected[WsEventFilter])
   )
-  bind[FilterChain] identifiedBy "ramlFilterChain" to injected[RamlFilterChain]
-  bind[ExpressionEvaluator] identifiedBy "predicateEvaluator" to DefaultExpressionEvaluator
+  bind[FilterChain] identifiedBy "raml_filter_chain" to injected[RamlFilterChain]
+  bind[ExpressionEvaluator] identifiedBy "predicate_evaluator" to DefaultExpressionEvaluator
 }

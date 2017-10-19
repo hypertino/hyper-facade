@@ -43,9 +43,9 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
 
     fa.size shouldBe 2
     fa.head.fieldName shouldBe "clientIp"
-    fa.head.annotations.map(_.annotation).head shouldBe a[SetAnnotation]
+    fa.head.annotations.map(_.annotation).head shouldBe a[SetFieldAnnotation]
     fa.head.annotations.map(_.filter).head shouldBe a[SetFieldFilter]
-    fa(1).annotations.map(_.annotation).head shouldBe a[RemoveAnnotation]
+    fa(1).annotations.map(_.annotation).head shouldBe a[RemoveFieldAnnotation]
     fa(1).annotations.map(_.filter).head shouldBe RemoveFieldFilter
 
     statusServiceFilterChain
@@ -76,7 +76,7 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
 
     fa.size shouldBe 1
     fa.head.fieldName shouldBe "password"
-    fa(0).annotations.map(_.annotation).head shouldBe a[RemoveAnnotation]
+    fa(0).annotations.map(_.annotation).head shouldBe a[RemoveFieldAnnotation]
     fa(0).annotations.map(_.filter).head shouldBe RemoveFieldFilter
 
     rffa.typeDef.fields.keySet should contain("inner")
@@ -91,6 +91,18 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
       .requestFilters(1)
       .asInstanceOf[ConditionalRequestFilterProxy]
       .filter shouldBe a[RewriteRequestFilter]
+  }
+
+  it should "have multiple filters defined as list" in {
+    val ma = originalRamlConfig
+      .resourcesByPattern("/multiple-annotations")
+      .annotations
+
+    ma.size shouldBe 4
+    ma(0) shouldBe a[RewriteAnnotation]
+    ma(1) shouldBe a[RewriteAnnotation]
+    ma(2) shouldBe a[DenyAnnotation]
+    ma(3) shouldBe a[DenyAnnotation]
   }
 
   //

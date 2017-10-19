@@ -1,13 +1,15 @@
 package com.hypertino.facade.raml
 
+import com.hypertino.binders.value.{Lst, Obj, Text, Value}
 import com.hypertino.facade.filter.chain.SimpleFilterChain
-import com.hypertino.facade.filter.raml.FieldFilterAdapterFactory
+import com.hypertino.facade.filter.model.{RamlFieldFilterFactory, RamlFilterFactory}
+import com.hypertino.facade.filter.raml.{FieldFilterAdapterFactory, RewriteAnnotation}
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.inflector.naming.CamelCaseToDashCaseConverter
 import org.raml.v2.api.model.v10.api.Api
 import org.raml.v2.api.model.v10.bodies.Response
 import org.raml.v2.api.model.v10.common.Annotable
-import org.raml.v2.api.model.v10.datamodel.{ObjectTypeDeclaration, TypeDeclaration}
+import org.raml.v2.api.model.v10.datamodel.{ObjectTypeDeclaration, TypeDeclaration, TypeInstance, TypeInstanceProperty}
 import org.raml.v2.api.model.v10.methods
 import org.raml.v2.api.model.v10.methods.TraitRef
 import org.raml.v2.api.model.v10.resources.Resource
@@ -46,8 +48,8 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
         case true ⇒ None
         case false ⇒ Some(ramlType.`type`)
       }
-      val annotations = extractAnnotations(ramlType)
-      typeName → TypeDefinition(typeName, parentTypeName, annotations, fields, false)
+      //val annotations = extractAnnotations(ramlType) // todo: support type-level annotations
+      typeName → TypeDefinition(typeName, parentTypeName, Seq.empty, fields, false)
     }.toMap
 
     //withFlattenedFields(typeDefinitions)
@@ -57,7 +59,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
   private def parseTypeDeclaration(typeDeclaration: TypeDeclaration): (String, Field) = {
     val name = typeDeclaration.name
     val typeName = typeDeclaration.`type`
-    val annotations = extractAnnotations(typeDeclaration).map { annotation ⇒
+    val annotations = extractRamlFieldAnnotations(typeDeclaration).map { annotation ⇒
       new FieldAnnotationWithFilter(annotation.asInstanceOf[RamlFieldAnnotation], name, typeName)
     }
     name → Field(name, typeName, annotations, Option(typeDeclaration.defaultValue()))
@@ -67,7 +69,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     val traits = extractResourceTraits(resource) // todo: eliminate?
 
     val adjustedParentAnnotations = adjustParentAnnotations(resource.relativeUri.value(), parentAnnotations)
-    val resourceAnnotations = adjustedParentAnnotations ++ extractAnnotations(resource)
+    val resourceAnnotations = adjustedParentAnnotations ++ extractRamlAnnotations(resource)
     val resourceMethods = extractResourceMethods(currentUri, resource)
 
     val resourceConfig = RamlResource(traits, resourceAnnotations, resourceMethods, SimpleFilterChain.empty)
@@ -91,7 +93,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
   }
 
   private def extractResourceMethod(currentUri: String, ramlMethod: methods.Method, resource: Resource): RamlResourceMethod = {
-    val methodAnnotations = extractAnnotations(ramlMethod)
+    val methodAnnotations = extractRamlAnnotations(ramlMethod)
     val method = Method(ramlMethod.method())
 
     val ramlRequests = RamlRequests(extractRamlContentTypes(RamlRequestResponseWrapper(ramlMethod)))
@@ -115,9 +117,9 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
   private def adjustParentAnnotations(childResourceRelativeUri: String, parentAnnotations: Seq[RamlAnnotation]): Seq[RamlAnnotation] = {
     val adjustedAnnotations = Seq.newBuilder[RamlAnnotation]
     parentAnnotations.foreach {
-      case RewriteAnnotation(name, predicate, location, query) ⇒
+      case RewriteAnnotation(predicate, location, query) ⇒
         val adjustedRewrittenUri = location + childResourceRelativeUri
-        adjustedAnnotations += RewriteAnnotation(name, predicate, adjustedRewrittenUri, query)
+        adjustedAnnotations += RewriteAnnotation(predicate, adjustedRewrittenUri, query)
       case otherAnn ⇒ adjustedAnnotations += otherAnn
     }
     adjustedAnnotations.result()
@@ -193,9 +195,66 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
     }
   }
 
-  private def extractAnnotations(annotable: Annotable): Seq[RamlAnnotation] = {
-    annotable.annotations.map { annotation ⇒
-      RamlAnnotation(annotation.annotation.name, annotation.structuredValue.properties)
+  private def extractRamlAnnotationsWith[T <: RamlAnnotation](annotable: Annotable, injector: (String, Value) => T): Seq[T] = {
+    annotable.annotations.flatMap { annotation ⇒
+      val name = annotation.annotation().name()
+      val v = typeInstanceToValue(annotation.structuredValue())
+      if (name == "apply") {
+        v match {
+          case Obj(items) if items.size == 1 && items.head._1.endsWith(".apply)") && items.head._2.isInstanceOf[Lst] =>
+            val lst = items.head._2.asInstanceOf[Lst]
+            lst.v.map {
+              case Obj(li) if li.size == 1 =>
+                injector(li.head._1, li.head._2)
+
+              case li => throw RamlConfigException(s"Unexpected 'apply' annotation item: $li")
+            }
+          case other =>
+            throw RamlConfigException(s"Unexpected 'apply' annotation arguments: $other")
+        }
+      }
+      else {
+        Seq(injector(name, v))
+      }
+    }
+  }
+
+  private def extractRamlAnnotations(annotable: Annotable): Seq[RamlAnnotation] = extractRamlAnnotationsWith[RamlAnnotation](
+    annotable, (name, value) => {
+      val filterFactory = inject[RamlFilterFactory](name)
+      filterFactory.createRamlAnnotation(name, value)
+    }
+  )
+
+  private def extractRamlFieldAnnotations(annotable: Annotable): Seq[RamlFieldAnnotation] = extractRamlAnnotationsWith[RamlFieldAnnotation](
+    annotable, (name, value) => {
+      val filterFactory = inject[RamlFieldFilterFactory](name + "_field")
+      filterFactory.createRamlAnnotation(name, value)
+    }
+  )
+
+  import scala.collection.JavaConverters._
+
+  private def typeInstanceToValue(instance: TypeInstance): Value = {
+    if (instance.isScalar) {
+      Text(instance.value().toString)
+    } else {
+
+      Obj(
+        instance.properties().asScala.map { kv ⇒
+          kv.name() → typeInstanceToValue(kv)
+        }.toMap
+      )
+    }
+  }
+
+  private def typeInstanceToValue(instance: TypeInstanceProperty): Value = {
+    if (instance.isArray) {
+      Lst(
+        instance.values().asScala.map(typeInstanceToValue)
+      )
+    } else {
+      typeInstanceToValue(instance.value())
     }
   }
 

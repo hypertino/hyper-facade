@@ -27,9 +27,9 @@ trait RequestProcessor extends Injectable with StrictLogging {
 
   val hyperbus = inject[Hyperbus]
   val ramlConfig = inject[RamlConfiguration]
-  val beforeFilterChain = inject[FilterChain]("beforeFilterChain")
-  val ramlFilterChain = inject[FilterChain]("ramlFilterChain")
-  val afterFilterChain = inject[FilterChain]("afterFilterChain")
+  val beforeFilterChain = inject[FilterChain]("before_filter_chain")
+  val ramlFilterChain = inject[FilterChain]("raml_filter_chain")
+  val afterFilterChain = inject[FilterChain]("after_filter_chain")
   val config = inject[Config]
   val metrics = inject[MetricsTracker]
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)

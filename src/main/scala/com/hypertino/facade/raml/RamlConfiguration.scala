@@ -89,7 +89,7 @@ class FieldAnnotationWithFilter(val annotation: RamlFieldAnnotation, fieldName: 
                                (implicit injector: Injector) extends Injectable {
 
   lazy val filter: FieldFilter = {
-    val filterName = annotation.name + "Field"
+    val filterName = annotation.name + "_field"
     inject[RamlFieldFilterFactory](filterName).createFieldFilter(fieldName, fieldTypeName, annotation)
   }
 }

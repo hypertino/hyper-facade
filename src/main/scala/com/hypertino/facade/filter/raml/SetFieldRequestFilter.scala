@@ -2,11 +2,20 @@ package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.model._
-import com.hypertino.facade.filter.parser.ExpressionEvaluator
-import com.hypertino.facade.raml.{RamlFieldAnnotation, SetAnnotation}
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
+import com.hypertino.facade.raml.{RamlAnnotation, RamlFieldAnnotation}
 import monix.eval.Task
 
-class SetFieldFilter(annotation: SetAnnotation, expressionEvaluator: ExpressionEvaluator) extends FieldFilter {
+case class SetFieldAnnotation(
+                         predicate: Option[PreparedExpression],
+                         source: PreparedExpression,
+                         stages: Set[FieldFilterStage]
+                        ) extends RamlFieldAnnotation {
+  def name: String = "set"
+}
+
+
+class SetFieldFilter(annotation: SetFieldAnnotation, expressionEvaluator: ExpressionEvaluator) extends FieldFilter {
   def apply(context: FieldFilterContext): Task[Option[Value]] = Task.now {
     Some(expressionEvaluator.evaluate(context.expressionEvaluatorContext, annotation.source))
   }
@@ -14,6 +23,13 @@ class SetFieldFilter(annotation: SetAnnotation, expressionEvaluator: ExpressionE
 
 class SetFieldFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFieldFilterFactory {
   def createFieldFilter(fieldName: String, typeName: String, annotation: RamlFieldAnnotation): FieldFilter = {
-    new SetFieldFilter(annotation.asInstanceOf[SetAnnotation], predicateEvaluator)
+    new SetFieldFilter(annotation.asInstanceOf[SetFieldAnnotation], predicateEvaluator)
+  }
+
+  override def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation = {
+    import com.hypertino.hyperbus.serialization.SerializationOptions._
+    import PreparedExpression._
+    import FieldFilterStage._
+    value.to[SetFieldAnnotation]
   }
 }

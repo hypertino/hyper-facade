@@ -9,7 +9,6 @@ import scaldi.Injector
 
 // todo: rename this
 object ConfigsFactory {
-
   def ramlConfig(appConfig: Config)(implicit inj: Injector): RamlConfiguration = {
     ramlFilesPaths(appConfig).map { ramlConfigPath ⇒
       val path = resourceFile(ramlConfigPath)
@@ -21,7 +20,7 @@ object ConfigsFactory {
       val api = buildApi.getApiV10
       if (api == null) {
         import scala.collection.JavaConverters._
-        throw new RamlConfigException(buildApi.getValidationResults.asScala.mkString("\n"))
+        throw RamlConfigException(buildApi.getValidationResults.asScala.mkString("\n"))
       }
       RamlConfigurationBuilder(api).build
     }.foldLeft(RamlConfiguration("", Map.empty, Map.empty)) { (set: RamlConfiguration, i: RamlConfiguration) ⇒

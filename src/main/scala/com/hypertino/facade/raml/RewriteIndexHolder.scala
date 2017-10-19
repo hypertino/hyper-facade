@@ -3,7 +3,6 @@ package com.hypertino.facade.raml
 import com.hypertino.hyperbus.model.HRL
 
 object RewriteIndexHolder {
-
   var rewriteIndex = RewriteIndex()
 
   def updateRewriteIndex(sourceHRL: HRL, destHRL: HRL, method: Option[Method]): Unit = {
