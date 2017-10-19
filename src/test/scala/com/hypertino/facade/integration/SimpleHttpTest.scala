@@ -157,4 +157,23 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
     val r = httpGetResponse(s"http://localhost:$httpPort/simple-resource?wrap_collection=1")
     r.getResponseBody shouldBe """{"count":3,"link":{"next_page_url":"/simple-resource/100500"},"items":["a","b","c"]}"""
   }
+
+  it should "substitute default query parameters" in {
+    val t = testObjects
+    import t._
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service-with-default-query", Method.GET, None))
+      ).subscribe { implicit command =>
+        command.reply(Success {
+          Ok(DynamicBody(command.request.headers.hrl.query))
+        })
+        Continue
+      }
+    }
+
+    httpGet(s"http://localhost:$httpPort/resource-with-query-string") shouldBe """{"test":"abc"}"""
+    httpGet(s"http://localhost:$httpPort/resource-with-query-string?test=1") shouldBe """{"test":"1"}"""
+  }
 }

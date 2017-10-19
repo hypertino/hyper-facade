@@ -1,10 +1,9 @@
-package com.hypertino.facade.filter.http
+package com.hypertino.facade.filters.chain.before_resolved
 
 import java.net.MalformedURLException
 
-import com.hypertino.facade.FacadeConfigPaths
-import com.typesafe.config.Config
 import com.hypertino.binders.value.Text
+import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.model._
@@ -12,6 +11,7 @@ import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.hyperbus.model._
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.hyperbus.util.SeqGenerator
+import com.typesafe.config.Config
 import monix.eval.Task
 import monix.execution.Scheduler
 

@@ -2,6 +2,7 @@ package com.hypertino.facade.raml
 
 import com.hypertino.facade.filter.model.ConditionalRequestFilterProxy
 import com.hypertino.facade.filter.raml._
+import com.hypertino.facade.filters.annotated._
 import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
 import com.hypertino.hyperbus.model
 

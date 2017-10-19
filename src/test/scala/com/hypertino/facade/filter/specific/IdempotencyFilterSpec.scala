@@ -3,9 +3,9 @@ package com.hypertino.facade.filter.specific
 import com.hypertino.binders.value.{Obj, Text}
 import com.hypertino.facade.TestBaseWithHyperbus
 import com.hypertino.facade.apiref.idempotency._
-import com.hypertino.facade.filter.chain.after.IdempotencyResponseFilter
-import com.hypertino.facade.filter.chain.before.IdempotencyRequestFilter
 import com.hypertino.facade.filter.parser.DefaultExpressionEvaluator
+import com.hypertino.facade.filters.chain.after_reply.IdempotencyResponseFilter
+import com.hypertino.facade.filters.chain.before_resolved.IdempotencyRequestFilter
 import com.hypertino.facade.model.{FilterInterruptException, RequestContext}
 import com.hypertino.hyperbus.model.{Created, DynamicBody, DynamicRequest, EmptyBody, ErrorBody, HRL, Headers, MessagingContext, Method, NotFound, Ok, PreconditionFailed, RequestBase, ResponseBase}
 import com.hypertino.hyperbus.subscribe.Subscribable

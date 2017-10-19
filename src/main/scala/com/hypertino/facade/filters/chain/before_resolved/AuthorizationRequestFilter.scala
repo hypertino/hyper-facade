@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.chain.before
+package com.hypertino.facade.filters.chain.before_resolved
 
 import com.hypertino.binders.value.{Null, Obj, Text, Value}
 import com.hypertino.facade.apiref.auth.{AuthHeader, Validation, ValidationResult, ValidationsPost}
@@ -12,7 +12,7 @@ import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 import monix.execution.Scheduler
 
-private[before] case class TaskResult(headerName: String, headerValue: Value, contextValue: Value)
+private[before_resolved] case class TaskResult(headerName: String, headerValue: Value, contextValue: Value)
 
 class AuthorizationRequestFilter(hyperbus: Hyperbus,
                                  protected val expressionEvaluator: ExpressionEvaluator,

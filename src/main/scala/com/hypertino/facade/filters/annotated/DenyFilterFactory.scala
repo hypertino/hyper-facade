@@ -1,11 +1,11 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.annotations.fieldName
 import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.chain.{FilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
-import com.hypertino.facade.raml.{RamlAnnotation, RamlFieldAnnotation}
+import com.hypertino.facade.raml.RamlAnnotation
 import com.typesafe.scalalogging.StrictLogging
 import scaldi.Injectable
 
@@ -39,8 +39,6 @@ class DenyFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) e
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlAnnotation = {
-    import com.hypertino.hyperbus.serialization.SerializationOptions._
-    import PreparedExpression._
     value.to[DenyAnnotation]
   }
 }

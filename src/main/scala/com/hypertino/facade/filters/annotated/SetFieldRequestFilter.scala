@@ -1,9 +1,9 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
-import com.hypertino.facade.raml.{RamlAnnotation, RamlFieldAnnotation}
+import com.hypertino.facade.raml.RamlFieldAnnotation
 import monix.eval.Task
 
 case class SetFieldAnnotation(
@@ -27,9 +27,6 @@ class SetFieldFilterFactory(protected val predicateEvaluator: ExpressionEvaluato
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation = {
-    import com.hypertino.hyperbus.serialization.SerializationOptions._
-    import PreparedExpression._
-    import FieldFilterStage._
     value.to[SetFieldAnnotation]
   }
 }

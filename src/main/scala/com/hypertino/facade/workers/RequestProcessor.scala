@@ -27,9 +27,10 @@ trait RequestProcessor extends Injectable with StrictLogging {
 
   val hyperbus = inject[Hyperbus]
   val ramlConfig = inject[RamlConfiguration]
-  val beforeFilterChain = inject[FilterChain]("before_filter_chain")
-  val ramlFilterChain = inject[FilterChain]("raml_filter_chain")
-  val afterFilterChain = inject[FilterChain]("after_filter_chain")
+  val beforeResolvedFilterChain = inject[FilterChain]("before_resolved")
+  val afterResolvedFilterChain = inject[FilterChain]("after_resolved")
+  val annotationsFilterChain = inject[FilterChain]("annotations")
+  val afterReplyFilterChain = inject[FilterChain]("after_reply")
   val config = inject[Config]
   val metrics = inject[MetricsTracker]
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
@@ -37,16 +38,17 @@ trait RequestProcessor extends Injectable with StrictLogging {
   def processRequestToFacade(cwr: RequestContext): Task[DynamicResponse] = {
     try {
       MetricUtils.timeOfTask(MetricKeys.REQUEST_PROCESS_TIME, metrics, {
-        beforeFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
-          val cwrBeforeRaml = prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest)
-          processRequestWithRaml(cwrBeforeRaml) flatMap { cwrRaml ⇒
-            hyperbus.ask(cwrRaml.request) onErrorRecover {
-              handleHyperbusExceptions(cwrRaml)
-            } flatMap { response: DynamicResponse ⇒
-              TaskUtils.chain(response, cwrRaml.stages.map { _ ⇒
-                ramlFilterChain.filterResponse(cwrRaml, _: DynamicResponse)
-              }) flatMap { r ⇒
-                afterFilterChain.filterResponse(cwrRaml, r)
+        beforeResolvedFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
+          prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest) flatMap { cwrBeforeRaml ⇒
+            processRequestWithRaml(cwrBeforeRaml) flatMap { cwrRaml ⇒
+              hyperbus.ask(cwrRaml.request) onErrorRecover {
+                handleHyperbusExceptions(cwrRaml)
+              } flatMap { response: DynamicResponse ⇒
+                TaskUtils.chain(response, cwrRaml.stages.map { _ ⇒
+                  annotationsFilterChain.filterResponse(cwrRaml, _: DynamicResponse)
+                }) flatMap { r ⇒
+                  afterReplyFilterChain.filterResponse(cwrRaml, r)
+                }
               }
             }
           }
@@ -67,7 +69,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
       )
     }
     else {
-      ramlFilterChain.filterRequest(cwr) flatMap { filteredCWR ⇒
+      annotationsFilterChain.filterRequest(cwr) flatMap { filteredCWR ⇒
         val filteredRequest = filteredCWR.request
         if (filteredRequest.headers.hrl.location == cwr.request.headers.hrl.location) {
           Task.now(filteredCWR)
@@ -81,9 +83,10 @@ trait RequestProcessor extends Injectable with StrictLogging {
     }
   }
 
-  def prepareContextAndRequestBeforeRaml(cwr: RequestContext) = {
+  def prepareContextAndRequestBeforeRaml(cwr: RequestContext): Task[RequestContext] = {
     val facadeRequestWithRamlUri = withRamlResource(cwr.request)
-    cwr.withNextStage(facadeRequestWithRamlUri, ramlEntryHeaders = Some(facadeRequestWithRamlUri.headers))
+    val resolvedRequest = cwr.withNextStage(facadeRequestWithRamlUri, ramlEntryHeaders = Some(facadeRequestWithRamlUri.headers))
+    afterResolvedFilterChain.filterRequest(resolvedRequest)
   }
 
   def withRamlResource(implicit request: DynamicRequest): DynamicRequest = {

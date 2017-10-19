@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.chain.before
+package com.hypertino.facade.filters.chain.before_resolved
 
 import com.hypertino.binders.value.{Obj, Text}
 import com.hypertino.facade.apiref.idempotency._

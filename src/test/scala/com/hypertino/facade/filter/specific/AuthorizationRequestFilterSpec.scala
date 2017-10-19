@@ -4,8 +4,8 @@ import com.hypertino.binders.value.{Lst, Null, Obj, Text}
 import com.hypertino.facade.TestBaseWithHyperbus
 import com.hypertino.facade.apiref.auth.{Validation, ValidationResult}
 import com.hypertino.facade.apiref.user.UsersGet
-import com.hypertino.facade.filter.chain.before.AuthorizationRequestFilter
 import com.hypertino.facade.filter.parser.DefaultExpressionEvaluator
+import com.hypertino.facade.filters.chain.before_resolved.AuthorizationRequestFilter
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.hyperbus.model.annotations.request
 import com.hypertino.hyperbus.model.{Created, DefinedResponse, DynamicBody, DynamicRequest, EmptyBody, ErrorBody, Forbidden, HRL, Headers, MessagingContext, Method, Ok, Request, ResponseBase}

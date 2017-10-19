@@ -144,9 +144,10 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     context.become(filtering(subscriptionSyncTries) orElse stopStartSubscription)
 
     implicit val ec = scheduler
-    beforeFilterChain.filterRequest(cwr) map { unpreparedContextWithRequest ⇒
-      val cwrBeforeRaml = prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest)
-      BeforeFilterComplete(cwrBeforeRaml)
+    beforeResolvedFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
+      prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest) map { cwrBeforeRaml ⇒
+        BeforeFilterComplete(cwrBeforeRaml)
+      }
     } onErrorRecover handleFilterExceptions(cwr) { response ⇒
       websocketWorker ! response
       PoisonPill
@@ -206,9 +207,9 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
     implicit val ec = scheduler
     TaskUtils.chain(resourceState, cwr.stages.map { _ ⇒
-      ramlFilterChain.filterResponse(cwr, _: DynamicResponse)
+      annotationsFilterChain.filterResponse(cwr, _: DynamicResponse)
     }) flatMap { filteredResponse ⇒
-      afterFilterChain.filterResponse(cwr, filteredResponse) map { finalResponse ⇒
+      afterReplyFilterChain.filterResponse(cwr, filteredResponse) map { finalResponse ⇒
         websocketWorker ! finalResponse
         if (finalResponse.headers.statusCode > 399) { // failed
           PoisonPill
@@ -235,9 +236,9 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     logger.trace(s"Processing unreliable event $event for ${cwr.originalHeaders.hrl}")
     implicit val ec = scheduler
     TaskUtils.chain(event, cwr.stages.map { _ ⇒
-      ramlFilterChain.filterEvent(cwr, _: DynamicRequest)
+      annotationsFilterChain.filterEvent(cwr, _: DynamicRequest)
     }) flatMap { e ⇒
-      afterFilterChain.filterEvent(cwr, e) map { filteredRequest ⇒
+      afterReplyFilterChain.filterEvent(cwr, e) map { filteredRequest ⇒
         websocketWorker ! filteredRequest
       }
     } onErrorRecover handleFilterExceptions(cwr) { response ⇒
@@ -307,9 +308,9 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       override def onNext(event: DynamicRequest): Future[Ack] = {
         implicit val ec = scheduler
         val filteringTask = TaskUtils.chain(event, cwr.stages.map { _ ⇒
-          ramlFilterChain.filterEvent(cwr, _: DynamicRequest)
+          annotationsFilterChain.filterEvent(cwr, _: DynamicRequest)
         }) flatMap { e ⇒
-          afterFilterChain.filterEvent(cwr, e)
+          afterReplyFilterChain.filterEvent(cwr, e)
         }
         if (currentFilteringFuture.get().isEmpty) {
           val newCurrentFilteringTask = filteringTask map { filteredRequest ⇒

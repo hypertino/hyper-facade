@@ -3,7 +3,7 @@ package com.hypertino.facade.raml
 import com.hypertino.binders.value.{Lst, Obj, Text, Value}
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model.{RamlFieldFilterFactory, RamlFilterFactory}
-import com.hypertino.facade.filter.raml.{FieldFilterAdapterFactory, RewriteAnnotation}
+import com.hypertino.facade.filters.annotated.{FieldFilterAdapterFactory, RewriteAnnotation}
 import com.hypertino.hyperbus.serialization.JsonContentTypeConverter
 import com.hypertino.inflector.naming.CamelCaseToDashCaseConverter
 import org.raml.v2.api.model.v10.api.Api

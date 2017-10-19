@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 case class PrivateAddresses(ipAddresses: Seq[String], networks: Seq[NetworkRange]) {
   def isAllowedAddress(ip: String): Boolean = {

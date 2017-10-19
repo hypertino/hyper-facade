@@ -1,14 +1,14 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.annotations.fieldName
 import com.hypertino.binders.value.Value
-import com.typesafe.config.Config
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.raml._
 import com.hypertino.hyperbus.model.HRL
-import scaldi.{Injectable, Injector}
+import com.typesafe.config.Config
+import scaldi.Injectable
 
 case class RewriteAnnotation(
                               @fieldName("if") predicate: Option[PreparedExpression],
@@ -37,8 +37,6 @@ class RewriteFilterFactory(config: Config, protected val predicateEvaluator: Exp
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlAnnotation = {
-    import com.hypertino.hyperbus.serialization.SerializationOptions._
-    import PreparedExpression._
     value.to[RewriteAnnotation]
   }
 }

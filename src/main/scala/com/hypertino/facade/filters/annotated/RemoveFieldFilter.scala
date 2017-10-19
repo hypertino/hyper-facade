@@ -1,9 +1,9 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.PreparedExpression
-import com.hypertino.facade.raml.{RamlAnnotation, RamlFieldAnnotation}
+import com.hypertino.facade.raml.RamlFieldAnnotation
 import monix.eval.Task
 
 case class RemoveFieldAnnotation(
@@ -24,9 +24,6 @@ class RemoveFieldFilterFactory extends RamlFieldFilterFactory {
   def createFieldFilter(fieldName: String, typeName: String, annotation: RamlFieldAnnotation): FieldFilter = RemoveFieldFilter
 
   override def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation = {
-    import com.hypertino.hyperbus.serialization.SerializationOptions._
-    import PreparedExpression._
-    import FieldFilterStage._
     value.to[RemoveFieldAnnotation]
   }
 }

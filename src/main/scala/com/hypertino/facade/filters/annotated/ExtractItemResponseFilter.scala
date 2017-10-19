@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.value.Lst
 import com.hypertino.facade.filter.model.ResponseFilter

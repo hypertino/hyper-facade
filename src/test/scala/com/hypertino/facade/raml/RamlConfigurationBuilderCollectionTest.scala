@@ -1,7 +1,7 @@
 package com.hypertino.facade.raml
 
+import com.hypertino.facade.filters.annotated.ResponseFieldFilterAdapter
 import com.hypertino.facade.{TestBase, TestBaseWithHyperbus}
-import com.hypertino.facade.filter.raml.ResponseFieldFilterAdapter
 import com.hypertino.hyperbus.model
 
 class RamlConfigurationBuilderCollectionTest extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-collection-config-parser-test.raml")) {

@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.chain.after
+package com.hypertino.facade.filters.chain.after_reply
 
 import com.hypertino.binders.value.Obj
 import com.hypertino.facade.apiref.idempotency.{IdempotentResponsePut, ResponseWrapper}

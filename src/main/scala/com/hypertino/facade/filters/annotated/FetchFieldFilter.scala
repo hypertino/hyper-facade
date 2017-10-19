@@ -1,9 +1,9 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.value.{Null, Value}
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
-import com.hypertino.facade.raml.{RamlAnnotation, RamlConfiguration, RamlFieldAnnotation}
+import com.hypertino.facade.raml.{RamlConfiguration, RamlFieldAnnotation}
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.HRL
@@ -111,9 +111,6 @@ class FetchFieldFilterFactory(hyperbus: Hyperbus,
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation = {
-    import com.hypertino.hyperbus.serialization.SerializationOptions._
-    import FieldFilterStage._
-    import PreparedExpression._
     value.to[FetchFieldAnnotation]
   }
 }

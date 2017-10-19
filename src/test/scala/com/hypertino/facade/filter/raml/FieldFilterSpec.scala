@@ -4,6 +4,7 @@ import com.hypertino.binders.value.{Lst, Null, Obj, Value}
 import com.hypertino.facade.TestBaseWithHyperbus
 import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageEvent, FieldFilterStageRequest, FieldFilterStageResponse}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
+import com.hypertino.facade.filters.annotated._
 import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
 import com.hypertino.facade.raml._
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, Forbidden, HRL, Headers, Method, Ok}

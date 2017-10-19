@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.value.Value
 import com.hypertino.facade.filter.chain.SimpleFilterChain
@@ -31,8 +31,6 @@ class SetFilterFactory(config: Config, protected val predicateEvaluator: Express
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlAnnotation = {
-    import PreparedExpression._
-    import com.hypertino.hyperbus.serialization.SerializationOptions._
     value.to[SetAnnotation]
   }
 }

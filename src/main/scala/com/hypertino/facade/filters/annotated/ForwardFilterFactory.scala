@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.raml
+package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.annotations.fieldName
 import com.hypertino.binders.value.Value
@@ -35,8 +35,6 @@ class ForwardFilterFactory(config: Config, protected val predicateEvaluator: Exp
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlAnnotation = {
-    import com.hypertino.hyperbus.serialization.SerializationOptions._
-    import PreparedExpression._
     value.to[ForwardAnnotation]
   }
 }

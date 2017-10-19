@@ -60,3 +60,13 @@ types:
     location: hb://test-service-with-args/{path}
     query:
       path: def/{some_id}
+
+
+/resource-with-query-string:
+  (facade.rewrite):
+    location: hb://test-service-with-default-query
+  get:
+    queryParameters:
+      test:
+        type: string
+        default: abc

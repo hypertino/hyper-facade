@@ -1,4 +1,4 @@
-package com.hypertino.facade.filter.http
+package com.hypertino.facade.filters.chain.before_resolved
 
 import com.hypertino.binders.value._
 import com.hypertino.facade.FacadeConfigPaths
