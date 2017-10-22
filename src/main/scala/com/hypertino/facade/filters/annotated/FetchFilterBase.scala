@@ -29,8 +29,9 @@ trait FetchFilterBase extends StrictLogging{
         hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
           case response @ Ok(body: DynamicBody, _) ⇒
             body.content match {
-              case Lst(l) if l.isEmpty | Null ⇒
+              case Lst(l) if l.isEmpty ⇒
                 None
+              case Null ⇒ None
               case Lst(_) ⇒
                 Some(
                   applySelector(Obj(
