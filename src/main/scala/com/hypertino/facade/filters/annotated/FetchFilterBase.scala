@@ -28,13 +28,20 @@ trait FetchFilterBase extends StrictLogging{
       case FetchFilter.EXPECTS_COLLECTION_TOP ⇒
         hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
           case response @ Ok(body: DynamicBody, _) ⇒
-            Some(
-              applySelector(Obj(
-                Map("top" → body.content) ++
-                  response.headers.link.map(kv ⇒ kv._1 → Text(kv._2.toURL())) ++
-                  response.headers.get(Header.COUNT).map("count" → _).toMap
-              ), context)
-            )
+            body.content match {
+              case Lst(l) if l.isEmpty | Null ⇒
+                None
+              case Lst(_) ⇒
+                Some(
+                  applySelector(Obj(
+                    Map("top" → body.content) ++
+                      response.headers.link.map(kv ⇒ kv._1 → Text(kv._2.toURL())) ++
+                      response.headers.get(Header.COUNT).map("count" → _).toMap
+                  ), context)
+                )
+              case other ⇒
+                throw InternalServerError(ErrorBody("resource-is-not-a-collection", Some(s"$hrl: ${other.getClass}")))
+            }
         }
 
       case FetchFilter.EXPECTS_SINGLE_ITEM ⇒
