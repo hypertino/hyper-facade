@@ -34,6 +34,7 @@ case class ExpressionEvaluatorContext(requestContext: RequestContext, extraConte
     Obj.from(
       "context" → requestContext.contextStorage,
       "headers" → Obj(request.headers),
+      "http_headers" → Obj(requestContext.httpHeaders),
       "location" → request.headers.hrl.location,
       "query" → request.headers.hrl.query,
       "method" → request.headers.method,

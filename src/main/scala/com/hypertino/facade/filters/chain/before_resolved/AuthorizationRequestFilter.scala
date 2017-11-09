@@ -64,7 +64,7 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
   }
 
   private def authorizationTask(implicit requestContext: RequestContext): Task[TaskResult] = {
-    requestContext.originalHeaders.get(FacadeHeaders.AUTHORIZATION) match {
+    requestContext.httpHeaders.get(FacadeHeaders.AUTHORIZATION) match {
       case Some(Text(credentials)) ⇒
         validateCredentials(credentials)
           .flatMap { validation ⇒
@@ -98,7 +98,7 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
   }
 
   private def privelegeAuthorizationTask(implicit requestContext: RequestContext): Task[TaskResult] = {
-    requestContext.originalHeaders.get(FacadeHeaders.PRIVILEGE_AUTHORIZATION) match {
+    requestContext.httpHeaders.get(FacadeHeaders.PRIVILEGE_AUTHORIZATION) match {
       case Some(Text(credentials)) ⇒
         validateCredentials(credentials).map { v ⇒
           TaskResult(AuthHeader.PRIVILEGE_AUTHORIZATION_RESULT, Obj.from(

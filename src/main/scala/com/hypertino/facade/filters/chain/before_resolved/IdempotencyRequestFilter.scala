@@ -22,7 +22,7 @@ class IdempotencyRequestFilter(hyperbus: Hyperbus,
                     (implicit scheduler: Scheduler): Task[RequestContext] = {
     implicit val mcx: MessagingContext = requestContext
 
-    requestContext.originalHeaders.get(IdempotencyHeader.IDEMPOTENCY_KEY) match {
+    requestContext.httpHeaders.get(IdempotencyHeader.IDEMPOTENCY_KEY) match {
       case Some(Text(idempotencyKey)) ⇒ handleIdempotency(requestContext, idempotencyKey)
       case _ ⇒ Task.now(requestContext)
     }

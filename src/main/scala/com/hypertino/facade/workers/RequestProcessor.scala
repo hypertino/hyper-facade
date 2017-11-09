@@ -115,14 +115,14 @@ trait RequestProcessor extends Injectable with StrictLogging {
     case e: NoTransportRouteException ⇒
       implicit val mcf = cwr.request
       val errorId = SeqGenerator.create()
-      logger.error(s"Service not found #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})", e)
-      BadGateway(ErrorBody("service-not-found", Some(s"'Service for ${cwr.originalHeaders.hrl.location}' is not found.")))
+      logger.error(s"Service not found #$errorId while handling ${cwr.httpHeaders.hrl.location}(${cwr.request.headers.hrl.location})", e)
+      BadGateway(ErrorBody("service-not-found", Some(s"'Service for ${cwr.httpHeaders.hrl.location}' is not found.")))
 
     case _: AskTimeoutException ⇒
       implicit val mcf = cwr.request
       val errorId = SeqGenerator.create()
-      logger.error(s"Timeout #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})")
-      GatewayTimeout(ErrorBody("service-timeout", Some(s"Timeout while serving '${cwr.originalHeaders.hrl.location}'"), errorId = errorId))
+      logger.error(s"Timeout #$errorId while handling ${cwr.httpHeaders.hrl.location}(${cwr.request.headers.hrl.location})")
+      GatewayTimeout(ErrorBody("service-timeout", Some(s"Timeout while serving '${cwr.httpHeaders.hrl.location}'"), errorId = errorId))
 
     case NonFatal(nonFatal) ⇒
       handleInternalError(nonFatal, cwr)
@@ -131,10 +131,10 @@ trait RequestProcessor extends Injectable with StrictLogging {
   def handleFilterExceptions[T](cwr: RequestContext)(func: DynamicResponse ⇒ T): PartialFunction[Throwable, T] = {
     case e: FilterInterruptException ⇒
       if (e.getCause != null) {
-        logger.error(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
+        logger.error(s"Request execution interrupted: ${cwr.httpHeaders.hrl.location}", e)
       }
       else {
-        logger.trace(s"Request execution interrupted: ${cwr.originalHeaders.hrl.location}", e)
+        logger.trace(s"Request execution interrupted: ${cwr.httpHeaders.hrl.location}", e)
       }
       func(e.response)
 
@@ -145,7 +145,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
   def handleInternalError(exception: Throwable, cwr: RequestContext): DynamicResponse = {
     implicit val mcf = cwr.request
     val errorId = IdGenerator.create()
-    logger.error(s"Exception #$errorId while handling ${cwr.originalHeaders.hrl.location}(${cwr.request.headers.hrl.location})", exception)
+    logger.error(s"Exception #$errorId while handling ${cwr.httpHeaders.hrl.location}(${cwr.request.headers.hrl.location})", exception)
     InternalServerError(ErrorBody("internal-server-error", Some(exception.getClass.getName + ": " + exception.getMessage), errorId = errorId))
   }
 }
