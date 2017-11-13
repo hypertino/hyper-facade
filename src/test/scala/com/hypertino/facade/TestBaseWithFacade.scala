@@ -11,7 +11,7 @@ package com.hypertino.facade
 import com.hypertino.facade.workers.WsTestClientHelper
 import monix.execution.Cancelable
 import org.asynchttpclient.Response
-
+import scala.collection.JavaConverters._
 import scala.concurrent.Await
 
 abstract class TestBaseWithFacade(
@@ -39,6 +39,21 @@ abstract class TestBaseWithFacade(
     Await.result(
       taskFromListenableFuture(f).runAsync.map { result ⇒
         result
+      },
+      timeout.duration
+    )
+  }
+
+  def httpPostUrlEncoded(url: String, formData: Map[String, List[String]]): String = {
+    val t = testObjects
+    import t._
+    val post = asyncHttpClient.preparePost(url)
+    post.setFormParams(formData.map(kv ⇒ kv._1 → kv._2.asJava).asJava)
+    val f = post.execute()
+
+    Await.result(
+      taskFromListenableFuture(f).runAsync.map { result ⇒
+        result.getResponseBody
       },
       timeout.duration
     )

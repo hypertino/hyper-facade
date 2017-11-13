@@ -70,3 +70,13 @@ types:
       test:
         type: string
         default: abc
+
+/test-post-www-form:
+  (facade.rewrite):
+    location: hb://test-service-www-form-urlencoded
+  post:
+    body:
+      application/x-www-form-urlencoded:
+        type: SimpleService
+    responses:
+      200:

@@ -10,10 +10,10 @@ package com.hypertino.facade.utils
 
 import java.io.{StringReader, StringWriter}
 
-import com.hypertino.binders.value.Text
+import com.hypertino.binders.value.{Null, Obj, Text}
 import com.hypertino.facade.model.FacadeHeaders
 import com.hypertino.hyperbus.model.headers.PlainHeadersConverter
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, HRL, Header, MessageHeaders, NoContent}
+import com.hypertino.hyperbus.model.{BadRequest, DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, ErrorBody, HRL, Header, MessageHeaders, MessagingContext, NoContent}
 import com.hypertino.hyperbus.serialization.{JsonContentTypeConverter, MessageReader}
 import com.hypertino.hyperbus.util.SeqGenerator
 import spray.can.websocket.frame.{Frame, TextFrame}
@@ -21,6 +21,7 @@ import spray.http.HttpCharsets._
 import spray.http.HttpHeaders.RawHeader
 import spray.http.MediaTypes._
 import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode, _}
+import spray.httpx.unmarshalling.FormDataUnmarshallers
 
 object MessageTransformer {
   def frameToRequest(frame: Frame, remoteAddress: String, httpRequest: HttpRequest): DynamicRequest = {
@@ -53,7 +54,7 @@ object MessageTransformer {
     val body = if (request.entity.isEmpty)
       EmptyBody
     else {
-      DynamicBody(new StringReader(request.entity.asString(`UTF-8`)), None) // todo: content type/encoding from headers? !!!!
+      requestBody(request)
     }
 
     val headers = MessageHeaders
@@ -79,10 +80,8 @@ object MessageTransformer {
           .requestHeaders()
       }
 
-
     DynamicRequest(body, headersWithContext)
   }
-
 
   def messageToFrame(message: DynamicMessage): Frame = {
     TextFrame(message.serializeToString)
@@ -109,6 +108,28 @@ object MessageTransformer {
         RawHeader(name, value)
       }.toList
     )
+  }
+
+  private def requestBody(request: HttpRequest): DynamicBody = {
+    // todo: content type/encoding from headers? !!!!
+
+    request.entity.toOption match {
+      case Some(HttpEntity.NonEmpty(contentType, data)) =>
+        if (contentType.mediaType.value == "application/x-www-form-urlencoded") {
+          FormDataUnmarshallers.UrlEncodedFormDataUnmarshaller(request.entity) match {
+            case Right(formData) ⇒
+              DynamicBody(Obj.from(formData.fields.map(kv ⇒ kv._1 → Text(kv._2)):_*), None)
+            case Left(ex) ⇒
+              throw BadRequest(ErrorBody("malformed-urlencoded-request", Some(ex.toString)))(MessagingContext.empty)
+          }
+        }
+        else {
+          DynamicBody(new StringReader(data.asString), None)
+        }
+
+      case None =>
+        DynamicBody(Null, None)
+    }
   }
 
   private def contentTypeToSpray(contentType: Option[String]): spray.http.ContentType = {

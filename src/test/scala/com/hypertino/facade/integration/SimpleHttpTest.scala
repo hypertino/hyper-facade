@@ -10,7 +10,7 @@ package com.hypertino.facade.integration
 
 import com.hypertino.binders.value.{Lst, Number, Obj}
 import com.hypertino.facade.{TestBase, TestBaseWithFacade}
-import com.hypertino.hyperbus.model.{Created, DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, HRL, Header, Headers, MessageHeaders, Method, NoContent, Ok}
+import com.hypertino.hyperbus.model.{Created, DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, Found, HRL, Header, Headers, MessageHeaders, Method, NoContent, Ok, TemporaryRedirect}
 import com.hypertino.hyperbus.transport.api.matchers.RequestMatcher
 import monix.execution.Ack.Continue
 
@@ -33,6 +33,26 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
     }
 
     httpGet(s"http://localhost:$httpPort/simple-resource") shouldBe """{"text_field":"Yey","integer_field":100500}"""
+  }
+
+  it should "redirect" in {
+    val t = testObjects
+    import t._
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+      ).subscribe { implicit request =>
+        request.reply(Success {
+          Found(EmptyBody, HRL.fromURL("http://ya.ru"))
+        })
+        Continue
+      }
+    }
+
+    val r = httpGetResponse(s"http://localhost:$httpPort/simple-resource")
+    r.getStatusCode shouldBe 302
+    r.getHeader("Location") shouldBe "http://ya.ru"
   }
 
   it should "filter fields" in {
