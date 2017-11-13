@@ -23,11 +23,11 @@ class FacadeService(implicit val injector: Injector) extends Service with Inject
 
   val app = new WsRestServiceApp
   app.start(httpWorker.restRoutes.routes)
-  logger.info(s"${getClass.getName} started")
+  logger.info(s"${getClass.getName} is STARTED")
 
   override def stopService(controlBreak: Boolean, timeout: FiniteDuration): Future[Unit] = {
     app.stopService(controlBreak, timeout).map { _ ⇒
-      logger.info(s"${getClass.getName} stopped")
+      logger.info(s"${getClass.getName} is STOPPED")
     }
   }
 }
