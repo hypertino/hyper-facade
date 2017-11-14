@@ -23,7 +23,7 @@ object HttpUtils extends StrictLogging {
             Obj.from(cookies.map { c ⇒
               val m = Seq(
                 "name" → Text(c.name),
-                "content" → Text(c.content),
+                "value" → Text(c.content),
                 "http_only" → Bool(c.httpOnly),
                 "secure"→ Bool(c.secure)
               ) ++
