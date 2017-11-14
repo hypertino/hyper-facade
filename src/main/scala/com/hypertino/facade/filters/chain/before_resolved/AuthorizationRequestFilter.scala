@@ -110,7 +110,7 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
 
   private def authorizationHeader(requestContext: RequestContext, mode: String): Option[Value] = {
     authorizeAnnotation.filter(_.mode.contains(mode)).map { aa ⇒
-      val ctx = ExpressionEvaluatorContext(requestContext, Null)
+      val ctx = ExpressionEvaluatorContext(requestContext, Obj.empty)
       expressionEvaluator.evaluate(ctx, aa.source)
     } orElse {
       if (mode == AuthorizeAnnotation.MODE_PRIVILEGE) {
