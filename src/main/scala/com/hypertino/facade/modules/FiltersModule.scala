@@ -36,6 +36,7 @@ class FiltersModule extends Module {
   bind[FieldFilterAdapterFactory] identifiedBy "field_filter_adapter" to injected[FieldFilterAdapterFactory]
   bind[RamlFilterFactory] identifiedBy "set" to injected[SetFilterFactory]
   bind[RamlFilterFactory] identifiedBy "forward" to injected[ForwardFilterFactory]
+  bind[RamlFilterFactory] identifiedBy "authorize" to injected[AuthorizeFilterFactory]
 
   bind[RamlFieldFilterFactory] identifiedBy "remove_field" to injected[RemoveFieldFilterFactory]
   bind[RamlFieldFilterFactory] identifiedBy "set_field" to injected[SetFieldFilterFactory]
