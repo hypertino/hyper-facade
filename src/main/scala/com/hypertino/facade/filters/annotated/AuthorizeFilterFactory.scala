@@ -16,7 +16,6 @@ import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpressi
 import com.hypertino.facade.filters.chain.before_resolved.AuthorizationRequestFilter
 import com.hypertino.facade.raml._
 import com.hypertino.hyperbus.Hyperbus
-import com.typesafe.config.Config
 import monix.execution.Scheduler
 import scaldi.Injectable
 
@@ -35,7 +34,7 @@ class AuthorizeFilterFactory(hyperbus: Hyperbus,
     val aa = target match {
       case ResourceTarget(_, aa: AuthorizeAnnotation) ⇒ aa
       case MethodTarget(_, _, aa: AuthorizeAnnotation) ⇒ aa
-      case otherTarget ⇒ throw RamlConfigException(s"Annotation 'set' cannot be assigned to $otherTarget")
+      case otherTarget ⇒ throw RamlConfigException(s"Annotation 'authorize' cannot be assigned to $otherTarget")
     }
     SimpleFilterChain(
       requestFilters = Seq(new AuthorizationRequestFilter(hyperbus, predicateEvaluator, scheduler, Some(aa))),
@@ -45,7 +44,7 @@ class AuthorizeFilterFactory(hyperbus: Hyperbus,
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlAnnotation = {
-    value.to[SetAnnotation]
+    value.to[AuthorizeAnnotation]
   }
 }
 
