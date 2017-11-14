@@ -87,3 +87,6 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
     )
   }
 }
+
+// todo: aad authorize (annotation) test
+// todo: add cookies extraction test

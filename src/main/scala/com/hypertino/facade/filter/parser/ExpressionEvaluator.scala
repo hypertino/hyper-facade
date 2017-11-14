@@ -39,10 +39,12 @@ case class ExpressionEvaluatorContext(requestContext: RequestContext, extraConte
 
   protected def preparePredicateContext(requestContext: RequestContext): Obj = {
     val request = requestContext.request
+    // todo: make this lazy evaluated?
     Obj.from(
       "context" → requestContext.contextStorage,
       "headers" → Obj(request.headers),
       "http_headers" → Obj(requestContext.httpHeaders),
+      "cookies" → requestContext.cookies,
       "location" → request.headers.hrl.location,
       "query" → request.headers.hrl.query,
       "method" → request.headers.method,

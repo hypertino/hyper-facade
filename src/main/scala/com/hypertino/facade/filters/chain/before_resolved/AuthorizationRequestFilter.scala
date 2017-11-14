@@ -12,7 +12,8 @@ import com.hypertino.binders.value.{Null, Obj, Text, Value}
 import com.hypertino.facade.apiref.auth.{AuthHeader, Validation, ValidationResult, ValidationsPost}
 import com.hypertino.facade.apiref.user.UsersGet
 import com.hypertino.facade.filter.model.RequestFilter
-import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
+import com.hypertino.facade.filters.annotated.AuthorizeAnnotation
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
@@ -24,7 +25,9 @@ private[before_resolved] case class TaskResult(headerName: String, headerValue: 
 
 class AuthorizationRequestFilter(hyperbus: Hyperbus,
                                  protected val expressionEvaluator: ExpressionEvaluator,
-                                 protected implicit val scheduler: Scheduler) extends RequestFilter with StrictLogging {
+                                 protected implicit val scheduler: Scheduler,
+                                 protected val authorizeAnnotation: Option[AuthorizeAnnotation] = None
+                                ) extends RequestFilter with StrictLogging {
 
   override def apply(requestContext: RequestContext)
                     (implicit scheduler: Scheduler): Task[RequestContext] = {
@@ -72,7 +75,7 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
   }
 
   private def authorizationTask(implicit requestContext: RequestContext): Task[TaskResult] = {
-    requestContext.httpHeaders.get(FacadeHeaders.AUTHORIZATION) match {
+    authorizationHeader(requestContext, AuthorizeAnnotation.MODE_NORMAL) match {
       case Some(Text(credentials)) ⇒
         validateCredentials(credentials)
           .flatMap { validation ⇒
@@ -105,8 +108,22 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
     }
   }
 
+  private def authorizationHeader(requestContext: RequestContext, mode: String): Option[Value] = {
+    authorizeAnnotation.filter(_.mode.contains(mode)).map { aa ⇒
+      val ctx = ExpressionEvaluatorContext(requestContext, Null)
+      expressionEvaluator.evaluate(ctx, aa.source)
+    } orElse {
+      if (mode == AuthorizeAnnotation.MODE_PRIVILEGE) {
+        requestContext.httpHeaders.get(FacadeHeaders.PRIVILEGE_AUTHORIZATION)
+      }
+      else {
+        requestContext.httpHeaders.get(FacadeHeaders.AUTHORIZATION)
+      }
+    }
+  }
+
   private def privelegeAuthorizationTask(implicit requestContext: RequestContext): Task[TaskResult] = {
-    requestContext.httpHeaders.get(FacadeHeaders.PRIVILEGE_AUTHORIZATION) match {
+    authorizationHeader(requestContext, AuthorizeAnnotation.MODE_PRIVILEGE) match {
       case Some(Text(credentials)) ⇒
         validateCredentials(credentials).map { v ⇒
           TaskResult(AuthHeader.PRIVILEGE_AUTHORIZATION_RESULT, Obj.from(

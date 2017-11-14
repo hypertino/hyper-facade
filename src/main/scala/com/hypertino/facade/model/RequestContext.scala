@@ -8,7 +8,8 @@
 
 package com.hypertino.facade.model
 
-import com.hypertino.binders.value.Obj
+import com.hypertino.binders.value.{Null, Obj, Value}
+import com.hypertino.facade.utils.HttpUtils
 import com.hypertino.hyperbus.model.{DynamicRequest, Headers, MessagingContext, RequestHeaders}
 
 case class RequestContext(request: DynamicRequest,
@@ -19,6 +20,7 @@ case class RequestContext(request: DynamicRequest,
   lazy val httpHeaders: RequestHeaders = RequestHeaders(
     Headers(stages.reverse.head.toSeq.map(kv ⇒ FacadeHeaders.normalize(kv._1) → kv._2): _*)
   )
+  lazy val cookies: Value = httpHeaders.get("cookie").map(HttpUtils.parseCookies).getOrElse(Null)
   lazy val remoteAddress: String = httpHeaders(FacadeHeaders.REMOTE_ADDRESS).toString
 
   def withNextStage(newRequest: DynamicRequest, ramlEntryHeaders: Option[RequestHeaders] = None): RequestContext = copy(
