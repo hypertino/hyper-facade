@@ -13,7 +13,7 @@ import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.RequestUtils
-import com.hypertino.hyperbus.model.{HRL, MessageHeaders}
+import com.hypertino.hyperbus.model.{DynamicBody, HRL, MessageHeaders}
 import com.hypertino.parser.{HParser, ast}
 import monix.eval.Task
 import monix.execution.Scheduler
@@ -84,6 +84,17 @@ class SetRequestFilter(set: SetAnnotation,
     requestContext.copy(request=request)
   }
 
+  private def setBody(requestContext: RequestContext, path: Seq[String], result: Value): RequestContext = {
+    val o = requestContext.request.body.content match {
+      case o: Obj ⇒ o
+      case Null ⇒ Obj.empty
+      case other ⇒ throw new IllegalArgumentException(s"Object is expected: $other")
+    }
+    requestContext.copy(request=requestContext.request.copy(
+      body = DynamicBody(mergeObj(o, path, result), requestContext.request.body.contentType)
+    ))
+  }
+
   override def apply(requestContext: RequestContext)
                     (implicit scheduler: Scheduler): Task[RequestContext] = {
     Task.now {
@@ -104,6 +115,9 @@ class SetRequestFilter(set: SetAnnotation,
 
         case "method" ⇒
           setMethod(requestContext, targetIdentifier.segments.tail, result)
+
+        case "body" ⇒
+          setBody(requestContext, targetIdentifier.segments.tail, result)
 
         case other ⇒
           throw new IllegalArgumentException(s"Can't set unknown variable '$other'")
