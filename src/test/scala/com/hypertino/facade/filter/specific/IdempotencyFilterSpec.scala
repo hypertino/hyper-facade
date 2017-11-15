@@ -39,7 +39,7 @@ class IdempotencyFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") wit
       Task.now(Ok(EmptyBody))
     }
     else {
-      Task.now(PreconditionFailed(ErrorBody("precondition-failed-test")))
+      Task.now(PreconditionFailed())
     }
   }
 
@@ -50,7 +50,7 @@ class IdempotencyFilterSpec extends TestBaseWithHyperbus("inproc-test.conf") wit
       Task.now(Ok(ResponseWrapper(Obj(response.headers.underlying), response.body.content)))
     }
     else {
-      Task.raiseError(NotFound(ErrorBody("not-found")))
+      Task.raiseError(NotFound())
     }
   }
 

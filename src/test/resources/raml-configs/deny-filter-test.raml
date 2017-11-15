@@ -10,7 +10,7 @@ types:
     properties:
       publicField: number
       privateField:
-        (deny):
+        (forbidden):
           if: "!context.isAuthorized"
 
   Conditional:
@@ -19,15 +19,15 @@ types:
       if?:
 
 annotationTypes:
-  deny: nil | Conditional
+  forbidden: nil | Conditional
 
 /authorized-only-resource:
-  (deny):
+  (forbidden):
     if: "!context.isAuthorized"
 
 /authorized-only-method:
   get:
-    (deny):
+    (forbidden):
       if: "!context.isAuthorized"
 
 /authorized-only-fields:

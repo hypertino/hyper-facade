@@ -10,6 +10,7 @@ package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
+import com.hypertino.facade.model.ErrorCode
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, EmptyBody, ErrorBody, HRL, Header, HyperbusError, InternalServerError, MessagingContext, Method, NotFound, Ok}
 import com.typesafe.scalalogging.StrictLogging
@@ -49,7 +50,7 @@ trait FetchFilterBase extends StrictLogging{
                   ), context)
                 )
               case other ⇒
-                throw InternalServerError(ErrorBody("resource-is-not-a-collection", Some(s"$hrl: ${other.getClass}")))
+                throw InternalServerError(ErrorBody(ErrorCode.RESOURCE_IS_NOT_COLLECTION, Some(s"$hrl: ${other.getClass}")))
             }
         }
 
@@ -59,11 +60,11 @@ trait FetchFilterBase extends StrictLogging{
             body.content match {
               case Lst(l) if l.size == 1 ⇒ Some(applySelector(l.head, context))
               case Lst(l) if l.isEmpty ⇒
-                throw NotFound(ErrorBody("single-item-not-found", Some(s"$hrl")))
+                throw NotFound(ErrorBody(ErrorCode.SINGLE_ITEM_NOT_FOUND, Some(s"$hrl")))
               case Lst(_) ⇒
-                throw InternalServerError(ErrorBody("single-item-ambiguous", Some(s"$hrl")))
+                throw InternalServerError(ErrorBody(ErrorCode.SINGLE_ITEM_AMBIGUOUS, Some(s"$hrl")))
               case o: Obj ⇒
-                throw InternalServerError(ErrorBody("resource-is-not-a-collection", Some(s"$hrl")))
+                throw InternalServerError(ErrorBody(ErrorCode.RESOURCE_IS_NOT_COLLECTION, Some(s"$hrl")))
             }
         }
 

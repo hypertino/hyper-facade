@@ -24,11 +24,11 @@ class ExtractItemResponseFilter(protected val expressionEvaluator: ExpressionEva
     response.body.content match {
       case Lst(items) ⇒
         if (items.isEmpty) Task.raiseError {
-          NotFound(ErrorBody("collection-is-empty", Some(s"Resource ${requestContext.request.headers.hrl} is an empty collection")))
+          NotFound(ErrorBody(ErrorCode.COLLECTION_IS_EMPTY, Some(s"Resource ${requestContext.request.headers.hrl} is an empty collection")))
         }
         else {
           if (items.size > 1) Task.raiseError {
-            InternalServerError(ErrorBody("collection-have-more-than-1-items", Some(s"Resource ${requestContext.request.headers.hrl} have ${items.size} items")))
+            InternalServerError(ErrorBody(ErrorCode.COLLECTION_HAVE_MORE_THAN_1_ITEMS, Some(s"Resource ${requestContext.request.headers.hrl} have ${items.size} items")))
           }
           else Task.now {
             StandardResponse(DynamicBody(items.head), response.headers).asInstanceOf[DynamicResponse]
@@ -37,7 +37,7 @@ class ExtractItemResponseFilter(protected val expressionEvaluator: ExpressionEva
 
       case _ ⇒
         Task.raiseError {
-          InternalServerError(ErrorBody("resource-is-not-collection"))
+          InternalServerError(ErrorBody(ErrorCode.RESOURCE_IS_NOT_COLLECTION))
         }
     }
   }

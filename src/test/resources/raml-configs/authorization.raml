@@ -12,18 +12,18 @@ types:
 
 annotationTypes:
   authorize: nil | Conditional
-  deny: nil | Conditional
+  forbidden: nil | Conditional
 
 /authentication-failed:
 
 /authorization-failed:
   (authorize):
     if: context.authUser.roles has "qa"
-  (deny):
+  (forbidden):
     if: "!context.isAuthorized"
 
 /resource:
   (authorize):
     if: context.authUser.roles has "admin"
-  (deny):
+  (forbidden):
     if: "!context.isAuthorized"

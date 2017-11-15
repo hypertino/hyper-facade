@@ -115,8 +115,8 @@ class RamlConfigurationBuilderTest extends TestBaseWithHyperbus(ramlConfigFiles 
     ma.size shouldBe 5
     ma(0) shouldBe a[RewriteAnnotation]
     ma(1) shouldBe a[RewriteAnnotation]
-    ma(2) shouldBe a[DenyAnnotation]
-    ma(3) shouldBe a[DenyAnnotation]
+    ma(2) shouldBe a[ErrorResponseAnnotation]
+    ma(3) shouldBe a[ErrorResponseAnnotation]
     ma(4) shouldBe a[ContextFetchAnnotation]
 
     ma(4).asInstanceOf[ContextFetchAnnotation].onError shouldBe "remove"

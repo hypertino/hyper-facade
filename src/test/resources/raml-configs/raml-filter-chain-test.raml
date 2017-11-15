@@ -23,7 +23,7 @@ types:
       fullName: string
       userName: string
       password:
-        (deny):
+        (forbidden):
         type: string
 
   Conditional:
@@ -39,12 +39,12 @@ types:
 annotationTypes:
   x-client-ip: nil | Conditional
   x-client-language: nil | Conditional
-  deny: nil | Conditional
+  forbidden: nil | Conditional
   paged: nil
   rewrite: [WithUri, Conditional]
 
 /private:
-  (deny):
+  (forbidden):
 
 /status:
   /test-service:

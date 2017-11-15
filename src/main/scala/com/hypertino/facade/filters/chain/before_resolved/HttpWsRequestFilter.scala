@@ -75,7 +75,7 @@ class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
       } catch {
         case e: MalformedURLException ⇒
           implicit val mcx = requestContext.request
-          throw NotFound(ErrorBody("not-found", Some(e.getMessage)))
+          throw NotFound(ErrorBody(ErrorCode.NOT_FOUND, Some(e.getMessage))) // todo: why is this not_found?
       }
     }
   }

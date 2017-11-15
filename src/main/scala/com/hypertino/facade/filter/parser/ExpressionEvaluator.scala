@@ -70,7 +70,7 @@ trait ExpressionEvaluator extends StrictLogging {
     catch {
       case NonFatal(ex) ⇒
         implicit val mcx = context.requestContext.request
-        val errorBody = ErrorBody("condition-check-failure") // todo: add check line num
+        val errorBody = ErrorBody(ErrorCode.CONDITION_CHECK_FAILURE) // todo: add check line num
         logger.error(s"Predicate check '${expression.source}' failed #${errorBody.errorId}", ex)
         throw InternalServerError(errorBody)
     }

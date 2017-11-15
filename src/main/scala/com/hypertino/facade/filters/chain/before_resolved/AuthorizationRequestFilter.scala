@@ -69,7 +69,7 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
       hyperbus.ask(authRequest).map(_.body)
     } getOrElse {
       Task.raiseError(
-        BadRequest(ErrorBody("unsupported-authorization-scheme", Some(s"Authorization scheme doesn't have first part!")))
+        BadRequest(ErrorBody(ErrorCode.UNSUPPORTED_AUTHORIZATION_SCHEME, Some(s"Authorization scheme doesn't have first part!")))
       )
     }
   }
@@ -85,10 +85,10 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
               .flatMap { users ⇒
                 val userCollection = users.body.content.toSeq
                 if (userCollection.isEmpty) {
-                  Task.raiseError(Unauthorized(ErrorBody("user-not-exists", Some(s"Credentials are valid, but user doesn't exists"))))
+                  Task.raiseError(Unauthorized(ErrorBody(ErrorCode.USER_NOT_FOUND, Some(s"Credentials are valid, but user doesn't exists"))))
                 }
                 else if (userCollection.tail.nonEmpty) {
-                  Task.raiseError(Unauthorized(ErrorBody("multiple-users-found", Some(s"Credentials are valid, but multiple users correspond to the identity keys"))))
+                  Task.raiseError(Unauthorized(ErrorBody(ErrorCode.MULTIPLE_USERS_FOUND, Some(s"Credentials are valid, but multiple users correspond to the identity keys"))))
                 }
                 else {
                   Task.eval {

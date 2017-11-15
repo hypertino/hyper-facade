@@ -30,17 +30,17 @@ types:
     properties:
       content: string
       secretField:
-        (deny):
+        (forbidden):
         type: string
 
 annotationTypes:
   x-client-ip: nil | Conditional
   x-client-language: nil | Conditional
-  deny: nil | Conditional
+  forbidden: nil | Conditional
   rewrite: [WithUri, Conditional]
 
 /perf-test-with-filters/ws:
-  (deny):
+  (forbidden):
     if: context.ip != "127.0.0.1"
   (rewrite):
     uri: /perf-test

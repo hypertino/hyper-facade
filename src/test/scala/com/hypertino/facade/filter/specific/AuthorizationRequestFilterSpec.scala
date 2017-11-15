@@ -45,7 +45,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
         extra = Null
       )))
     } else {
-      Task.raiseError(Forbidden(ErrorBody("forbidden")))
+      Task.raiseError(Forbidden())
     }
 
   def onUsersGet(implicit get: UsersGet) = Task.eval[ResponseBase] {

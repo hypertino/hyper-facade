@@ -1,4 +1,4 @@
-crossScalaVersions := Seq(/*"2.12.3" -- SPRAY ISN'T SUPPORTE,*/ "2.11.11")
+crossScalaVersions := Seq(/*"2.12.3" -- SPRAY ISN'T SUPPORTED,*/ "2.11.11")
 
 scalaVersion := crossScalaVersions.value.head
 
@@ -6,7 +6,7 @@ organization := "com.hypertino"
 
 name := "hyperfacade"
 
-version := "0.3-SNAPSHOT"
+version := "0.4-SNAPSHOT"
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("public")
@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
   "com.hypertino" %% "binders" % "1.2.0",
   "com.hypertino" %% "expression-parser" % "0.2.0",
   //  "com.hypertino"        %% "auth-service-model"          % "0.1.7",
-  "com.hypertino" %% "hyperbus" % "0.3-SNAPSHOT",
+  "com.hypertino" %% "hyperbus" % "0.4-SNAPSHOT",
   "com.hypertino" % "raml-parser-2" % "1.0.16",
   "com.hypertino" %% "hyperbus-utils" % "0.1-SNAPSHOT",
   "com.hypertino" %% "service-control" % "0.3.0",

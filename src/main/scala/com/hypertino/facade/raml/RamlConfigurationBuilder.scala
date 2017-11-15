@@ -236,7 +236,7 @@ class RamlConfigurationBuilder(val api: Api)(implicit inj: Injector) extends Inj
 
   private def extractRamlFieldAnnotations(annotable: Annotable): Seq[RamlFieldAnnotation] = extractRamlAnnotationsWith[RamlFieldAnnotation](
     annotable, (name, value) => {
-      val filterFactory = inject[RamlFieldFilterFactory](name + "_field")
+      val filterFactory = inject[RamlFieldFilterFactory](name)
       filterFactory.createRamlAnnotation(name, value)
     }
   )

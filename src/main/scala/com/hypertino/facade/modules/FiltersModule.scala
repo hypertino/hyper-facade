@@ -14,6 +14,7 @@ import com.hypertino.facade.filters.annotated._
 import com.hypertino.facade.filters.chain.after_reply.{IdempotencyResponseFilter, SelectFieldsResponseFilter}
 import com.hypertino.facade.filters.chain.after_resolved.ResourceResolvedRequestFilter
 import com.hypertino.facade.filters.chain.before_resolved._
+import com.hypertino.hyperbus.model.Status
 import scaldi.Module
 
 /*
@@ -29,7 +30,10 @@ chains/stages:
 
 
 class FiltersModule extends Module {
-  bind[RamlFilterFactory] identifiedBy "deny" to injected[DenyFilterFactory]
+  Status.statusCodeToName.filter(_._1 >= 400).foreach { kv ⇒
+    bind[RamlFilterFactory] identifiedBy kv._2 to injected[ErrorResponseFilterFactory]
+  }
+
   bind[RamlFilterFactory] identifiedBy "rewrite" to injected[RewriteFilterFactory]
   bind[RamlFilterFactory] identifiedBy "context_fetch" to injected[ContextFetchFilterFactory]
   bind[RamlFilterFactory] identifiedBy "extract_item" to injected[ExtractItemFilterFactory]
@@ -38,10 +42,15 @@ class FiltersModule extends Module {
   bind[RamlFilterFactory] identifiedBy "forward" to injected[ForwardFilterFactory]
   bind[RamlFilterFactory] identifiedBy "authorize" to injected[AuthorizeFilterFactory]
 
-  bind[RamlFieldFilterFactory] identifiedBy "remove_field" to injected[RemoveFieldFilterFactory]
-  bind[RamlFieldFilterFactory] identifiedBy "set_field" to injected[SetFieldFilterFactory]
-  bind[RamlFieldFilterFactory] identifiedBy "fetch_field" to injected[FetchFieldFilterFactory]
-  bind[RamlFieldFilterFactory] identifiedBy "deny_field" to injected[DenyFieldFilterFactory]
+  // field filters
+  bind[RamlFieldFilterFactory] identifiedBy "remove" to injected[RemoveFieldFilterFactory]
+  bind[RamlFieldFilterFactory] identifiedBy "set" to injected[SetFieldFilterFactory]
+  bind[RamlFieldFilterFactory] identifiedBy "fetch" to injected[FetchFieldFilterFactory]
+
+  //bind[RamlFieldFilterFactory] identifiedBy "deny_field" to injected[ErrorResponseFieldFilterFactory]
+  Status.statusCodeToName.filter(_._1 >= 400).foreach { kv ⇒
+    bind[RamlFieldFilterFactory] identifiedBy kv._2 to injected[ErrorResponseFieldFilterFactory]
+  }
 
   bind[FilterChain] identifiedBy "before_resolved" to SimpleFilterChain(
     requestFilters = Seq(injected[HttpWsRequestFilter],

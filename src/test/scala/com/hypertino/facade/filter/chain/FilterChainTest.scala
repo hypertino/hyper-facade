@@ -34,7 +34,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       }
       else {
         implicit val mcx = requestContext.request
-        Task.raiseError(Forbidden(ErrorBody("Forbidden")))
+        Task.raiseError(Forbidden(ErrorBody("forbidden")))
       }
     }
   }

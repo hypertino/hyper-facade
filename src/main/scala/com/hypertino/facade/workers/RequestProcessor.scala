@@ -103,7 +103,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
       if (h.scheme.isEmpty) {
         // didn't rewrite into hb://
         // which means that resource wasn't found
-        throw NotFound(ErrorBody("resource-not-found", Some(s"${h.location} is not found")))
+        throw NotFound(ErrorBody(ErrorCode.NOT_FOUND, Some(s"Resource ${h.location} is not found")))
       }
       h
     }
@@ -124,13 +124,13 @@ trait RequestProcessor extends Injectable with StrictLogging {
       implicit val mcf = cwr.request
       val errorId = SeqGenerator.create()
       logger.error(s"Service not found #$errorId while handling ${cwr.httpHeaders.hrl.location}(${cwr.request.headers.hrl.location})", e)
-      BadGateway(ErrorBody("service-not-found", Some(s"'Service for ${cwr.httpHeaders.hrl.location}' is not found.")))
+      BadGateway(ErrorBody(ErrorCode.SERVICE_NOT_FOUND, Some(s"'Service for ${cwr.httpHeaders.hrl.location}' is not found.")))
 
     case _: AskTimeoutException ⇒
       implicit val mcf = cwr.request
       val errorId = SeqGenerator.create()
       logger.error(s"Timeout #$errorId while handling ${cwr.httpHeaders.hrl.location}(${cwr.request.headers.hrl.location})")
-      GatewayTimeout(ErrorBody("service-timeout", Some(s"Timeout while serving '${cwr.httpHeaders.hrl.location}'"), errorId = errorId))
+      GatewayTimeout(ErrorBody(ErrorCode.SERVICE_TIMEOUT, Some(s"Timeout while serving '${cwr.httpHeaders.hrl.location}'"), errorId = errorId))
 
     case NonFatal(nonFatal) ⇒
       handleInternalError(nonFatal, cwr)
@@ -154,6 +154,6 @@ trait RequestProcessor extends Injectable with StrictLogging {
     implicit val mcf = cwr.request
     val errorId = IdGenerator.create()
     logger.error(s"Exception #$errorId while handling ${cwr.httpHeaders.hrl.location}(${cwr.request.headers.hrl.location})", exception)
-    InternalServerError(ErrorBody("internal-server-error", Some(exception.getClass.getName + ": " + exception.getMessage), errorId = errorId))
+    InternalServerError(ErrorBody(ErrorCode.INTERNAL_SERVER_ERROR, Some(exception.getClass.getName + ": " + exception.getMessage), errorId = errorId))
   }
 }

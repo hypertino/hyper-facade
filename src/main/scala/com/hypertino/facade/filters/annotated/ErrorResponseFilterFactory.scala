@@ -14,39 +14,42 @@ import com.hypertino.facade.filter.chain.{FilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.raml.RamlAnnotation
+import com.hypertino.hyperbus.model.Status
 import com.typesafe.scalalogging.StrictLogging
 import scaldi.Injectable
 
-case class DenyAnnotation(
-                           @fieldName("if") predicate: Option[PreparedExpression]
+case class ErrorResponseAnnotation(
+                           @fieldName("if") predicate: Option[PreparedExpression],
+                           _name: String = ""
                          ) extends RamlAnnotation {
-  def name: String = "deny"
+  def name: String = _name
+  def errorStatusCode: Int = Status.nameToStatusCode.getOrElse(name, Status.INTERNAL_SERVER_ERROR)
 }
 
-class DenyFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable with StrictLogging{
+class ErrorResponseFilterFactory(protected val predicateEvaluator: ExpressionEvaluator) extends RamlFilterFactory with Injectable with StrictLogging{
   override def createFilters(target: RamlFilterTarget): SimpleFilterChain = {
     target match {
-      case ResourceTarget(_, _ : DenyAnnotation) ⇒
+      case ResourceTarget(_, a : ErrorResponseAnnotation) ⇒
         SimpleFilterChain(
-          requestFilters = Seq(new DenyRequestFilter(predicateEvaluator)),
+          requestFilters = Seq(new ErrorResponseRequestFilter(a, predicateEvaluator)),
           responseFilters = Seq.empty,
           eventFilters = Seq.empty
         )
 
-      case MethodTarget(_, _, _ : DenyAnnotation) ⇒
+      case MethodTarget(_, _, a : ErrorResponseAnnotation) ⇒
         SimpleFilterChain(
-          requestFilters = Seq(new DenyRequestFilter(predicateEvaluator)),
+          requestFilters = Seq(new ErrorResponseRequestFilter(a, predicateEvaluator)),
           responseFilters = Seq.empty,
           eventFilters = Seq.empty
         )
 
       case unknownTarget ⇒
-        logger.warn(s"Annotation (deny) is not supported for target $unknownTarget. Empty filter chain will be created")
+        logger.warn(s"Annotation (error_response) is not supported for target $unknownTarget. Empty filter chain will be created")
         FilterChain.empty
     }
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlAnnotation = {
-    value.to[DenyAnnotation]
+    value.to[ErrorResponseAnnotation].copy(_name=name)
   }
 }

@@ -11,7 +11,7 @@ package com.hypertino.facade.utils
 import java.io.{StringReader, StringWriter}
 
 import com.hypertino.binders.value.{Null, Obj, Text}
-import com.hypertino.facade.model.FacadeHeaders
+import com.hypertino.facade.model.{ErrorCode, FacadeHeaders}
 import com.hypertino.hyperbus.model.headers.PlainHeadersConverter
 import com.hypertino.hyperbus.model.{BadRequest, DynamicBody, DynamicMessage, DynamicRequest, DynamicResponse, EmptyBody, ErrorBody, HRL, Header, MessageHeaders, MessagingContext, NoContent}
 import com.hypertino.hyperbus.serialization.{JsonContentTypeConverter, MessageReader}
@@ -120,7 +120,7 @@ object MessageTransformer {
             case Right(formData) ⇒
               DynamicBody(Obj.from(formData.fields.map(kv ⇒ kv._1 → Text(kv._2)):_*), None)
             case Left(ex) ⇒
-              throw BadRequest(ErrorBody("malformed-urlencoded-request", Some(ex.toString)))(MessagingContext.empty)
+              throw BadRequest(ErrorBody(ErrorCode.MALFORMED_URLENCODED_REQUEST, Some(ex.toString)))(MessagingContext.empty)
           }
         }
         else {

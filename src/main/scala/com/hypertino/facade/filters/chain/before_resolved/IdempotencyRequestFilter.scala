@@ -75,7 +75,7 @@ class IdempotencyRequestFilter(hyperbus: Hyperbus,
                 ))
 
               case Failure(e) ⇒
-                val errorBody = ErrorBody("request-in-progress", Some("Idempotent request is already in progress and no response was saved"))
+                val errorBody = ErrorBody(ErrorCode.REQUEST_IN_PROGRESS, Some("Idempotent request is already in progress and no response was saved"))
                 logger.warn(s"No response for a request ${requestContext.request} ${errorBody.errorId}", e)
                 Failure(Locked(errorBody))
             }

@@ -90,7 +90,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
   def df(name: String, stages: Set[FieldFilterStage] = Set(FieldFilterStageRequest)) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
-        DenyFieldAnnotation(predicate=None,stages=stages),
+        ErrorResponseFieldAnnotation(predicate=None,stages=stages,_name="forbidden"),
         name,
         "string"
       )
@@ -311,7 +311,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc", "c" → "Yey")
   }
 
-  it should "deny if fields are set" in {
+  it should "forbidden if fields are set" in {
     fieldFilter(
       TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
       Map(
@@ -324,7 +324,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       .futureValue shouldBe a[Forbidden[_]]
   }
 
-  it should "not deny if fields are not set" in {
+  it should "not forbidden if fields are not set" in {
     fieldFilter(
       TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
       Map(
@@ -337,9 +337,9 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
   }
 
   it should "apply multiple filters" in {
-    val deny = df("y")("y")
+    val forbidden = df("y")("y")
     val set = sf("y", "123")("y")
-    val yf = Map("y" → deny.copy(annotations=deny.annotations ++ set.annotations))
+    val yf = Map("y" → forbidden.copy(annotations=forbidden.annotations ++ set.annotations))
 
     fieldFilter(
       TypeDefinition("T1", None, Seq.empty, tt("b" → "T2"), isCollection = false ),
