@@ -8,6 +8,8 @@
 
 package com.hypertino.facade.utils
 
+import java.net.URLDecoder
+
 import com.hypertino.binders.value.{Bool, Null, Number, Obj, Text, Value}
 import com.typesafe.scalalogging.StrictLogging
 import spray.http.HttpHeaders.{Cookie, RawHeader}
@@ -23,7 +25,7 @@ object HttpUtils extends StrictLogging {
             Obj.from(cookies.map { c ⇒
               val m = Seq(
                 "name" → Text(c.name),
-                "value" → Text(c.content),
+                "value" → Text(URLDecoder.decode(c.content, "UTF-8")), // todo: this (spray cookie handling) is awful
                 "http_only" → Bool(c.httpOnly),
                 "secure"→ Bool(c.secure)
               ) ++
