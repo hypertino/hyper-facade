@@ -84,7 +84,8 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
                     val user = userCollection.head
                     val userId = user.dynamic.user_id
                     TaskResult(AuthHeader.AUTHORIZATION_RESULT, Obj.from("user_id" → userId), Obj.from(
-                      ContextStorage.USER → user
+                      ContextStorage.USER → user,
+                      ContextStorage.EXTRA -> validation.extra
                     ))
                   }
                 }

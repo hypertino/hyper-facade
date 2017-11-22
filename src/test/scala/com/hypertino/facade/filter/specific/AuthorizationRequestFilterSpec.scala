@@ -34,7 +34,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
     if (post.body.authorization == "Test ABC") {
       Task.eval(Created(ValidationResult(
         identityKeys = Obj.from("user_id" → "100500", "email" → "info@example.com"),
-        extra = Null
+        extra = Obj.from("extra_key" -> "extra_value")
       )))
     } else {
       Task.raiseError(Forbidden(ErrorBody("forbidden")))
@@ -61,6 +61,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
     )
     val result = filter.apply(rc).runAsync.futureValue
     result.contextStorage.dynamic.user shouldBe Obj.from("user_id" → "100500")
+    result.contextStorage.dynamic.extra shouldBe Obj.from("extra_key" -> "extra_value")
     result.request.headers.get("Authorization-Result") shouldBe Some(Obj.from("user_id" → "100500"))
   }
 
@@ -75,7 +76,7 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
     val result = filter.apply(rc).runAsync.futureValue
     result.contextStorage.dynamic.user shouldBe Null
     result.request.headers.get("Privilege-Authorization-Result") shouldBe Some(
-      Obj.from("identity_keys" → Obj.from("user_id" → "100500", "email" → "info@example.com"), "extra" → Null)
+      Obj.from("identity_keys" → Obj.from("user_id" → "100500", "email" → "info@example.com"), "extra" → Obj.from("extra_key" -> "extra_value"))
     )
   }
 }
