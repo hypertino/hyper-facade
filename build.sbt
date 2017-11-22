@@ -6,7 +6,7 @@ organization := "com.hypertino"
 
 name := "hyperfacade"
 
-version := "0.3.1-SNAPSHOT"
+version := "0.3.2-SNAPSHOT"
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("public")
