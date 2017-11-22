@@ -70,7 +70,11 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
     val result = filter.apply(rc).runAsync.futureValue
     result.contextStorage.dynamic.user shouldBe Obj.from("user_id" → "100500")
     result.request.headers.get("Authorization-Result") shouldBe Some(
-      Obj.from("identity_keys" → Obj.from("user_id" → "100500", "email" → "info@example.com"), "extra" → Obj.from("extra_key" -> "extra_value"))
+      Obj.from(
+        "user_id"-> "100500",
+        "identity_keys" → Obj.from("user_id" → "100500", "email" → "info@example.com"),
+        "extra" → Obj.from("extra_key" -> "extra_value")
+      )
     )
   }
 
