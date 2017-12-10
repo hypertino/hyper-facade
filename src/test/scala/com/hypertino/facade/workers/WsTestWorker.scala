@@ -9,6 +9,7 @@
 package com.hypertino.facade.workers
 
 import akka.actor.ActorRef
+import com.hypertino.facade.DummyMetricsTracker
 import com.hypertino.facade.filter.chain.FilterChain
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.utils.MessageTransformer
@@ -35,7 +36,7 @@ abstract class WsTestWorker(filterChain: FilterChain) extends HttpServiceActor w
       implicit val scheduler = monix.execution.Scheduler.Implicits.global
       val facadeRequest = MessageTransformer.frameToRequest(frame, "127.0.0.1", null) // todo: http request mock
       // val context = mockContext(facadeRequest)
-      filterChain.filterRequest(RequestContext(facadeRequest)) map { filteredCWR ⇒
+      filterChain.filterRequest(RequestContext(facadeRequest), DummyMetricsTracker) map { filteredCWR ⇒
         exposeFacadeRequest(filteredCWR.request)
       }
   }

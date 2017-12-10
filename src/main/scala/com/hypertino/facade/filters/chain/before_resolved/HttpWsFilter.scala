@@ -12,6 +12,7 @@ import com.hypertino.binders.value._
 import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.filter.model.{EventFilter, ResponseFilter}
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.facade.utils.HrlTransformer
@@ -22,6 +23,9 @@ import monix.execution.Scheduler
 
 class HttpWsResponseFilter(config: Config,
                            protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter {
+
+  val timer = Some(MetricKeys.specificFilter("HttpWsResponseFilter"))
+
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
   override def apply(requestContext: RequestContext, response: DynamicResponse)
@@ -39,6 +43,7 @@ class HttpWsResponseFilter(config: Config,
 
 class WsEventFilter(config: Config, ramlConfig: RamlConfiguration,
                     protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter {
+  val timer = Some(MetricKeys.specificFilter("WsEventFilter"))
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
   override def apply(requestContext: RequestContext, request: DynamicRequest)
                     (implicit scheduler: Scheduler): Task[DynamicRequest] = {

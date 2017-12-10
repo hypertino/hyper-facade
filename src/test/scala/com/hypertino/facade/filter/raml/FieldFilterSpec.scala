@@ -9,7 +9,7 @@
 package com.hypertino.facade.filter.raml
 
 import com.hypertino.binders.value.{Lst, Null, Obj, Value}
-import com.hypertino.facade.TestBaseWithHyperbus
+import com.hypertino.facade.{DummyMetricsTracker, TestBaseWithHyperbus}
 import com.hypertino.facade.filter.model.{FieldFilterStage, FieldFilterStageEvent, FieldFilterStageRequest, FieldFilterStageResponse}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.filters.annotated._
@@ -17,6 +17,7 @@ import com.hypertino.facade.model.{FacadeHeaders, RequestContext}
 import com.hypertino.facade.raml._
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicRequestObservableMeta, EmptyBody, Forbidden, HRL, Headers, Method, Ok}
 import com.hypertino.hyperbus.transport.api.matchers.RequestMatcher
+import com.hypertino.metrics.MetricsTracker
 import com.hypertino.parser.HParser
 import monix.eval.Task
 import monix.execution.Ack.Continue
@@ -69,6 +70,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     override protected def typeDef: TypeDefinition = aTypeDef
     //override protected def typeDefinitions: Map[String, TypeDefinition] = aTypeDefinitions
     override protected def expressionEvaluator: ExpressionEvaluator = DefaultExpressionEvaluator
+    override protected def metricsTracker: MetricsTracker = DummyMetricsTracker
   }
 
   def tt(args: (String,String)*): Map[String, Field] = {

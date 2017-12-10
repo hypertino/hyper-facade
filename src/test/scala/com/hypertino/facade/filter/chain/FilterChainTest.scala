@@ -9,6 +9,7 @@
 package com.hypertino.facade.filter.chain
 
 import com.hypertino.binders.value.{Null, Text}
+import com.hypertino.facade.DummyMetricsTracker
 import com.hypertino.facade.filter.model.{RequestFilter, ResponseFilter}
 import com.hypertino.facade.filter.parser.{DefaultExpressionEvaluator, ExpressionEvaluator}
 import com.hypertino.facade.model.{FilterInterruptException, _}
@@ -26,6 +27,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
   ) // todo: + test eventFilters
 
   class TestRequestFilter extends RequestFilter {
+    def timer = None
     override protected def expressionEvaluator: ExpressionEvaluator = DefaultExpressionEvaluator
     override def  apply(requestContext: RequestContext)
                        (implicit scheduler: Scheduler): Task[RequestContext] = {
@@ -40,6 +42,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
   }
 
   class TestResponseFilter extends ResponseFilter {
+    def timer = None
     override protected def expressionEvaluator: ExpressionEvaluator = DefaultExpressionEvaluator
     override def apply(requestContext: RequestContext, output: DynamicResponse)
                       (implicit scheduler: Scheduler): Task[DynamicResponse] = {
@@ -63,7 +66,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
     "request filters with interruption" in {
       val request = DynamicRequest(HRL("/interrupted"), Method.GET, DynamicBody(Text("test body")))
 
-      filterChain.filterRequest(RequestContext(request))
+      filterChain.filterRequest(RequestContext(request), DummyMetricsTracker)
         .runAsync
         .failed
         .futureValue shouldBe a[Forbidden[_]]
@@ -72,7 +75,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
     "request filters" in {
       val request = DynamicRequest(HRL("/successfull"), Method.GET, DynamicBody(Text("test body")))
 
-      val filteredRequest = filterChain.filterRequest(RequestContext(request)).runAsync.futureValue.request
+      val filteredRequest = filterChain.filterRequest(RequestContext(request), DummyMetricsTracker).runAsync.futureValue.request
 
       filteredRequest.body shouldBe DynamicBody(Text("test body"))
       filteredRequest.headers.hrl shouldBe HRL("/successfull")
@@ -83,7 +86,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       val request = DynamicRequest(HRL("/interrupted"), Method.GET, DynamicBody(Text("test body")))
       val response = Created(DynamicBody("response body"))
 
-      val interrupt = filterChain.filterResponse(RequestContext(request), response)
+      val interrupt = filterChain.filterResponse(RequestContext(request), response, DummyMetricsTracker)
         .runAsync
         .failed
         .futureValue
@@ -99,7 +102,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       val request = DynamicRequest(HRL("/successfull"), Method.GET, DynamicBody(Text("test body")))
       val response = Created(DynamicBody("response body"))
 
-      val filteredResponse = filterChain.filterResponse(RequestContext(request), response).runAsync.futureValue
+      val filteredResponse = filterChain.filterResponse(RequestContext(request), response, DummyMetricsTracker).runAsync.futureValue
 
       filteredResponse.body.content shouldBe Text("response body")
       filteredResponse.headers shouldNot contain("x-http-header" → Text("Accept-Language"))

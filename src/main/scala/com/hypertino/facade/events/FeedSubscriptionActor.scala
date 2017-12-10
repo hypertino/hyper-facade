@@ -16,7 +16,7 @@ import akka.pattern.pipe
 import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.{ClientSpecificMethod, RequestContext}
-import com.hypertino.facade.utils.TaskUtils
+import com.hypertino.facade.utils.{MetricUtils, TaskUtils}
 import com.hypertino.facade.workers.RequestProcessor
 import com.hypertino.hyperbus.{Hyperbus, model}
 import com.hypertino.hyperbus.model._
@@ -27,7 +27,7 @@ import monix.execution.Ack.Continue
 import monix.reactive.observers.{BufferedSubscriber, Subscriber}
 import monix.reactive.{Observer, OverflowStrategy}
 import scaldi.Injector
-
+import MetricUtils._
 import scala.concurrent.Future
 
 class FeedSubscriptionActor(websocketWorker: ActorRef,
@@ -152,7 +152,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     context.become(filtering(subscriptionSyncTries) orElse stopStartSubscription)
 
     implicit val ec = scheduler
-    beforeResolvedFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
+    beforeResolvedFilterChain.filterRequest(cwr, metricsTracker) flatMap { unpreparedContextWithRequest ⇒
       prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest) map { cwrBeforeRaml ⇒
         BeforeFilterComplete(cwrBeforeRaml)
       }
@@ -169,22 +169,23 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
     implicit val ec = scheduler
 
-    val trackRequestTime = metrics.timer(MetricKeys.REQUEST_PROCESS_TIME).time()
+    val trackRequestTime = metricsTracker.timer(MetricKeys.TOTAL_REQUEST_TIME).time()
     processRequestWithRaml(cwr) flatMap { cwrRaml ⇒
-      val correlationId = cwrRaml.request.correlationId
-      val subscriptionUri = getSubscriptionUri(cwrRaml.request)
-      subscriptionManager.off(self)
-      subscriptionManager.subscribe(self, subscriptionUri, correlationId)
-      implicit val mvx = MessagingContext(correlationId + self.path.toString) // todo: check what's here
-    val message = cwrRaml.request.copy(
-      headers = MessageHeaders
-        .builder
-        .++=(cwrRaml.request.headers)
-        .withMethod(model.Method.GET)
-        .requestHeaders()
-    )
-
-      hyperbus.ask(message)
+      metricsTracker.timeOfTask(MetricKeys.specificRequest(cwrRaml.request.headers.hrl.location)) {
+        val correlationId = cwrRaml.request.correlationId
+        val subscriptionUri = getSubscriptionUri(cwrRaml.request)
+        subscriptionManager.off(self)
+        subscriptionManager.subscribe(self, subscriptionUri, correlationId)
+        implicit val mvx = MessagingContext(correlationId + self.path.toString) // todo: check what's here
+        val message = cwrRaml.request.copy(
+          headers = MessageHeaders
+            .builder
+            .++=(cwrRaml.request.headers)
+            .withMethod(model.Method.GET)
+            .requestHeaders()
+        )
+        hyperbus.ask(message)
+      }
     } onErrorRecover {
       handleHyperbusExceptions(cwr)
     } runAsync ec andThen { case _ ⇒
@@ -215,9 +216,9 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
 
     implicit val ec = scheduler
     TaskUtils.chain(resourceState, cwr.stages.map { _ ⇒
-      annotationsFilterChain.filterResponse(cwr, _: DynamicResponse)
+      annotationsFilterChain.filterResponse(cwr, _: DynamicResponse, metricsTracker)
     }) flatMap { filteredResponse ⇒
-      afterReplyFilterChain.filterResponse(cwr, filteredResponse) map { finalResponse ⇒
+      afterReplyFilterChain.filterResponse(cwr, filteredResponse, metricsTracker) map { finalResponse ⇒
         websocketWorker ! finalResponse
         if (finalResponse.headers.statusCode > 399) { // failed
           PoisonPill
@@ -244,9 +245,9 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     logger.trace(s"Processing unreliable event $event for ${cwr.httpHeaders.hrl}")
     implicit val ec = scheduler
     TaskUtils.chain(event, cwr.stages.map { _ ⇒
-      annotationsFilterChain.filterEvent(cwr, _: DynamicRequest)
+      annotationsFilterChain.filterEvent(cwr, _: DynamicRequest, metricsTracker)
     }) flatMap { e ⇒
-      afterReplyFilterChain.filterEvent(cwr, e) map { filteredRequest ⇒
+      afterReplyFilterChain.filterEvent(cwr, e, metricsTracker) map { filteredRequest ⇒
         websocketWorker ! filteredRequest
       }
     } onErrorRecover handleFilterExceptions(cwr) { response ⇒
@@ -316,9 +317,9 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
       override def onNext(event: DynamicRequest): Future[Ack] = {
         implicit val ec = scheduler
         val filteringTask = TaskUtils.chain(event, cwr.stages.map { _ ⇒
-          annotationsFilterChain.filterEvent(cwr, _: DynamicRequest)
+          annotationsFilterChain.filterEvent(cwr, _: DynamicRequest, metricsTracker)
         }) flatMap { e ⇒
-          afterReplyFilterChain.filterEvent(cwr, e)
+          afterReplyFilterChain.filterEvent(cwr, e, metricsTracker)
         }
         if (currentFilteringFuture.get().isEmpty) {
           val newCurrentFilteringTask = filteringTask map { filteredRequest ⇒

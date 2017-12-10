@@ -14,6 +14,7 @@ import com.hypertino.binders.value.Text
 import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.facade.raml.RamlConfiguration
 import com.hypertino.hyperbus.model._
@@ -25,6 +26,7 @@ import monix.execution.Scheduler
 
 class HttpWsRequestFilter(config: Config, ramlConfig: RamlConfiguration,
                           protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
+  val timer = Some(MetricKeys.specificFilter("HttpWsRequestFilter"))
   protected val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
   override def apply(requestContext: RequestContext)

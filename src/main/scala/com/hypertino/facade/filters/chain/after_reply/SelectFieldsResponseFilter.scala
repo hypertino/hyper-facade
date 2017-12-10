@@ -11,6 +11,7 @@ package com.hypertino.facade.filters.chain.after_reply
 import com.hypertino.binders.value.{Lst, Null, Obj, Value}
 import com.hypertino.facade.filter.model.ResponseFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicResponse, StandardResponse}
@@ -23,6 +24,8 @@ import scala.util.control.NonFatal
 class SelectFieldsResponseFilter(
                                   protected val expressionEvaluator: ExpressionEvaluator
                                 ) extends ResponseFilter with StrictLogging {
+
+  val timer = Some(MetricKeys.specificFilter("SelectFieldsResponseFilter"))
 
   override def apply(requestContext: RequestContext, response: DynamicResponse)
                     (implicit scheduler: Scheduler): Task[DynamicResponse] = {

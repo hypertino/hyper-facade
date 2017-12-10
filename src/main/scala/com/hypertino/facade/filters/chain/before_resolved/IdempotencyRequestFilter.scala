@@ -12,6 +12,7 @@ import com.hypertino.binders.value.{Obj, Text}
 import com.hypertino.facade.apiref.idempotency._
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.{FilterInterruptException, _}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
@@ -25,6 +26,7 @@ import scala.util.{Failure, Success}
 class IdempotencyRequestFilter(hyperbus: Hyperbus,
                                protected val expressionEvaluator: ExpressionEvaluator,
                                protected implicit val scheduler: Scheduler) extends RequestFilter with StrictLogging {
+  val timer = Some(MetricKeys.specificFilter("IdempotencyRequestFilter"))
 
   override def apply(requestContext: RequestContext)
                     (implicit scheduler: Scheduler): Task[RequestContext] = {

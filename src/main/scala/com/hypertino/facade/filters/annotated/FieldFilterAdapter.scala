@@ -12,9 +12,12 @@ import com.hypertino.binders.value.{Lst, Obj, Value}
 import com.hypertino.facade.filter.chain.SimpleFilterChain
 import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.raml.{Field, RamlConfiguration, TypeDefinition}
+import com.hypertino.facade.utils.MetricUtils
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, DynamicResponse, StandardResponse}
+import com.hypertino.metrics.MetricsTracker
 import monix.eval.Task
 import monix.execution.Scheduler
 import scaldi.{Injectable, Injector}
@@ -22,8 +25,11 @@ import scaldi.{Injectable, Injector}
 class RequestFieldFilterAdapter(val typeDef: TypeDefinition,
                                 protected val expressionEvaluator: ExpressionEvaluator,
                                 protected implicit val injector: Injector,
-                                protected implicit val scheduler: Scheduler) // todo: remove ec: ExecutionContext
+                                protected implicit val scheduler: Scheduler,
+                                protected implicit val metricsTracker: MetricsTracker) // todo: remove ec: ExecutionContext
   extends RequestFilter with FieldFilterBase with Injectable {
+
+  val timer = Some(MetricKeys.specificFilter("RequestFieldFilterAdapter"))
 
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
@@ -40,8 +46,11 @@ class RequestFieldFilterAdapter(val typeDef: TypeDefinition,
 class ResponseFieldFilterAdapter(val typeDef: TypeDefinition,
                                  protected val expressionEvaluator: ExpressionEvaluator,
                                  protected implicit val injector: Injector,
-                                 protected implicit val scheduler: Scheduler)
+                                 protected implicit val scheduler: Scheduler,
+                                 protected implicit val metricsTracker: MetricsTracker)
   extends ResponseFilter with FieldFilterBase with Injectable{
+
+  val timer = Some(MetricKeys.specificFilter("ResponseFieldFilterAdapter"))
 
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
@@ -58,8 +67,11 @@ class ResponseFieldFilterAdapter(val typeDef: TypeDefinition,
 class EventFieldFilterAdapter(val typeDef: TypeDefinition,
                               protected val expressionEvaluator: ExpressionEvaluator,
                               protected implicit val injector: Injector,
-                              protected implicit val scheduler: Scheduler)
+                              protected implicit val scheduler: Scheduler,
+                              protected implicit val metricsTracker: MetricsTracker)
   extends EventFilter with FieldFilterBase with Injectable {
+
+  val timer = Some(MetricKeys.specificFilter("RequestFieldFilterAdapter"))
 
   protected lazy val ramlConfiguration = inject[RamlConfiguration]
 
@@ -73,12 +85,13 @@ class EventFieldFilterAdapter(val typeDef: TypeDefinition,
 
 class FieldFilterAdapterFactory(protected val predicateEvaluator: ExpressionEvaluator,
                                 protected implicit val injector: Injector,
-                                protected implicit val scheduler: Scheduler) extends Injectable {
+                                protected implicit val scheduler: Scheduler,
+                                protected implicit val metricsTracker: MetricsTracker) extends Injectable {
   def createFilters(typeDef: TypeDefinition): SimpleFilterChain = {
     SimpleFilterChain(
-      requestFilters = Seq(new RequestFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler)),
-      responseFilters = Seq(new ResponseFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler)),
-      eventFilters = Seq(new EventFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler))
+      requestFilters = Seq(new RequestFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler, metricsTracker)),
+      responseFilters = Seq(new ResponseFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler, metricsTracker)),
+      eventFilters = Seq(new EventFieldFilterAdapter(typeDef, predicateEvaluator, injector, scheduler, metricsTracker))
     )
   }
 }
@@ -87,6 +100,7 @@ trait FieldFilterBase {
   protected def typeDef: TypeDefinition
   protected implicit def scheduler: Scheduler
   protected def expressionEvaluator: ExpressionEvaluator
+  protected def metricsTracker: MetricsTracker
 
   protected def filterBody(body: Value, requestContext: RequestContext, stage: FieldFilterStage): Task[Value] = {
     recursiveFilterValue(body, body, requestContext, typeDef, Seq.empty, stage)
@@ -173,10 +187,13 @@ trait FieldFilterBase {
           fa.annotation.predicate.forall(expressionEvaluator.evaluatePredicate(ctx, _))
       }
       .foldLeft(Task.now(field.fieldName → value)) { case (lastValueTask, a) ⇒
-        lastValueTask.flatMap( lastValue ⇒
-          a.filter(FieldFilterContext(parentFieldPath :+ field.fieldName, lastValue._2, field, extraContext, requestContext, stage))
-            .map(field.fieldName → _)
-        )
+        lastValueTask.flatMap { lastValue ⇒
+          val timerName = MetricKeys.specificFieldFilter(typeDef.typeName + "-" + parentFieldPath.mkString("-") + field.fieldName)
+          MetricUtils.timeOfTask(timerName, metricsTracker,
+            a.filter.apply(FieldFilterContext(parentFieldPath :+ field.fieldName, lastValue._2, field, extraContext, requestContext, stage))
+              .map(field.fieldName → _)
+          )
+        }
       }
   }
 }

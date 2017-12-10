@@ -10,6 +10,7 @@ package com.hypertino.facade.filters.annotated
 
 import com.hypertino.facade.filter.model.{EventFilter, RequestFilter}
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.{HrlTransformer, RequestUtils}
 import com.hypertino.hyperbus.model.{DynamicRequest, HRL}
@@ -17,7 +18,7 @@ import monix.eval.Task
 import monix.execution.Scheduler
 
 class RewriteRequestFilter(sourceHRL: HRL, destinationHRL: HRL, protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
-
+  val timer = Some(MetricKeys.specificFilter("RewriteRequestFilter"))
   override def apply(requestContext: RequestContext)
                     (implicit scheduler: Scheduler): Task[RequestContext] = {
     Task.now {
@@ -32,6 +33,7 @@ class RewriteRequestFilter(sourceHRL: HRL, destinationHRL: HRL, protected val ex
 }
 
 class RewriteEventFilter(protected val expressionEvaluator: ExpressionEvaluator) extends EventFilter {
+  val timer = Some(MetricKeys.specificFilter("RewriteEventFilter"))
   override def apply(requestContext: RequestContext, event: DynamicRequest)
                     (implicit scheduler: Scheduler): Task[DynamicRequest] = {
     val newHrl = HrlTransformer.rewriteBackward(event.headers.hrl, event.headers.method)

@@ -11,6 +11,7 @@ package com.hypertino.facade.filters.annotated
 import com.hypertino.binders.value.Obj
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext, PreparedExpression}
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.{HrlTransformer, RequestUtils}
 import com.hypertino.hyperbus.model.HRL
@@ -22,7 +23,7 @@ class ForwardRequestFilter(sourceHRL: HRL,
                            query: Map[String, PreparedExpression],
                            method: Option[PreparedExpression],
                            protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
-
+  val timer = Some(MetricKeys.specificFilter("ForwardRequestFilter"))
   override def apply(requestContext: RequestContext)
                     (implicit scheduler: Scheduler): Task[RequestContext] = {
     Task.now {

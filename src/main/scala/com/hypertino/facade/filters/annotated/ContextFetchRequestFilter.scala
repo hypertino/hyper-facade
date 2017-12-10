@@ -11,6 +11,7 @@ package com.hypertino.facade.filters.annotated
 import com.hypertino.binders.value.{Lst, Obj, Value}
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.HRL
@@ -23,6 +24,8 @@ class ContextFetchRequestFilter(protected val annotation: ContextFetchAnnotation
                                 protected val hyperbus: Hyperbus,
                                 protected val expressionEvaluator: ExpressionEvaluator,
                                 protected implicit val scheduler: Scheduler) extends RequestFilter with FetchFilterBase {
+
+  val timer = Some(MetricKeys.specificFilter("ContextFetchRequestFilter-/"+annotation.target))
 
   override def apply(requestContext: RequestContext)
                     (implicit scheduler: Scheduler): Task[RequestContext] = {

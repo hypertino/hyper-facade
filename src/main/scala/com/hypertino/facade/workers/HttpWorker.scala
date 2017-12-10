@@ -21,7 +21,7 @@ import spray.routing._
 class HttpWorker(implicit val injector: Injector) extends RequestProcessor {
   implicit val actorSystem = inject[ActorSystem]
   implicit val scheduler: Scheduler = inject[Scheduler]
-  val trackHeartbeat = metrics.meter(MetricKeys.HEARTBEAT)
+  val trackHeartbeat = metricsTracker.meter(MetricKeys.HEARTBEAT)
 
   val restRoutes = new RestRoutes {
     val request = extract(_.request)

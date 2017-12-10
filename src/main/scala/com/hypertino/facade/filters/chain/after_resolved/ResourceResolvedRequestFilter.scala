@@ -11,6 +11,7 @@ package com.hypertino.facade.filters.chain.after_resolved
 import com.hypertino.binders.value.{Obj, Text}
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.facade.raml.{Method, RamlConfiguration, RamlResourceMethod}
 import com.hypertino.facade.utils.RequestUtils
@@ -21,6 +22,8 @@ import monix.execution.Scheduler
 
 class ResourceResolvedRequestFilter (config: Config, ramlConfig: RamlConfiguration,
                                      protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
+
+  val timer = Some(MetricKeys.specificFilter("ResourceResolvedRequestFilter"))
 
   override def apply(requestContext: RequestContext)(implicit scheduler: Scheduler) = Task.now {
 

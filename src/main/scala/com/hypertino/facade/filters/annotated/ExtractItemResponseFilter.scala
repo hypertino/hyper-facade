@@ -11,12 +11,15 @@ package com.hypertino.facade.filters.annotated
 import com.hypertino.binders.value.Lst
 import com.hypertino.facade.filter.model.ResponseFilter
 import com.hypertino.facade.filter.parser.ExpressionEvaluator
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicResponse, ErrorBody, InternalServerError, NotFound, StandardResponse}
 import monix.eval.Task
 import monix.execution.Scheduler
 
 class ExtractItemResponseFilter(protected val expressionEvaluator: ExpressionEvaluator) extends ResponseFilter {
+
+  val timer = Some(MetricKeys.specificFilter("ExtractItemResponseFilter"))
 
   override def apply(requestContext: RequestContext, response: DynamicResponse)
                     (implicit scheduler: Scheduler): Task[DynamicResponse] = {

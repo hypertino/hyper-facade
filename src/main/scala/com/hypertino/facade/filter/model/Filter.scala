@@ -16,6 +16,7 @@ import com.hypertino.inflector.naming.CamelCaseToSnakeCaseConverter
 
 trait Filter {
   protected def expressionEvaluator: ExpressionEvaluator
+  def timer: Option[String]
   def evaluatePredicate(expressionEvaluatorContext: ExpressionEvaluatorContext, expression: PreparedExpression): Boolean = {
     expressionEvaluator.evaluatePredicate(expressionEvaluatorContext, expression)
   }

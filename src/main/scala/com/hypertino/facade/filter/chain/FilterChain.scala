@@ -10,28 +10,52 @@ package com.hypertino.facade.filter.chain
 
 import com.hypertino.facade.filter.model.{EventFilter, RequestFilter, ResponseFilter}
 import com.hypertino.facade.model._
-import com.hypertino.facade.utils.TaskUtils
+import com.hypertino.facade.utils.{MetricUtils, TaskUtils}
 import com.hypertino.hyperbus.model.{DynamicRequest, DynamicResponse}
 import monix.eval.Task
 import monix.execution.Scheduler
+import com.hypertino.facade.utils.MetricUtils._
+import com.hypertino.metrics.MetricsTracker
 
 trait FilterChain {
-  def filterRequest(requestContext: RequestContext)
+  def filterRequest(requestContext: RequestContext, tracker: MetricsTracker)
                    (implicit scheduler: Scheduler): Task[RequestContext] = {
 
-    TaskUtils.chain(requestContext, findRequestFilters(requestContext).map(f ⇒ f.apply(_)))
+    TaskUtils.chain(requestContext, findRequestFilters(requestContext).map { f ⇒
+      r: RequestContext ⇒
+      f.timer.map { timer ⇒
+        tracker.timeOfTask(timer)(f.apply(r))
+      } getOrElse {
+        f.apply(r)
+      }
+    })
   }
 
 
 
-  def filterResponse(requestContext: RequestContext, response: DynamicResponse)
+  def filterResponse(requestContext: RequestContext, response: DynamicResponse, tracker: MetricsTracker)
                     (implicit scheduler: Scheduler): Task[DynamicResponse] = {
-    TaskUtils.chain(response, findResponseFilters(requestContext, response).map(f ⇒ f.apply(requestContext, _ : DynamicResponse)))
+
+    TaskUtils.chain(response, findResponseFilters(requestContext, response).map{f ⇒
+      r: DynamicResponse ⇒
+        f.timer.map { timer ⇒
+          tracker.timeOfTask(timer)(f.apply(requestContext, r))
+        } getOrElse {
+          f.apply(requestContext, r)
+        }
+    })
   }
 
-  def filterEvent(requestContext: RequestContext, event: DynamicRequest)
+  def filterEvent(requestContext: RequestContext, event: DynamicRequest, tracker: MetricsTracker)
                  (implicit scheduler: Scheduler): Task[DynamicRequest] = {
-    TaskUtils.chain(event, findEventFilters(requestContext, event).map(f ⇒ f.apply(requestContext, _ : DynamicRequest)))
+    TaskUtils.chain(event, findEventFilters(requestContext, event).map { f ⇒
+      r: DynamicRequest ⇒
+        f.timer.map { timer ⇒
+          tracker.timeOfTask(timer)(f.apply(requestContext, r))
+        } getOrElse {
+          f.apply(requestContext, r)
+        }
+    })
   }
 
   def findRequestFilters(requestContext: RequestContext): Seq[RequestFilter]

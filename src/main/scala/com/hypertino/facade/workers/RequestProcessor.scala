@@ -27,6 +27,7 @@ import monix.execution.Scheduler
 import scaldi.{Injectable, Injector}
 
 import scala.util.control.NonFatal
+import MetricUtils._
 
 trait RequestProcessor extends Injectable with StrictLogging {
   implicit def injector: Injector
@@ -40,22 +41,24 @@ trait RequestProcessor extends Injectable with StrictLogging {
   val annotationsFilterChain = inject[FilterChain]("annotations")
   val afterReplyFilterChain = inject[FilterChain]("after_reply")
   val config = inject[Config]
-  val metrics = inject[MetricsTracker]
+  val metricsTracker = inject[MetricsTracker]
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
 
   def processRequestToFacade(cwr: RequestContext): Task[DynamicResponse] = {
     try {
-      MetricUtils.timeOfTask(MetricKeys.REQUEST_PROCESS_TIME, metrics, {
-        beforeResolvedFilterChain.filterRequest(cwr) flatMap { unpreparedContextWithRequest ⇒
+      MetricUtils.timeOfTask(MetricKeys.TOTAL_REQUEST_TIME, metricsTracker, {
+        beforeResolvedFilterChain.filterRequest(cwr, metricsTracker) flatMap { unpreparedContextWithRequest ⇒
           prepareContextAndRequestBeforeRaml(unpreparedContextWithRequest) flatMap { cwrBeforeRaml ⇒
             processRequestWithRaml(cwrBeforeRaml) flatMap { cwrRaml ⇒
-              hyperbus.ask(cwrRaml.request) onErrorRecover {
-                handleHyperbusExceptions(cwrRaml)
-              } flatMap { response: DynamicResponse ⇒
-                TaskUtils.chain(response, cwrRaml.stages.map { _ ⇒
-                  annotationsFilterChain.filterResponse(cwrRaml, _: DynamicResponse)
-                }) flatMap { r ⇒
-                  afterReplyFilterChain.filterResponse(cwrRaml, r)
+              metricsTracker.timeOfTask(MetricKeys.specificRequest(cwrRaml.request.headers.hrl.location)) {
+                hyperbus.ask(cwrRaml.request) onErrorRecover {
+                  handleHyperbusExceptions(cwrRaml)
+                } flatMap { response: DynamicResponse ⇒
+                  TaskUtils.chain(response, cwrRaml.stages.map { _ ⇒
+                    annotationsFilterChain.filterResponse(cwrRaml, _: DynamicResponse, metricsTracker)
+                  }) flatMap { r ⇒
+                    afterReplyFilterChain.filterResponse(cwrRaml, r, metricsTracker)
+                  }
                 }
               }
             }
@@ -77,7 +80,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
       )
     }
     else {
-      annotationsFilterChain.filterRequest(cwr) flatMap { filteredCWR ⇒
+      annotationsFilterChain.filterRequest(cwr, metricsTracker) flatMap { filteredCWR ⇒
         val filteredRequest = filteredCWR.request
         if (filteredRequest.headers.hrl.location == cwr.request.headers.hrl.location) {
           Task.now(filteredCWR)
@@ -94,7 +97,7 @@ trait RequestProcessor extends Injectable with StrictLogging {
   def prepareContextAndRequestBeforeRaml(cwr: RequestContext): Task[RequestContext] = {
     val facadeRequestWithRamlUri = withRamlResource(cwr.request)
     val resolvedRequest = cwr.withNextStage(facadeRequestWithRamlUri, ramlEntryHeaders = Some(facadeRequestWithRamlUri.headers))
-    afterResolvedFilterChain.filterRequest(resolvedRequest)
+    afterResolvedFilterChain.filterRequest(resolvedRequest, metricsTracker)
   }
 
   def withRamlResource(implicit request: DynamicRequest): DynamicRequest = {

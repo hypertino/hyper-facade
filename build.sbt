@@ -1,4 +1,4 @@
-crossScalaVersions := Seq(/*"2.12.3" -- SPRAY ISN'T SUPPORTED,*/ "2.11.11")
+crossScalaVersions := Seq(/*"2.12.4" -- SPRAY ISN'T SUPPORTED,*/ "2.11.12")
 
 scalaVersion := crossScalaVersions.value.head
 
@@ -6,7 +6,7 @@ organization := "com.hypertino"
 
 name := "hyperfacade"
 
-version := "0.4-SNAPSHOT"
+version := "0.5-SNAPSHOT"
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("public")
@@ -24,9 +24,9 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "ch.qos.logback" % "logback-core" % "1.2.3",
   "com.hypertino" %% "binders" % "1.2.0",
-  "com.hypertino" %% "expression-parser" % "0.2.0",
+  "com.hypertino" %% "expression-parser" % "0.2.1",
   //  "com.hypertino"        %% "auth-service-model"          % "0.1.7",
-  "com.hypertino" %% "hyperbus" % "0.4-SNAPSHOT",
+  "com.hypertino" %% "hyperbus" % "0.5-SNAPSHOT",
   "com.hypertino" % "raml-parser-2" % "1.0.16",
   "com.hypertino" %% "hyperbus-utils" % "0.1-SNAPSHOT",
   "com.hypertino" %% "service-control" % "0.3.0",
@@ -37,7 +37,7 @@ libraryDependencies ++= Seq(
   "io.spray" %% "spray-routing-shapeless2" % "1.3.3",
   "com.wandoulabs.akka" %% "spray-websocket" % "0.1.4",
   "com.typesafe.akka" %% "akka-actor" % "2.4.20",
-  "com.hypertino" %% "hyperbus-t-inproc" % "0.4-SNAPSHOT" % "test",
+  "com.hypertino" %% "hyperbus-t-inproc" % "0.5-SNAPSHOT" % "test",
   "org.asynchttpclient" % "async-http-client" % "2.0.37" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.5.0" % "test",
   //  "com.hypertino"               %% "simple-auth-service"         % "0.1.13"    % "test",

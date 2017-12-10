@@ -8,6 +8,7 @@
 
 package com.hypertino.facade.filter.model
 
+import com.codahale.metrics.Timer
 import com.hypertino.facade.model.RequestContext
 import monix.eval.Task
 import monix.execution.Scheduler

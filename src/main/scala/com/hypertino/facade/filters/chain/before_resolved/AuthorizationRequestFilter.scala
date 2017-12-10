@@ -14,6 +14,7 @@ import com.hypertino.facade.apiref.user.UsersGet
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.filters.annotated.AuthorizeAnnotation
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model._
@@ -28,6 +29,8 @@ class AuthorizationRequestFilter(hyperbus: Hyperbus,
                                  protected implicit val scheduler: Scheduler,
                                  protected val authorizeAnnotation: Option[AuthorizeAnnotation] = None
                                 ) extends RequestFilter with StrictLogging {
+
+  val timer = Some(MetricKeys.specificFilter(authorizeAnnotation.map(_.name).getOrElse("AuthorizationRequestFilter")))
 
   override def apply(requestContext: RequestContext)
                     (implicit scheduler: Scheduler): Task[RequestContext] = {

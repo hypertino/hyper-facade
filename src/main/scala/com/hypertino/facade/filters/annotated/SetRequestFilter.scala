@@ -11,6 +11,7 @@ package com.hypertino.facade.filters.annotated
 import com.hypertino.binders.value.{Null, Obj, Value}
 import com.hypertino.facade.filter.model.RequestFilter
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
+import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.facade.utils.RequestUtils
 import com.hypertino.hyperbus.model.{DynamicBody, HRL, MessageHeaders}
@@ -22,6 +23,7 @@ class SetRequestFilter(set: SetAnnotation,
                        protected val expressionEvaluator: ExpressionEvaluator) extends RequestFilter {
 
   private val target = set.target.getOrElse(throw new IllegalArgumentException(s"target is not defined for $set"))
+  val timer = Some(MetricKeys.specificFilter("SetRequestFilter-/" + set.target.get))
   private val targetIdentifier = HParser(target) match {
     case i: ast.Identifier ⇒ i
     case other ⇒ throw new IllegalArgumentException(s"target is not identifier: $other")
