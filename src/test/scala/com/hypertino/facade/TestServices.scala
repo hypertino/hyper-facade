@@ -49,7 +49,9 @@ class TestServices(configFileName: String, val ramlConfigFiles: Seq[String], ext
   val originalRamlConfig = inject[RamlConfiguration]('raml)
 
   hyperbus.startServices()
-  facadeService.startService()
+  if (facadeService != null) {
+    facadeService.startService()
+  }
 
   // Unfortunately WsRestServiceApp doesn't provide a Future or any other way to ensure that listener is
   // bound to socket, so we need this stupid timeout to initialize the listener
