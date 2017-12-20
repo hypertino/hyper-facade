@@ -6,7 +6,7 @@ organization := "com.hypertino"
 
 name := "hyperfacade"
 
-version := "0.5-SNAPSHOT"
+version := "0.6-SNAPSHOT"
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("public")
@@ -26,18 +26,18 @@ libraryDependencies ++= Seq(
   "com.hypertino" %% "binders" % "1.2.0",
   "com.hypertino" %% "expression-parser" % "0.2.1",
   //  "com.hypertino"        %% "auth-service-model"          % "0.1.7",
-  "com.hypertino" %% "hyperbus" % "0.5-SNAPSHOT",
+  "com.hypertino" %% "hyperbus" % "0.6-SNAPSHOT",
   "com.hypertino" % "raml-parser-2" % "1.0.16",
   "com.hypertino" %% "hyperbus-utils" % "0.1-SNAPSHOT",
-  "com.hypertino" %% "service-control" % "0.3.0",
+  "com.hypertino" %% "service-control" % "0.4.0",
   "com.hypertino" %% "service-config" % "0.2.0",
-  "com.hypertino" %% "service-metrics" % "0.3.0",
+  "com.hypertino" %% "service-metrics" % "0.3.1",
   "org.scaldi" %% "scaldi" % "0.5.8",
   "io.spray" %% "spray-can" % "1.3.1",
   "io.spray" %% "spray-routing-shapeless2" % "1.3.3",
   "com.wandoulabs.akka" %% "spray-websocket" % "0.1.4",
   "com.typesafe.akka" %% "akka-actor" % "2.4.20",
-  "com.hypertino" %% "hyperbus-t-inproc" % "0.5-SNAPSHOT" % "test",
+  "com.hypertino" %% "hyperbus-t-inproc" % "0.6-SNAPSHOT" % "test",
   "org.asynchttpclient" % "async-http-client" % "2.0.37" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.5.0" % "test",
   //  "com.hypertino"               %% "simple-auth-service"         % "0.1.13"    % "test",

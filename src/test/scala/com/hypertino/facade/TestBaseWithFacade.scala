@@ -20,10 +20,14 @@ abstract class TestBaseWithFacade(
                                  ) extends TestBase with WsTestClientHelper {
   protected var testObjects: TestServices = null
 
-  def httpGet(url: String): String = {
+  def httpGet(url: String, headers: Seq[(String, String)] = Seq.empty): String = {
     val t = testObjects
     import t._
-    val f = asyncHttpClient.prepareGet(url).execute()
+    val g = asyncHttpClient.prepareGet(url)
+    headers.foreach { pair ⇒
+      g.addHeader(pair._1, pair._2)
+    }
+    val f = g.execute()
     Await.result(
       taskFromListenableFuture(f).runAsync.map { result ⇒
         result.getResponseBody

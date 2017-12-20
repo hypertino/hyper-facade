@@ -34,7 +34,6 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
-  with Service
   with Injectable
   with StrictLogging {
 
@@ -88,12 +87,6 @@ class RestServiceApp(implicit inj: Injector) extends SimpleRoutingApp
         }
       }
     }
-  }
-
-  override def stopService(controlBreak: Boolean, timeout: FiniteDuration): Future[Unit] = {
-    // todo: implement real stop
-    Future.successful(logger.info("Hyperfacade is stopped"))
-
   }
 
   private def respondWithCORSHeaders(allowedOrigins: Seq[String], allowedPaths: Seq[Pattern] = Nil): Directive0 =

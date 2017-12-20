@@ -96,6 +96,26 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
     httpGet(s"http://localhost:$httpPort/simple-resource?fields=text_field") shouldBe """[{"text_field":"Yey"},{"text_field":"Hey"}]"""
   }
 
+  it should "update fields according to i18n" in {
+    val t = testObjects
+    import t._
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+      ).subscribe { implicit request =>
+        request.reply(Success {
+          Ok(DynamicBody(Obj.from("title~i18n" → Obj.from("ru" → "Привет", "fr" → "Bonjour"))))
+        })
+        Continue
+      }
+    }
+
+    httpGet(s"http://localhost:$httpPort/simple-resource", Seq("Accept-Language" → "ru")) shouldBe """{"title":"Привет"}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource", Seq("Accept-Language" → "fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5")) shouldBe """{"title":"Bonjour"}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource?i18n=all", Seq("Accept-Language" → "ru")) shouldBe """{"title~i18n":{"fr":"Bonjour","ru":"Привет"}}"""
+  }
+
   it should "serve resource with pattern" in {
     val t = testObjects
     import t._

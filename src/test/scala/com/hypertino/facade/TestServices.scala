@@ -48,11 +48,15 @@ class TestServices(configFileName: String, val ramlConfigFiles: Seq[String], ext
   val asyncHttpClient = new DefaultAsyncHttpClient
   val originalRamlConfig = inject[RamlConfiguration]('raml)
 
+  hyperbus.startServices()
+  facadeService.startService()
+
   // Unfortunately WsRestServiceApp doesn't provide a Future or any other way to ensure that listener is
   // bound to socket, so we need this stupid timeout to initialize the listener
   Thread.sleep(500)
 
   override def close() {
+    asyncHttpClient.close()
     subscriptions.foreach(_.cancel())
     subscriptions.clear
 
@@ -62,7 +66,6 @@ class TestServices(configFileName: String, val ramlConfigFiles: Seq[String], ext
       hyperbus.shutdown(5.seconds),
       Task.fromFuture(actorSystem.terminate())
     )).runAsync, 16.seconds)
-    asyncHttpClient.close()
   }
 }
 

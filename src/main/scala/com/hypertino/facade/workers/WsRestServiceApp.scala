@@ -16,24 +16,30 @@ import com.hypertino.facade.FacadeConfigPaths
 import com.hypertino.facade.events.SubscriptionsManager
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.hyperbus.Hyperbus
+import monix.execution.atomic.AtomicLong
 import scaldi.{Injectable, Injector}
 import spray.can.Http
+import spray.can.Http.Unbind
 import spray.can.server.{ServerSettings, UHttp}
 import spray.io.ServerSSLEngineProvider
 import spray.routing._
 
 import scala.collection.immutable
 import scala.concurrent.Future
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 class WsRestServiceApp(implicit inj: Injector)
   extends RestServiceApp
     with Injectable {
 
+  private val activeConnections = AtomicLong(0)
   private val trackActiveConnections = metricsTracker.counter(MetricKeys.ACTIVE_CONNECTIONS)
   private val rejectedConnectionsMeter = metricsTracker.meter(MetricKeys.REJECTED_CONNECTS)
 
   val hyperbus = inject[Hyperbus]
   val subscriptionsManager = inject[SubscriptionsManager]
+  private var serviceActorOption: Option[ActorRef] = None
+  private var ioActorOption: Option[ActorRef] = None
 
   override def startServer(interface: String,
                            port: Int,
@@ -75,16 +81,21 @@ class WsRestServiceApp(implicit inj: Injector)
                 )
                 context.watch(worker)
                 trackActiveConnections.inc()
+                activeConnections.increment()
               }
             case Terminated(worker) ⇒
               connectionCount -= 1
               trackActiveConnections.dec()
+              activeConnections.decrement()
           }
         }
       },
       name = serviceActorName)
 
+    serviceActorOption = Some(serviceActor)
+
     val io = IO(UHttp)(system)
+    ioActorOption = Some(io)
     io.ask(Http.Bind(serviceActor, interface, port, backlog, options, settings))(bindingTimeout).flatMap {
       case b: Http.Bound ⇒ Future.successful(b)
       case Tcp.CommandFailed(b: Http.Bind) ⇒
@@ -93,5 +104,19 @@ class WsRestServiceApp(implicit inj: Injector)
         Future.failed(new RuntimeException(
           "Binding failed. Switch on DEBUG-level logging for `akka.io.TcpListener` to log the cause."))
     }(system.dispatcher)
+  }
+
+  def stop(timeout: FiniteDuration): Future[Unit] = Future {
+    val until = timeout.toMillis + System.currentTimeMillis()
+    ioActorOption.foreach(a ⇒ a ! Unbind)
+    ioActorOption = None
+    serviceActorOption.foreach { a ⇒
+      val c = activeConnections.get
+      while (c > 0 && until > System.currentTimeMillis()) {
+        Thread.sleep(500)
+        logger.info(s"Waiting for $c connections to finish...")
+      }
+      a ! PoisonPill
+    }
   }
 }

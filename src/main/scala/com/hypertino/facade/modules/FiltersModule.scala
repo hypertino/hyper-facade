@@ -11,7 +11,7 @@ package com.hypertino.facade.modules
 import com.hypertino.facade.filter.chain.{FilterChain, RamlFilterChain, SimpleFilterChain}
 import com.hypertino.facade.filter.model.{RamlFieldFilterFactory, RamlFilterFactory}
 import com.hypertino.facade.filters.annotated._
-import com.hypertino.facade.filters.chain.after_reply.{IdempotencyResponseFilter, SelectFieldsResponseFilter}
+import com.hypertino.facade.filters.chain.after_reply.{I18NResponseFilter, IdempotencyResponseFilter, SelectFieldsResponseFilter}
 import com.hypertino.facade.filters.chain.after_resolved.ResourceResolvedRequestFilter
 import com.hypertino.facade.filters.chain.before_resolved._
 import com.hypertino.hyperbus.model.Status
@@ -62,6 +62,7 @@ class FiltersModule extends Module {
   )
   bind[FilterChain] identifiedBy "after_reply" to SimpleFilterChain(
     responseFilters = Seq(
+      injected[I18NResponseFilter],
       injected[SelectFieldsResponseFilter],
       injected[IdempotencyResponseFilter],
       injected[HttpWsResponseFilter]
