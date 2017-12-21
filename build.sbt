@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
   "com.hypertino" %% "hyperbus" % "0.6-SNAPSHOT",
   "com.hypertino" % "raml-parser-2" % "1.0.16",
   "com.hypertino" %% "hyperbus-utils" % "0.1-SNAPSHOT",
-  "com.hypertino" %% "service-control" % "0.4.0",
+  "com.hypertino" %% "service-control" % "0.4.1",
   "com.hypertino" %% "service-config" % "0.2.0",
   "com.hypertino" %% "service-metrics" % "0.3.1",
   "org.scaldi" %% "scaldi" % "0.5.8",

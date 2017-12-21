@@ -24,7 +24,7 @@ class FacadeService(implicit val injector: Injector) extends Service with Inject
   val app = new WsRestServiceApp
   logger.info(s"${getClass.getName} is INITIALIZED")
 
-  def startService(): Unit = {
+  override def startService(): Unit = {
     app.start(httpWorker.restRoutes.routes)
     logger.info(s"${getClass.getName} is STARTED")
   }
