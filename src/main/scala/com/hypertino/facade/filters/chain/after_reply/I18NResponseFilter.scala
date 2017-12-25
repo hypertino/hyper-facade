@@ -28,6 +28,7 @@ class I18NResponseFilter(
                         ) extends ResponseFilter with StrictLogging {
 
   private val defaultLocale = config.getString("hyperfacade.i18n-filter.default-locale")
+  private val postfix = config.getString("hyperfacade.i18n-filter.fields-postfix")
   val timer = Some(MetricKeys.specificFilter("I18NResponseFilter"))
 
   override def apply(requestContext: RequestContext, response: DynamicResponse)
@@ -35,22 +36,15 @@ class I18NResponseFilter(
     Task.now {
       try {
         requestContext.request.headers.hrl.query.dynamic.i18n match {
-          case Text("all") ⇒
+          case Text("only") ⇒
             response
 
+          case Text("all") ⇒
+            val bodyContent = I18NResponseFilter.filterFields(response.body.content, getRequestLanguages(requestContext), includeAll = true, postfix)
+            StandardResponse(DynamicBody(bodyContent), response.headers).asInstanceOf[DynamicResponse]
+
           case _ ⇒
-            import spray.http.HttpHeaders._
-            val locale = requestContext.httpHeaders.get("accept-language").map(_.toString).getOrElse(defaultLocale)
-            val languages = HttpParser.parseHeader(RawHeader("accept-language", locale)) match {
-              case Right(`Accept-Language`(acceptLangs)) ⇒
-                acceptLangs.sortBy(_.qValue).reverse.flatMap { l ⇒
-                  List(l.primaryTag) ++ l.subTags
-                } :+ defaultLocale
-
-              case _ ⇒ Seq(defaultLocale)
-            }
-
-            val bodyContent = I18NResponseFilter.filterFields(response.body.content, languages)
+            val bodyContent = I18NResponseFilter.filterFields(response.body.content, getRequestLanguages(requestContext), includeAll = false, postfix)
             StandardResponse(DynamicBody(bodyContent), response.headers).asInstanceOf[DynamicResponse]
         }
       }
@@ -61,17 +55,28 @@ class I18NResponseFilter(
       }
     }
   }
+
+  private def getRequestLanguages(requestContext: RequestContext): Seq[String] = {
+    import spray.http.HttpHeaders._
+    val locale = requestContext.httpHeaders.get("accept-language").map(_.toString).getOrElse(defaultLocale)
+    HttpParser.parseHeader(RawHeader("accept-language", locale)) match {
+      case Right(`Accept-Language`(acceptLangs)) ⇒
+        acceptLangs.sortBy(_.qValue).reverse.flatMap { l ⇒
+          List(l.primaryTag) ++ l.subTags
+        } :+ defaultLocale
+
+      case _ ⇒ Seq(defaultLocale)
+    }
+  }
 }
 
 object I18NResponseFilter {
-  final val postfix = "~i18n"
-
-  def filterFields(v: Value, languages: Seq[String]): Value = {
-    recursiveFilterFields(v, languages)
+  def filterFields(v: Value, languages: Seq[String], includeAll: Boolean, postfix: String): Value = {
+    recursiveFilterFields(v, languages, includeAll, postfix)
   }
 
-  private def recursiveFilterFields(v: Value, languages: Seq[String]): Value = {
-    v match {
+  private def recursiveFilterFields(original: Value, languages: Seq[String], includeAll: Boolean, postfix: String): Value = {
+    original match {
       case Obj(inner) ⇒
         val patch = Obj(inner.filter(kv ⇒ kv._1.endsWith(postfix) && kv._2.isInstanceOf[Obj]).flatMap { case (k, v) ⇒
           val i = v.asInstanceOf[Obj]
@@ -91,16 +96,21 @@ object I18NResponseFilter {
           }
         })
 
-        Obj(inner.filterNot(_._1.endsWith(postfix))) % patch
+        if (includeAll) {
+          original % patch
+        }
+        else {
+          Obj(inner.filterNot(_._1.endsWith(postfix))) % patch
+        }
 
       case Lst(inner) ⇒
         Lst(
           inner.map { i ⇒
-            recursiveFilterFields(i, languages)
+            recursiveFilterFields(i, languages, includeAll, postfix)
           }
         )
 
-      case _ ⇒ v
+      case _ ⇒ original
     }
   }
 }
