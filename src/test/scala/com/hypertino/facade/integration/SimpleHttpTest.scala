@@ -111,10 +111,10 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
       }
     }
 
-    httpGet(s"http://localhost:$httpPort/simple-resource", Seq("Accept-Language" → "ru")) shouldBe """{"title":"Привет"}"""
-    httpGet(s"http://localhost:$httpPort/simple-resource", Seq("Accept-Language" → "fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5")) shouldBe """{"title":"Bonjour"}"""
-    httpGet(s"http://localhost:$httpPort/simple-resource?i18n=all", Seq("Accept-Language" → "ru")) shouldBe """{"title~i18n":{"fr":"Bonjour","ru":"Привет"},"title":"Привет"}"""
-    httpGet(s"http://localhost:$httpPort/simple-resource?i18n=only", Seq("Accept-Language" → "ru")) shouldBe """{"title~i18n":{"fr":"Bonjour","ru":"Привет"}}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource?fields=title", Seq("Accept-Language" → "ru")) shouldBe """{"title":"Привет"}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource?fields=title", Seq("Accept-Language" → "fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5")) shouldBe """{"title":"Bonjour"}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource", Seq("Accept-Language" → "ru")) shouldBe """{"title~i18n":{"fr":"Bonjour","ru":"Привет"},"title":"Привет"}"""
+    httpGet(s"http://localhost:$httpPort/simple-resource?fields=title~i18n", Seq("Accept-Language" → "ru")) shouldBe """{"title~i18n":{"fr":"Bonjour","ru":"Привет"}}"""
   }
 
   it should "serve resource with pattern" in {

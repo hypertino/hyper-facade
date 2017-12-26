@@ -35,18 +35,8 @@ class I18NResponseFilter(
                     (implicit scheduler: Scheduler): Task[DynamicResponse] = {
     Task.now {
       try {
-        requestContext.request.headers.hrl.query.dynamic.i18n match {
-          case Text("only") ⇒
-            response
-
-          case Text("all") ⇒
-            val bodyContent = I18NResponseFilter.filterFields(response.body.content, getRequestLanguages(requestContext), includeAll = true, postfix)
-            StandardResponse(DynamicBody(bodyContent), response.headers).asInstanceOf[DynamicResponse]
-
-          case _ ⇒
-            val bodyContent = I18NResponseFilter.filterFields(response.body.content, getRequestLanguages(requestContext), includeAll = false, postfix)
-            StandardResponse(DynamicBody(bodyContent), response.headers).asInstanceOf[DynamicResponse]
-        }
+        val bodyContent = I18NResponseFilter.filterFields(response.body.content, getRequestLanguages(requestContext), postfix)
+        StandardResponse(DynamicBody(bodyContent), response.headers).asInstanceOf[DynamicResponse]
       }
       catch {
         case NonFatal(e) ⇒
@@ -71,11 +61,11 @@ class I18NResponseFilter(
 }
 
 object I18NResponseFilter {
-  def filterFields(v: Value, languages: Seq[String], includeAll: Boolean, postfix: String): Value = {
-    recursiveFilterFields(v, languages, includeAll, postfix)
+  def filterFields(v: Value, languages: Seq[String], postfix: String): Value = {
+    recursiveFilterFields(v, languages, postfix)
   }
 
-  private def recursiveFilterFields(original: Value, languages: Seq[String], includeAll: Boolean, postfix: String): Value = {
+  private def recursiveFilterFields(original: Value, languages: Seq[String], postfix: String): Value = {
     original match {
       case Obj(inner) ⇒
         val patch = Obj(inner.filter(kv ⇒ kv._1.endsWith(postfix) && kv._2.isInstanceOf[Obj]).flatMap { case (k, v) ⇒
@@ -96,17 +86,12 @@ object I18NResponseFilter {
           }
         })
 
-        if (includeAll) {
-          original % patch
-        }
-        else {
-          Obj(inner.filterNot(_._1.endsWith(postfix))) % patch
-        }
+      original % patch
 
       case Lst(inner) ⇒
         Lst(
           inner.map { i ⇒
-            recursiveFilterFields(i, languages, includeAll, postfix)
+            recursiveFilterFields(i, languages, postfix)
           }
         )
 
