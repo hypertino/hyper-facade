@@ -9,13 +9,14 @@
 package com.hypertino.facade.filters.annotated
 
 import com.hypertino.binders.annotations.fieldName
-import com.hypertino.binders.value.{DefaultValueSerializerFactory, Null, Value}
+import com.hypertino.binders.value.{DefaultValueSerializerFactory, Lst, Null, Obj, Value}
 import com.hypertino.facade.filter.model._
-import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
-import com.hypertino.facade.raml.{RamlConfiguration, RamlFieldAnnotation}
+import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext, PreparedExpression}
+import com.hypertino.facade.model.{ErrorCode, FilterInterruptException}
+import com.hypertino.facade.raml.{RamlConfigException, RamlConfiguration, RamlFieldAnnotation}
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.HRL
+import com.hypertino.hyperbus.model.{ErrorBody, HRL, InternalServerError}
 import com.hypertino.inflector.naming.{CamelCaseToSnakeCaseConverter, PlainConverter, SnakeCaseToCamelCaseConverter}
 import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
@@ -36,7 +37,8 @@ case class FetchFieldAnnotation(
                                  default: Option[PreparedExpression] = None,
                                  stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse, FieldFilterStageEvent),
                                  selector: Option[PreparedExpression] = None,
-                                 always: Boolean = false
+                                 always: Boolean = false,
+                                 iterateOn: Option[PreparedExpression] = None
                           ) extends RamlFieldAnnotation with FetchAnnotationBase {
   def name: String = "fetch"
 }
@@ -92,22 +94,60 @@ class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
 
   protected def fetchAndReturnField(context: FieldFilterContext): Task[Option[Value]] = {
     try {
-      val location = expressionEvaluator.evaluate(context.expressionEvaluatorContext, annotation.location).toString
-      val query = annotation.query.map { kv ⇒
-        kv._1 → expressionEvaluator.evaluate(context.expressionEvaluatorContext, kv._2)
-      }
-      val hrl = HRL(location, query)
-      //val hrl = ramlConfiguration.resourceHRL(HRL.fromURL(location), Method.GET).getOrElse(hrlOriginal)
+      annotation.iterateOn.map { iterateOnExpression =>
+        val source = expressionEvaluator.evaluate(context.expressionEvaluatorContext, iterateOnExpression)
+        source match {
+          case Obj(v) =>
+            Task.gather(v.map{ item =>
+              val extraContext = context.expressionEvaluatorContext.extraContext % Obj.from(
+                "key" -> item._1,
+                "item" -> item._2
+              )
+              val expressionEvaluatorContext = context.expressionEvaluatorContext.copy(extraContext=extraContext)
+              fetchSingle(context, expressionEvaluatorContext).map{
+                case Some(newV) => Some(item._1 -> newV)
+                case None => None
+              }
+            }).map { seq =>
+              Some(Obj(seq.flatten.toMap))
+            }
 
-      implicit val mcx = context.requestContext
-      ask(hrl, context.expressionEvaluatorContext).
-        onErrorRecoverWith {
-          case NonFatal(e) ⇒
-            handleError(context.fieldPath.mkString("."), context.expressionEvaluatorContext, e)
+          case Lst(v) =>
+            Task.gather(v.map{ item =>
+              val extraContext = context.expressionEvaluatorContext.extraContext % Obj.from(
+                "item" -> item
+              )
+              val expressionEvaluatorContext = context.expressionEvaluatorContext.copy(extraContext=extraContext)
+              fetchSingle(context, expressionEvaluatorContext)
+            }).map { seq =>
+              Some(Lst(seq.flatten))
+            }
+
+          case Null =>
+            Task.now(None)
+          case _ =>
+            implicit val mcx = context.requestContext
+            throw InternalServerError(ErrorBody(ErrorCode.FIELD_IS_NOT_ITERABLE, Some(s"Field ${context.fieldPath.mkString(".")} value is not iterable")))
         }
+      } getOrElse {
+        fetchSingle(context, context.expressionEvaluatorContext)
+      }
     } catch {
       case NonFatal(e) ⇒
         handleError(context.fieldPath.mkString("."), context.expressionEvaluatorContext, e)
+    }
+  }
+
+  protected def fetchSingle(context: FieldFilterContext, expressionContext: ExpressionEvaluatorContext): Task[Option[Value]] = {
+    val location = expressionEvaluator.evaluate(expressionContext, annotation.location).toString
+    val query = annotation.query.map { kv ⇒
+      kv._1 → expressionEvaluator.evaluate(expressionContext, kv._2)
+    }
+    val hrl = HRL(location, query)
+    implicit val mcx = expressionContext.requestContext
+    ask(hrl, expressionContext).onErrorRecoverWith {
+      case NonFatal(e) ⇒
+        handleError(context.fieldPath.mkString("."), expressionContext, e)
     }
   }
 }

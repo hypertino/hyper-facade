@@ -53,7 +53,7 @@ case class FieldFilterContext(
                                requestContext: RequestContext,
                                stage: FieldFilterStage
                              ) {
-  lazy val expressionEvaluatorContext = ExpressionEvaluatorContext(requestContext,extraContext)
+  lazy val expressionEvaluatorContext = ExpressionEvaluatorContext(requestContext, extraContext)
 }
 
 trait FieldFilter {

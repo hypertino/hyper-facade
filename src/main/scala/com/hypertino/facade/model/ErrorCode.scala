@@ -18,6 +18,7 @@ object ErrorCode {
   final val FIELD_IS_PROTECTED = "field_is_protected"
   final val CONDITION_CHECK_FAILURE = "condition_check_failure"
   final val RESOURCE_IS_NOT_COLLECTION = "resource_is_not_collection"
+  final val FIELD_IS_NOT_ITERABLE = "field_is_not_iterable"
   final val COLLECTION_HAVE_MORE_THAN_1_ITEMS = "collection_have_more_than_1_items"
   final val COLLECTION_IS_EMPTY = "collection_is_empty"
   final val SINGLE_ITEM_NOT_FOUND = "single_item_not_found"

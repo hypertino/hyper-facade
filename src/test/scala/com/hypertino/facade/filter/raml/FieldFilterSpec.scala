@@ -105,7 +105,12 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
          expects: String = "document",
          onError: String = FetchFilter.ON_ERROR_FAIL,
          defaultStatuses: Set[Int] = Set(404),
-         defaultValue: Option[String] = None, stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent), selector: Option[String] = None, always: Boolean=false) = {
+         defaultValue: Option[String] = None,
+         stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse,FieldFilterStageEvent),
+         selector: Option[String] = None,
+         always: Boolean=false,
+         iterateOn: Option[String] = None
+        ) = {
     Map(name → Field(name, "string", Seq(
       new FieldAnnotationWithFilter(
         FetchFieldAnnotation(predicate=None,
@@ -115,7 +120,8 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
           onError=onError,
           defaultStatuses=defaultStatuses,
           selector=selector.map(PreparedExpression(_)),
-          default=defaultValue.map(PreparedExpression(_)),stages=stages,always=always),
+          default=defaultValue.map(PreparedExpression(_)),stages=stages,always=always,
+          iterateOn=iterateOn.map(PreparedExpression(_))),
         name,
         "string"
       )
@@ -311,6 +317,35 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       .filter(Obj.from("a" → 100500, "b" → "abc"))
       .runAsync
       .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc", "c" → "Yey")
+  }
+
+  it should "iterate and fetch field values" in {
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+      ).subscribe { implicit request =>
+        request.reply(Success {
+          Ok(DynamicBody(Obj.from("service_result" → "Yey")))
+        })
+        Continue
+      }
+    }
+
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\"", iterateOn=Some("this.src")), isCollection = false),
+      Map.empty,
+      Obj.from("fields" → "c"),
+      FieldFilterStageResponse
+    )
+      .filter(Obj.from("a" → 100500, "b" → "abc", "src" -> Obj.from("a" -> 1, "b" -> 2)))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc",
+      "src" -> Obj.from("a" -> 1, "b" -> 2),
+      "c" → Obj.from(
+        "a" -> Obj.from("service_result" → "Yey"), "b" -> Obj.from("service_result" → "Yey"))
+      )
+
   }
 
   it should "forbidden if fields are set" in {

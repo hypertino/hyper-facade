@@ -37,7 +37,8 @@ case class ContextFetchAnnotation(
                                    onError: String = FetchFilter.ON_ERROR_FAIL,      //todo: this should be enum
                                    defaultStatuses: Set[Int] = Set(404),
                                    selector: Option[PreparedExpression] = None,
-                                   default: Option[PreparedExpression] = None
+                                   default: Option[PreparedExpression] = None,
+                                   iterateOn: Option[PreparedExpression] = None
                                  ) extends RamlAnnotation with FetchAnnotationBase {
   def name: String = "context_fetch"
 }
