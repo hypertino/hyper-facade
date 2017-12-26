@@ -26,6 +26,7 @@ object ErrorCode {
 
   final val REQUEST_IN_PROGRESS = "request_in_progress"
   final val MALFORMED_URLENCODED_REQUEST = "malformed_urlencoded_request"
+  final val MALFORMED_FIELDS_FILTER = "malformed_fields_filter"
   final val SERVICE_NOT_FOUND = "service_not_found"
   final val SERVICE_TIMEOUT = "service_timeout"
 }

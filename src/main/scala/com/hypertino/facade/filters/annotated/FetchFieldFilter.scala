@@ -16,7 +16,7 @@ import com.hypertino.facade.model.{ErrorCode, FilterInterruptException}
 import com.hypertino.facade.raml.{RamlConfigException, RamlConfiguration, RamlFieldAnnotation}
 import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{ErrorBody, HRL, InternalServerError}
+import com.hypertino.hyperbus.model.{BadRequest, ErrorBody, HRL, InternalServerError, MessagingContext}
 import com.hypertino.inflector.naming.{CamelCaseToSnakeCaseConverter, PlainConverter, SnakeCaseToCamelCaseConverter}
 import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
@@ -61,6 +61,7 @@ class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
           Task.now(None)
 
         case fields: Value ⇒
+          implicit val mcx = context.requestContext
           if (fieldsSelected(fields, context)) {
             fetchAndReturnField(context)
           }
@@ -71,20 +72,25 @@ class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
     }
   }
 
-  protected def fieldsSelected(fields: Value, context: FieldFilterContext) = Try(SelectFields(fields.toString)) match {
-    case Success(selectFields) ⇒
-      recursiveMatch(context.fieldPath, selectFields)
-
-    case Failure(e) ⇒
-      logger.error(s"Can't parse 'fields' parameter", e)
-      false
+  protected def fieldsSelected(fields: Value, context: FieldFilterContext)
+                              (implicit mcx: MessagingContext): Boolean = try {
+    val selectFields = SelectFields(fields.toString)
+    recursiveMatch(context.fieldPath, selectFields)
+  } catch {
+    case e: Throwable ⇒
+      throw BadRequest(ErrorBody(ErrorCode.MALFORMED_FIELDS_FILTER, Some(e.toString)))
   }
 
   @tailrec private def recursiveMatch(fieldPath: Seq[String], selectFields: Map[String, SelectField]): Boolean = {
     if (fieldPath.nonEmpty) {
-      selectFields.get(fieldPath.head) match {
-        case Some(f) ⇒ recursiveMatch(fieldPath.tail, f.children)
-        case None ⇒ false
+      if (selectFields.contains("**")) {
+        true
+      }
+      else {
+        selectFields.get(fieldPath.head) match {
+          case Some(f) ⇒ recursiveMatch(fieldPath.tail, f.children)
+          case None ⇒ false
+        }
       }
     }
     else {

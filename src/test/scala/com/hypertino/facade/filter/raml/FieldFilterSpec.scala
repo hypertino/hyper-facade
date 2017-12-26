@@ -275,7 +275,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       )
   }
 
-  it should "fetch field values" in {
+  it should "fetch field values and respect fields=specific" in {
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
@@ -317,6 +317,58 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       .filter(Obj.from("a" → 100500, "b" → "abc"))
       .runAsync
       .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc", "c" → "Yey")
+  }
+
+  it should "not fetch field values if they aren't specified in filter" in {
+    @volatile var fetched = false
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+      ).subscribe { implicit request =>
+        fetched = true
+        request.reply(Success {
+          Ok(DynamicBody(Obj.from("service_result" → "Yey")))
+        })
+        Continue
+      }
+    }
+
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
+      Map.empty,
+      Null,
+      FieldFilterStageResponse
+    )
+      .filter(Obj.from("a" → 100500, "b" → "abc"))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc")
+
+    fetched shouldBe false
+  }
+
+  it should "fetch field values and respect fields=**" in {
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+      ).subscribe { implicit request =>
+        request.reply(Success {
+          Ok(DynamicBody(Obj.from("service_result" → "Yey")))
+        })
+        Continue
+      }
+    }
+
+    fieldFilter(
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
+      Map.empty,
+      Obj.from("fields" → "**"),
+      FieldFilterStageResponse
+    )
+      .filter(Obj.from("a" → 100500, "b" → "abc"))
+      .runAsync
+      .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc", "c" → Obj.from("service_result" → "Yey"))
   }
 
   it should "iterate and fetch field values" in {
