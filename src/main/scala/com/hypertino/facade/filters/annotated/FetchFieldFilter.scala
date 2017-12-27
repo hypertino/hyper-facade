@@ -75,12 +75,7 @@ class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
   protected def fieldsSelected(fields: Value, context: FieldFilterContext)
                               (implicit mcx: MessagingContext): Boolean = try {
     val selectFields = SelectFields(fields.toString)
-    if (selectFields.contains("**")) {
-      true
-    }
-    else {
-      recursiveMatch(context.fieldPath, selectFields)
-    }
+    recursiveMatch(context.fieldPath, selectFields)
   } catch {
     case e: Throwable ⇒
       throw BadRequest(ErrorBody(ErrorCode.MALFORMED_FIELDS_FILTER, Some(e.toString)))
@@ -88,7 +83,8 @@ class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
 
   @tailrec private def recursiveMatch(fieldPath: Seq[String], selectFields: Map[String, SelectField]): Boolean = {
     if (fieldPath.nonEmpty) {
-      selectFields.get(fieldPath.head) match {
+      val matchedFields = selectFields.get("**").orElse(selectFields.get(fieldPath.head))
+      matchedFields match {
         case Some(f) ⇒ recursiveMatch(fieldPath.tail, f.children)
         case None ⇒ false
       }

@@ -52,35 +52,40 @@ class SelectFieldsResponseFilter(
 
 object SelectFieldsResponseFilter {
   def filterFields(v: Value, selectFields: Map[String, SelectField]): Value = {
-    recursiveFilterFields(v, selectFields)
+    recursiveFilterFields(v, selectFields).getOrElse(Null)
   }
 
-  private def recursiveFilterFields(v: Value, selectFields: Map[String, SelectField]): Value = {
+  private def recursiveFilterFields(v: Value, selectFields: Map[String, SelectField]): Option[Value] = {
     if (selectFields.nonEmpty) {
       v match {
-        case Obj(inner) ⇒ Obj(
-          inner.flatMap { case (k, i) ⇒
-            selectFields.get(k).map {
-              sf ⇒ k → recursiveFilterFields(i, sf.children)
-            }.orElse(if (selectFields.contains("*")) {
-              Option(k -> i)
-            } else {
-              None
-            })
-          })
+        case Obj(inner) ⇒
+          val res = inner.flatMap { case (k, i) ⇒
+            val matchedFields = selectFields.get("**")
+              .orElse(selectFields.get("*"))
+              .orElse(selectFields.get(k))
+
+            matchedFields.flatMap { sf ⇒
+              recursiveFilterFields(i, sf.children).map(k → _)
+            }
+          }
+          if (res.isEmpty) {
+            None
+          } else {
+            Some(Obj(res))
+          }
 
         case Lst(inner) ⇒
-          Lst(
-            inner.map { i ⇒
+          Some(Lst(
+            inner.flatMap { i ⇒
               recursiveFilterFields(i, selectFields)
             }
-          )
+          ))
 
-        case _ ⇒ v
+        case _ ⇒ None
       }
     }
     else {
-      v
+      Some(v)
     }
   }
 }
