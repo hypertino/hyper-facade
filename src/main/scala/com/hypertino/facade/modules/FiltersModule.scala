@@ -24,8 +24,9 @@ chains/stages:
   2. after_resolved (resource in raml is resolved)
   3. annotations (annotation filters)
   4. TODO: before_service (before hyperbus)
-  5. after_reply (after service is replied)
-
+  5. after_service_reply (after service is replied)
+  6. annotations on responses
+  7. before_response before response is sent to wire
  */
 
 
@@ -60,9 +61,13 @@ class FiltersModule extends Module {
   bind[FilterChain] identifiedBy "after_resolved" to SimpleFilterChain(
     requestFilters = Seq(injected[ResourceResolvedRequestFilter])
   )
-  bind[FilterChain] identifiedBy "after_reply" to SimpleFilterChain(
+  bind[FilterChain] identifiedBy "after_service_reply" to SimpleFilterChain(
     responseFilters = Seq(
-      injected[I18NResponseFilter],
+      injected[I18NResponseFilter]
+    )
+  )
+  bind[FilterChain] identifiedBy "before_response" to SimpleFilterChain(
+    responseFilters = Seq(
       injected[SelectFieldsResponseFilter],
       injected[IdempotencyResponseFilter],
       injected[HttpWsResponseFilter]

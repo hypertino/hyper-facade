@@ -39,7 +39,8 @@ trait RequestProcessor extends Injectable with StrictLogging {
   val beforeResolvedFilterChain = inject[FilterChain]("before_resolved")
   val afterResolvedFilterChain = inject[FilterChain]("after_resolved")
   val annotationsFilterChain = inject[FilterChain]("annotations")
-  val afterReplyFilterChain = inject[FilterChain]("after_reply")
+  val afterServiceReplyFilterChain = inject[FilterChain]("after_service_reply")
+  val beforeResponseFilterChain = inject[FilterChain]("before_response")
   val config = inject[Config]
   val metricsTracker = inject[MetricsTracker]
   val rewriteCountLimit = config.getInt(FacadeConfigPaths.REWRITE_COUNT_LIMIT)
@@ -53,11 +54,13 @@ trait RequestProcessor extends Injectable with StrictLogging {
               metricsTracker.timeOfTask(MetricKeys.specificRequest(cwrRaml.request.headers.hrl.location)) {
                 hyperbus.ask(cwrRaml.request) onErrorRecover {
                   handleHyperbusExceptions(cwrRaml)
-                } flatMap { response: DynamicResponse ⇒
-                  TaskUtils.chain(response, cwrRaml.stages.map { _ ⇒
-                    annotationsFilterChain.filterResponse(cwrRaml, _: DynamicResponse, metricsTracker)
-                  }) flatMap { r ⇒
-                    afterReplyFilterChain.filterResponse(cwrRaml, r, metricsTracker)
+                } flatMap { serviceResponse: DynamicResponse ⇒
+                  afterServiceReplyFilterChain.filterResponse(cwrRaml, serviceResponse, metricsTracker) flatMap { response =>
+                    TaskUtils.chain(response, cwrRaml.stages.map { _ ⇒
+                      annotationsFilterChain.filterResponse(cwrRaml, _: DynamicResponse, metricsTracker)
+                    }) flatMap { r ⇒
+                      beforeResponseFilterChain.filterResponse(cwrRaml, r, metricsTracker)
+                    }
                   }
                 }
               }

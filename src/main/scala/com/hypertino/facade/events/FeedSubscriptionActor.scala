@@ -218,7 +218,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     TaskUtils.chain(resourceState, cwr.stages.map { _ ⇒
       annotationsFilterChain.filterResponse(cwr, _: DynamicResponse, metricsTracker)
     }) flatMap { filteredResponse ⇒
-      afterReplyFilterChain.filterResponse(cwr, filteredResponse, metricsTracker) map { finalResponse ⇒
+      afterServiceReplyFilterChain.filterResponse(cwr, filteredResponse, metricsTracker) map { finalResponse ⇒
         websocketWorker ! finalResponse
         if (finalResponse.headers.statusCode > 399) { // failed
           PoisonPill
@@ -247,7 +247,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
     TaskUtils.chain(event, cwr.stages.map { _ ⇒
       annotationsFilterChain.filterEvent(cwr, _: DynamicRequest, metricsTracker)
     }) flatMap { e ⇒
-      afterReplyFilterChain.filterEvent(cwr, e, metricsTracker) map { filteredRequest ⇒
+      afterServiceReplyFilterChain.filterEvent(cwr, e, metricsTracker) map { filteredRequest ⇒
         websocketWorker ! filteredRequest
       }
     } onErrorRecover handleFilterExceptions(cwr) { response ⇒
@@ -319,7 +319,7 @@ class FeedSubscriptionActor(websocketWorker: ActorRef,
         val filteringTask = TaskUtils.chain(event, cwr.stages.map { _ ⇒
           annotationsFilterChain.filterEvent(cwr, _: DynamicRequest, metricsTracker)
         }) flatMap { e ⇒
-          afterReplyFilterChain.filterEvent(cwr, e, metricsTracker)
+          afterServiceReplyFilterChain.filterEvent(cwr, e, metricsTracker)
         }
         if (currentFilteringFuture.get().isEmpty) {
           val newCurrentFilteringTask = filteringTask map { filteredRequest ⇒
