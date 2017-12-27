@@ -379,7 +379,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
         DynamicRequestObservableMeta(RequestMatcher("hb://test-service4", Method.GET, None))
       ).subscribe { implicit request =>
         request.reply(Success {
-          Ok(DynamicBody(Obj.from("c" → "55")))
+          Ok(DynamicBody(Obj.from("c" → 55)))
         })
         Continue
       }
