@@ -22,6 +22,7 @@ import com.hypertino.parser.HParser
 import monix.eval.Task
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler
+import monix.execution.atomic.AtomicInt
 import scaldi.DynamicModule
 
 import scala.util.Success
@@ -279,7 +280,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
-        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service1", Method.GET, None))
       ).subscribe { implicit request =>
         request.reply(Success {
           Ok(DynamicBody(Obj.from("service_result" → "Yey")))
@@ -289,7 +290,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     }
 
     fieldFilter(
-      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service1\""), isCollection = false ),
       Map.empty,
       Obj.from("fields" → "c"),
       FieldFilterStageResponse
@@ -299,7 +300,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc", "c" → Obj.from("service_result" → "Yey"))
 
     fieldFilter(
-      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service1\""), isCollection = false ),
       Map.empty,
       Obj.from("fields" → "d"),
       FieldFilterStageResponse
@@ -309,7 +310,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc")
 
     fieldFilter(
-      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\"", selector=Some("source.service_result")), isCollection = false),
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service1\"", selector=Some("source.service_result")), isCollection = false),
       Map.empty,
       Obj.from("fields" → "c"),
       FieldFilterStageResponse
@@ -324,7 +325,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
-        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service2", Method.GET, None))
       ).subscribe { implicit request =>
         fetched = true
         request.reply(Success {
@@ -335,7 +336,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     }
 
     fieldFilter(
-      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service2\""), isCollection = false ),
       Map.empty,
       Null,
       FieldFilterStageResponse
@@ -351,7 +352,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
-        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service3", Method.GET, None))
       ).subscribe { implicit request =>
         request.reply(Success {
           Ok(DynamicBody(Obj.from("service_result" → "Yey")))
@@ -361,7 +362,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     }
 
     fieldFilter(
-      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\""), isCollection = false ),
+      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service3\""), isCollection = false ),
       Map.empty,
       Obj.from("fields" → "**"),
       FieldFilterStageResponse
@@ -375,29 +376,27 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
     register {
       hyperbus.commands[DynamicRequest](
         DynamicRequest.requestMeta,
-        DynamicRequestObservableMeta(RequestMatcher("hb://test-service", Method.GET, None))
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service4", Method.GET, None))
       ).subscribe { implicit request =>
         request.reply(Success {
-          Ok(DynamicBody(Obj.from("service_result" → "Yey")))
+          Ok(DynamicBody(Obj.from("c" → "55")))
         })
         Continue
       }
     }
 
     fieldFilter(
-      TypeDefinition("T1", None, Seq.empty, ff("c", "\"hb://test-service\"", iterateOn=Some("this.src")), isCollection = false),
+      TypeDefinition("T1", None, Seq.empty, ff("r", "\"hb://test-service4\"", iterateOn=Some("this.src")), isCollection = false),
       Map.empty,
-      Obj.from("fields" → "c"),
+      Obj.from("fields" → "r"),
       FieldFilterStageResponse
     )
-      .filter(Obj.from("a" → 100500, "b" → "abc", "src" -> Obj.from("a" -> 1, "b" -> 2)))
+      .filter(Obj.from("a" → 100500, "b" → "abc", "src" -> Obj.from("x" -> 1, "y" -> 2, "z" -> 3)))
       .runAsync
       .futureValue shouldBe Obj.from("a" → 100500, "b" → "abc",
-      "src" -> Obj.from("a" -> 1, "b" -> 2),
-      "c" → Obj.from(
-        "a" -> Obj.from("service_result" → "Yey"), "b" -> Obj.from("service_result" → "Yey"))
+        "src" -> Obj.from("x" -> 1, "y" -> 2, "z" -> 3),
+        "r" → Obj.from("x" -> Obj.from("c" -> 55), "y" -> Obj.from("c" -> 55), "z" -> Obj.from("c" -> 55))
       )
-
   }
 
   it should "forbidden if fields are set" in {
