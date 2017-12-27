@@ -22,5 +22,6 @@ project/plugins/project/
 .settings
 .cache
 /bin/
-.enisime
+.ensime
+.ensime_cache
 ensime.sbt
