@@ -32,6 +32,7 @@ libraryDependencies ++= Seq(
   "com.hypertino" %% "service-control" % "0.4.1",
   "com.hypertino" %% "service-config" % "0.2.0",
   "com.hypertino" %% "service-metrics" % "0.3.1",
+  "com.hypertino" %% "language-utils" % "0.1.1",
   "org.scaldi" %% "scaldi" % "0.5.8",
   "io.spray" %% "spray-can" % "1.3.1",
   "io.spray" %% "spray-routing-shapeless2" % "1.3.3",

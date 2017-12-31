@@ -14,6 +14,7 @@ import com.hypertino.facade.filter.parser.ExpressionEvaluator
 import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model.RequestContext
 import com.hypertino.hyperbus.model.{DynamicBody, DynamicResponse, StandardResponse}
+import com.hypertino.langutils.{LanguageRanges, ValueI18N}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
@@ -35,7 +36,9 @@ class I18NResponseFilter(
                     (implicit scheduler: Scheduler): Task[DynamicResponse] = {
     Task.now {
       try {
-        val bodyContent = I18NResponseFilter.filterFields(response.body.content, getRequestLanguages(requestContext), postfix)
+        val acceptLanguage = requestContext.httpHeaders.get("accept-language").map(_.toString).getOrElse(defaultLocale)
+        val lr = LanguageRanges(acceptLanguage)
+        val bodyContent = ValueI18N.localize(response.body.content, lr, postfix=postfix)
         StandardResponse(DynamicBody(bodyContent), response.headers).asInstanceOf[DynamicResponse]
       }
       catch {
@@ -43,59 +46,6 @@ class I18NResponseFilter(
           logger.error("Unhandled exception", e)
           throw e;
       }
-    }
-  }
-
-  private def getRequestLanguages(requestContext: RequestContext): Seq[String] = {
-    import spray.http.HttpHeaders._
-    val locale = requestContext.httpHeaders.get("accept-language").map(_.toString).getOrElse(defaultLocale)
-    HttpParser.parseHeader(RawHeader("accept-language", locale)) match {
-      case Right(`Accept-Language`(acceptLangs)) ⇒
-        acceptLangs.sortBy(_.qValue).reverse.flatMap { l ⇒
-          List(l.primaryTag) ++ l.subTags
-        } :+ defaultLocale
-
-      case _ ⇒ Seq(defaultLocale)
-    }
-  }
-}
-
-object I18NResponseFilter {
-  def filterFields(v: Value, languages: Seq[String], postfix: String): Value = {
-    recursiveFilterFields(v, languages, postfix)
-  }
-
-  private def recursiveFilterFields(original: Value, languages: Seq[String], postfix: String): Value = {
-    original match {
-      case Obj(inner) ⇒
-        val patch = Obj(inner.filter(kv ⇒ kv._1.endsWith(postfix) && kv._2.isInstanceOf[Obj]).flatMap { case (k, v) ⇒
-          val i = v.asInstanceOf[Obj]
-          var l10n: Value = null
-          val it = languages.iterator
-          while (it.hasNext && l10n == null) {
-            val lang = it.next()
-            i.v.get(lang).foreach { v ⇒
-              l10n = v
-            }
-          }
-          if (l10n != null) {
-            Some(k.substring(0, k.length - postfix.length) → l10n)
-          }
-          else {
-            None
-          }
-        })
-
-      original % patch
-
-      case Lst(inner) ⇒
-        Lst(
-          inner.map { i ⇒
-            recursiveFilterFields(i, languages, postfix)
-          }
-        )
-
-      case _ ⇒ original
     }
   }
 }
