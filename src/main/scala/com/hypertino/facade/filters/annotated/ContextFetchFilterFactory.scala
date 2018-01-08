@@ -34,7 +34,7 @@ case class ContextFetchAnnotation(
                                    query: Map[String, PreparedExpression],
                                    expects: String = FetchFilter.EXPECTS_DOCUMENT,   //todo: this should be enum
                                    onError: String = FetchFilter.ON_ERROR_DEFAULT,      //todo: this should be enum
-                                   default: Map[String, PreparedExpression] = Map("401" -> PreparedExpression("null")),
+                                   default: Map[String, PreparedExpression] = Map("404" -> PreparedExpression("null")),
                                    selector: Option[PreparedExpression] = None,
                                    iterateOn: Option[PreparedExpression] = None
                                  ) extends RamlAnnotation with FetchAnnotationBase {

@@ -33,7 +33,7 @@ case class FetchFieldAnnotation(
                                  query: Map[String, PreparedExpression],
                                  expects: String = FetchFilter.EXPECTS_DOCUMENT,   //todo: this should be enum
                                  onError: String = FetchFilter.ON_ERROR_DEFAULT,   //todo: this should be enum
-                                 default: Map[String, PreparedExpression] = Map("401" -> PreparedExpression("null")),
+                                 default: Map[String, PreparedExpression] = Map("404" -> PreparedExpression("null")),
                                  stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse, FieldFilterStageEvent),
                                  selector: Option[PreparedExpression] = None,
                                  always: Boolean = false,
