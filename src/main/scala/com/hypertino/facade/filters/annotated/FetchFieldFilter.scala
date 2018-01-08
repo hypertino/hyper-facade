@@ -32,9 +32,8 @@ case class FetchFieldAnnotation(
                                  location: PreparedExpression,
                                  query: Map[String, PreparedExpression],
                                  expects: String = FetchFilter.EXPECTS_DOCUMENT,   //todo: this should be enum
-                                 onError: String = FetchFilter.ON_ERROR_FAIL,      //todo: this should be enum
-                                 defaultStatuses: Set[Int] = Set(404),
-                                 default: Option[PreparedExpression] = None,
+                                 onError: String = FetchFilter.ON_ERROR_DEFAULT,   //todo: this should be enum
+                                 default: Map[String, PreparedExpression] = Map("401" -> PreparedExpression("null")),
                                  stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse, FieldFilterStageEvent),
                                  selector: Option[PreparedExpression] = None,
                                  always: Boolean = false,

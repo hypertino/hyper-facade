@@ -84,25 +84,30 @@ trait FetchFilterBase extends StrictLogging{
       logger.debug(s"Can't fetch $s", e)
     if (annotation.onError == ON_ERROR_REMOVE) {
       Task.now(None)
-    }
-    else if (annotation.onError == ON_ERROR_DEFAULT) {
-      defaultValue(context)
-    }
-    else {
-      e match {
-        case h: HyperbusError[_] if annotation.defaultStatuses.contains(h.headers.statusCode) ⇒
-          defaultValue(context)
+    } else if (annotation.onError == ON_ERROR_FAIL) {
+      Task.raiseError(e)
+    } else { // annotation.onError == ON_ERROR_DEFAULT
+      {e match {
+        case h: HyperbusError[_] ⇒
+          defaultValue(h.headers.statusCode, context)
         case _ ⇒
-          Task.raiseError(e)
+          Task.now(annotation.default.get("*").map { defV ⇒
+            expressionEvaluator.evaluate(context, defV)
+          })
+      }} flatMap {
+        case None => Task.raiseError(e)
+        case other => Task.now(other)
       }
     }
   }
 
-  def defaultValue(context: ExpressionEvaluatorContext): Task[Option[Value]] = Task.now {
-    annotation.default.map { defV ⇒
+  private def defaultValue(statusCode: Int, context: ExpressionEvaluatorContext): Task[Option[Value]] = Task.now {
+    annotation.default.get(statusCode.toString).map { defV ⇒
       Some(expressionEvaluator.evaluate(context, defV))
     } getOrElse {
-      Some(Null)
+      annotation.default.get("*").map { defV ⇒
+        expressionEvaluator.evaluate(context, defV)
+      }
     }
   }
 

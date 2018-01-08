@@ -23,9 +23,8 @@ trait FetchAnnotationBase extends RamlAnnotation {
   def query: Map[String, PreparedExpression]
   def expects: String //todo: this should be enum
   def onError: String //todo: this should be enum
-  def defaultStatuses: Set[Int]
   def selector: Option[PreparedExpression]
-  def default: Option[PreparedExpression]
+  def default: Map[String, PreparedExpression]
 }
 
 case class ContextFetchAnnotation(
@@ -34,10 +33,9 @@ case class ContextFetchAnnotation(
                                    location: PreparedExpression,
                                    query: Map[String, PreparedExpression],
                                    expects: String = FetchFilter.EXPECTS_DOCUMENT,   //todo: this should be enum
-                                   onError: String = FetchFilter.ON_ERROR_FAIL,      //todo: this should be enum
-                                   defaultStatuses: Set[Int] = Set(404),
+                                   onError: String = FetchFilter.ON_ERROR_DEFAULT,      //todo: this should be enum
+                                   default: Map[String, PreparedExpression] = Map("401" -> PreparedExpression("null")),
                                    selector: Option[PreparedExpression] = None,
-                                   default: Option[PreparedExpression] = None,
                                    iterateOn: Option[PreparedExpression] = None
                                  ) extends RamlAnnotation with FetchAnnotationBase {
   def name: String = "context_fetch"
@@ -73,4 +71,5 @@ object ContextFetchFilter {
   final val ON_ERROR_FAIL = "fail"
   final val ON_ERROR_REMOVE = "remove"
   final val ON_ERROR_DEFAULT = "default"
+  final val ON_ERROR_BY_STATUS = "default"
 }
