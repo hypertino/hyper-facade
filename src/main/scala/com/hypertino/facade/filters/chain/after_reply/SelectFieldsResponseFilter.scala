@@ -52,7 +52,9 @@ class SelectFieldsResponseFilter(
 
 object SelectFieldsResponseFilter {
   def filterFields(v: Value, selectFields: Map[String, SelectField]): Value = {
-    recursiveFilterFields(v, selectFields).getOrElse(Null)
+    recursiveFilterFields(v, selectFields).getOrElse {
+      if (v.isNull) Null else Obj.empty
+    }
   }
 
   private def recursiveFilterFields(v: Value, selectFields: Map[String, SelectField]): Option[Value] = {
