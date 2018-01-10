@@ -82,7 +82,7 @@ class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
 
   @tailrec private def recursiveMatch(fieldPath: Seq[String], selectFields: Map[String, SelectField]): Boolean = {
     if (fieldPath.nonEmpty) {
-      val matchedFields = selectFields.get("**").orElse(selectFields.get(fieldPath.head))
+      val matchedFields = selectFields.get(fieldPath.head).orElse(selectFields.get("**"))
       matchedFields match {
         case Some(f) ⇒ recursiveMatch(fieldPath.tail, f.children)
         case None ⇒ false

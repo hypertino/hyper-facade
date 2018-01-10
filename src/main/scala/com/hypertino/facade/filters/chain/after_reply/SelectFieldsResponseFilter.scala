@@ -62,9 +62,9 @@ object SelectFieldsResponseFilter {
       v match {
         case Obj(inner) ⇒
           val res = inner.flatMap { case (k, i) ⇒
-            val matchedFields = selectFields.get("**")
+            val matchedFields = selectFields.get(k)
               .orElse(selectFields.get("*"))
-              .orElse(selectFields.get(k))
+              .orElse(selectFields.get("**"))
 
             matchedFields.flatMap { sf ⇒
               recursiveFilterFields(i, sf.children).map(k → _)
