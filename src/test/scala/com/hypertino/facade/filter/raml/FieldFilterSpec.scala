@@ -66,7 +66,7 @@ class FieldFilterSpec extends TestBaseWithHyperbus(ramlConfigFiles=Seq("raml-con
       import com.hypertino.hyperbus.model.MessagingContext.Implicits.emptyContext
       filterBody(body, RequestContext(DynamicRequest(HRL("hb://test", query), Method.GET, EmptyBody, headers=Headers(
         FacadeHeaders.REMOTE_ADDRESS → "127.0.0.1"
-      ))), stage)
+      )), None), stage)
     }
     override protected def typeDef: TypeDefinition = aTypeDef
     //override protected def typeDefinitions: Map[String, TypeDefinition] = aTypeDefinitions

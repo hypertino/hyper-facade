@@ -49,6 +49,7 @@ case class ExpressionEvaluatorContext(requestContext: RequestContext, extraConte
       "query" → request.headers.hrl.query,
       "method" → request.headers.method,
       "body" → request.body.content,
+      "http_body" -> requestContext.payload.map(Text).getOrElse(Null),
       "remote_address" → requestContext.remoteAddress
     )
   }

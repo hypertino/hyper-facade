@@ -99,12 +99,12 @@ class WsRestWorker(val serverConnection: ActorRef,
         trackHeartbeat.mark()
         httpRequest match {
           case Some(h) ⇒
-            val request = MessageTransformer.frameToRequest(message, remoteAddress, h)
+            val (request, payload) = MessageTransformer.frameToRequest(message, remoteAddress, h)
             if (isPingRequest(request)) {
               pong(request)
             }
             else {
-              processRequest(request)
+              processRequest(request, payload)
             }
 
           case None ⇒
@@ -134,9 +134,9 @@ class WsRestWorker(val serverConnection: ActorRef,
     }
   }
 
-  def processRequest(request: DynamicRequest): Unit = {
+  def processRequest(request: DynamicRequest, payload: Option[String]): Unit = {
     val actorName = "Subscr-" + request.correlationId
-    val requestContext = RequestContext(request)
+    val requestContext = RequestContext(request, payload)
     context.child(actorName) match {
       case Some(actor) ⇒ actor.forward(requestContext)
       case None ⇒ context.actorOf(FeedSubscriptionActor.props(self, hyperbus, subscriptionManager), actorName) ! requestContext

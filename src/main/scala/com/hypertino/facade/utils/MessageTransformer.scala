@@ -24,8 +24,9 @@ import spray.http.{HttpEntity, HttpRequest, HttpResponse, StatusCode, _}
 import spray.httpx.unmarshalling.FormDataUnmarshallers
 
 object MessageTransformer {
-  def frameToRequest(frame: Frame, remoteAddress: String, httpRequest: HttpRequest): DynamicRequest = {
-    val dynamicRequest = MessageReader.fromString(frame.payload.utf8String, DynamicRequest.apply)
+  def frameToRequest(frame: Frame, remoteAddress: String, httpRequest: HttpRequest): (DynamicRequest, Option[String]) = {
+    val payload = frame.payload.utf8String
+    val dynamicRequest = MessageReader.fromString(payload, DynamicRequest.apply)
 
     val uri = spray.http.Uri(dynamicRequest.headers.hrl.location)
     if (uri.scheme.nonEmpty || uri.authority.nonEmpty) {
@@ -38,7 +39,7 @@ object MessageTransformer {
       query = dynamicRequest.headers.hrl.query + hrl.query
     )
 
-    dynamicRequest.copy(
+    (dynamicRequest.copy(
       headers = MessageHeaders
         .builder
         .++=(dynamicRequest.headers)
@@ -46,13 +47,13 @@ object MessageTransformer {
         .+=(FacadeHeaders.REMOTE_ADDRESS → remoteAddress)
         .withHRL(hrlWithQuery)
         .requestHeaders()
-    )
+    ), Some(payload))
   }
 
-  def httpToRequest(request: HttpRequest, remoteAddress: String): DynamicRequest = {
+  def httpToRequest(request: HttpRequest, remoteAddress: String): (DynamicRequest, Option[String]) = {
     val hrl = HRL.fromURL(request.uri.toString)
-    val body = if (request.entity.isEmpty)
-      EmptyBody
+    val (body, bodyPayload) = if (request.entity.isEmpty)
+      (EmptyBody, None)
     else {
       requestBody(request)
     }
@@ -80,7 +81,7 @@ object MessageTransformer {
           .requestHeaders()
       }
 
-    DynamicRequest(body, headersWithContext)
+    (DynamicRequest(body, headersWithContext), bodyPayload)
   }
 
   def messageToFrame(message: DynamicMessage): Frame = {
@@ -110,7 +111,7 @@ object MessageTransformer {
     )
   }
 
-  private def requestBody(request: HttpRequest): DynamicBody = {
+  private def requestBody(request: HttpRequest): (DynamicBody, Option[String]) = {
     // todo: content type/encoding from headers? !!!!
 
     request.entity.toOption match {
@@ -118,17 +119,18 @@ object MessageTransformer {
         if (contentType.mediaType.value == "application/x-www-form-urlencoded") {
           FormDataUnmarshallers.UrlEncodedFormDataUnmarshaller(request.entity) match {
             case Right(formData) ⇒
-              DynamicBody(Obj.from(formData.fields.map(kv ⇒ kv._1 → Text(kv._2)):_*), None)
+              (DynamicBody(Obj.from(formData.fields.map(kv ⇒ kv._1 → Text(kv._2)):_*), None), Some(data.asString))
+
             case Left(ex) ⇒
               throw BadRequest(ErrorBody(ErrorCode.MALFORMED_URLENCODED_REQUEST, Some(ex.toString)))(MessagingContext.empty)
           }
         }
         else {
-          DynamicBody(new StringReader(data.asString), None)
+          (DynamicBody(new StringReader(data.asString), None), Some(data.asString))
         }
 
       case None =>
-        DynamicBody(Null, None)
+        (DynamicBody(Null, None), None)
     }
   }
 

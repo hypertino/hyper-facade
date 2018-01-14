@@ -13,6 +13,7 @@ import com.hypertino.facade.utils.HttpUtils
 import com.hypertino.hyperbus.model.{DynamicRequest, Headers, MessagingContext, RequestHeaders}
 
 case class RequestContext(request: DynamicRequest,
+                          payload: Option[String],
                           stages: Seq[RequestHeaders],
                           contextStorage: Obj,
                           ramlEntryHeaders: Option[RequestHeaders] = None) extends MessagingContext {
@@ -35,9 +36,12 @@ case class RequestContext(request: DynamicRequest,
 }
 
 object RequestContext {
-
-  def apply(request: DynamicRequest): RequestContext = RequestContext(
+  def apply(
+    request: DynamicRequest,
+    payload: Option[String]
+  ): RequestContext = RequestContext(
     request,
+    payload,
     stages = Seq.empty,
     contextStorage = Obj.empty
   ).withNextStage(request)

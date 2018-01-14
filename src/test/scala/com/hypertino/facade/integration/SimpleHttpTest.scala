@@ -225,4 +225,23 @@ class SimpleHttpTest extends TestBaseWithFacade("inproc-test.conf") {
     httpGet(s"http://localhost:$httpPort/resource-with-query-string") shouldBe """{"test":"abc"}"""
     httpGet(s"http://localhost:$httpPort/resource-with-query-string?test=1") shouldBe """{"test":"1"}"""
   }
+
+  it should "provide access to payload/raw body" in {
+    val t = testObjects
+    import t._
+    register {
+      hyperbus.commands[DynamicRequest](
+        DynamicRequest.requestMeta,
+        DynamicRequestObservableMeta(RequestMatcher("hb://test-service-payload", Method.POST, None))
+      ).subscribe { implicit request =>
+        request.reply(Success {
+          Ok(request.request.body)
+        })
+        Continue
+      }
+    }
+
+    httpPostUrlEncoded(s"http://localhost:$httpPort/test-post-payload", Map("integer_field" → List("100"), "text_field" → List("hello"))) shouldBe
+      """{"text_field":"hello","integer_field":"100","payload":"integer_field=100&text_field=hello"}"""
+  }
 }

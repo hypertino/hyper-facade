@@ -66,7 +66,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
     "request filters with interruption" in {
       val request = DynamicRequest(HRL("/interrupted"), Method.GET, DynamicBody(Text("test body")))
 
-      filterChain.filterRequest(RequestContext(request), DummyMetricsTracker)
+      filterChain.filterRequest(RequestContext(request, None), DummyMetricsTracker)
         .runAsync
         .failed
         .futureValue shouldBe a[Forbidden[_]]
@@ -75,7 +75,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
     "request filters" in {
       val request = DynamicRequest(HRL("/successfull"), Method.GET, DynamicBody(Text("test body")))
 
-      val filteredRequest = filterChain.filterRequest(RequestContext(request), DummyMetricsTracker).runAsync.futureValue.request
+      val filteredRequest = filterChain.filterRequest(RequestContext(request, None), DummyMetricsTracker).runAsync.futureValue.request
 
       filteredRequest.body shouldBe DynamicBody(Text("test body"))
       filteredRequest.headers.hrl shouldBe HRL("/successfull")
@@ -86,7 +86,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       val request = DynamicRequest(HRL("/interrupted"), Method.GET, DynamicBody(Text("test body")))
       val response = Created(DynamicBody("response body"))
 
-      val interrupt = filterChain.filterResponse(RequestContext(request), response, DummyMetricsTracker)
+      val interrupt = filterChain.filterResponse(RequestContext(request, None), response, DummyMetricsTracker)
         .runAsync
         .failed
         .futureValue
@@ -102,7 +102,7 @@ class FilterChainTest extends FreeSpec with Matchers with ScalaFutures {
       val request = DynamicRequest(HRL("/successfull"), Method.GET, DynamicBody(Text("test body")))
       val response = Created(DynamicBody("response body"))
 
-      val filteredResponse = filterChain.filterResponse(RequestContext(request), response, DummyMetricsTracker).runAsync.futureValue
+      val filteredResponse = filterChain.filterResponse(RequestContext(request, None), response, DummyMetricsTracker).runAsync.futureValue
 
       filteredResponse.body.content shouldBe Text("response body")
       filteredResponse.headers shouldNot contain("x-http-header" → Text("Accept-Language"))

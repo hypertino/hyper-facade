@@ -13,6 +13,16 @@ types:
       integer_field: integer
       text_field: string
 
+  SimpleObjectWithPayload:
+    type: object
+    properties:
+      integer_field: integer
+      text_field: string
+      payload:
+        type: string
+        (facade.set):
+          source: http_body
+
 /simple-resource:
   (facade.rewrite):
     location: hb://test-service
@@ -78,5 +88,14 @@ types:
     body:
       application/x-www-form-urlencoded:
         type: SimpleService
+    responses:
+      200:
+
+/test-post-payload:
+  (facade.rewrite):
+    location: hb://test-service-payload
+  post:
+    body:
+      type: SimpleObjectWithPayload
     responses:
       200:

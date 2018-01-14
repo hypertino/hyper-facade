@@ -34,9 +34,9 @@ abstract class WsTestWorker(filterChain: FilterChain) extends HttpServiceActor w
   def businessLogic: Receive = {
     case frame: TextFrame =>
       implicit val scheduler = monix.execution.Scheduler.Implicits.global
-      val facadeRequest = MessageTransformer.frameToRequest(frame, "127.0.0.1", null) // todo: http request mock
+      val (facadeRequest, payload) = MessageTransformer.frameToRequest(frame, "127.0.0.1", null) // todo: http request mock
       // val context = mockContext(facadeRequest)
-      filterChain.filterRequest(RequestContext(facadeRequest), DummyMetricsTracker) map { filteredCWR ⇒
+      filterChain.filterRequest(RequestContext(facadeRequest,payload), DummyMetricsTracker) map { filteredCWR ⇒
         exposeFacadeRequest(filteredCWR.request)
       }
   }

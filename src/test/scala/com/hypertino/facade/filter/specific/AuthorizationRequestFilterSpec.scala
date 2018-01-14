@@ -65,7 +65,8 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
     val rc = RequestContext(
       DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, Headers(
         "Authorization" → "Test ABC"
-      ))
+      )),
+      None
     )
     val result = filter.apply(rc).runAsync.futureValue
     result.contextStorage.dynamic.user shouldBe Obj.from("user_id" → "100500")
@@ -84,7 +85,8 @@ class AuthorizationRequestFilterSpec extends TestBaseWithHyperbus("inproc-test.c
     val rc = RequestContext(
       DynamicRequest(HRL("hb://test"), Method.GET, EmptyBody, Headers(
         "Privilege-Authorization" → "Test ABC"
-      ))
+      )),
+      None
     )
     val result = filter.apply(rc).runAsync.futureValue
     result.contextStorage.dynamic.user shouldBe Null
