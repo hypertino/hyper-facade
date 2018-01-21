@@ -28,6 +28,7 @@ types:
           location: '"hb://fetch"'
           expects: document
           on_error: remove
+          stages: [request,response]
 
   TestRequest:
     type: object
@@ -37,6 +38,7 @@ types:
       clientIp:
         (facade.set):
           source: remote_address
+          stages: [request]
         type: string
       password:
         (facade.remove):

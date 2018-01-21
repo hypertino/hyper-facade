@@ -38,8 +38,8 @@ object FieldFilterStage {
 
   implicit object FieldFilterStageSetDeserializer extends ImplicitDeserializer[Set[FieldFilterStage], ValueDeserializer[_]] {
     override def read(deserializer: ValueDeserializer[_]): Set[FieldFilterStage] = deserializer
-      .readString()
-      .split(',')
+      .readValue()
+      .to[Seq[String]]
       .map(FieldFilterStage(_))
       .toSet
   }
