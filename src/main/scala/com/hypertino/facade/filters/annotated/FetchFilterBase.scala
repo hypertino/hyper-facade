@@ -12,67 +12,86 @@ import com.hypertino.binders.value.{Lst, Null, Obj, Text, Value}
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, ExpressionEvaluatorContext}
 import com.hypertino.facade.model.ErrorCode
 import com.hypertino.hyperbus.Hyperbus
-import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, EmptyBody, ErrorBody, HRL, Header, HyperbusError, InternalServerError, MessagingContext, Method, NotFound, Ok}
+import com.hypertino.hyperbus.model.{DynamicBody, DynamicRequest, EmptyBody, ErrorBody, HRL, Header, Headers, HyperbusError, InternalServerError, MessagingContext, Method, NotFound, Ok, ResponseHeaders}
+import com.hypertino.langutils.{LanguageRanges, ValueI18N}
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 
 trait FetchFilterBase extends StrictLogging{
   protected def hyperbus: Hyperbus
+  protected def config: Config
   protected def annotation: FetchAnnotationBase
   protected def expressionEvaluator: ExpressionEvaluator
+
+  // todo: move this to separate class shared with I18NResponseFilter
+  private val defaultLocale = config.getString("hyperfacade.i18n-filter.default-locale")
+  private val postfix = config.getString("hyperfacade.i18n-filter.fields-postfix")
 
   protected def ask(hrl: HRL, context: ExpressionEvaluatorContext)(implicit mcx: MessagingContext): Task[Option[Value]] = {
     annotation.expects match {
       case FetchFilter.EXPECTS_COLLECTION_LINK ⇒
         val hrlCollectionLink = hrl.copy(query = hrl.query + Obj.from("per_page" → 0))
-        hyperbus.ask(DynamicRequest(hrlCollectionLink, Method.GET, EmptyBody)).map {
-          case response @ Ok(_: DynamicBody, _) ⇒
-            Some(Obj(Map(
-              "first_page_url" → Text(hrl.toURL())
-            ) ++
-              response.headers.get(Header.COUNT).map("count" → _)
-            ))
+        fetchResourceWithHeaders(hrlCollectionLink, context).map { case (_, headers) =>
+          Some(Obj(Map(
+            "first_page_url" → Text(hrl.toURL())
+          ) ++
+            headers.get(Header.COUNT).map("count" → _)
+          ))
         }
 
       case FetchFilter.EXPECTS_COLLECTION_TOP ⇒
-        hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
-          case response @ Ok(body: DynamicBody, _) ⇒
-            body.content match {
-              case Lst(l) if l.isEmpty ⇒
-                None
-              case Null ⇒ None
-              case Lst(_) ⇒
-                Some(
-                  applySelector(Obj(
-                    Map("top" → body.content) ++
-                      response.headers.link.map(kv ⇒ kv._1 → Text(kv._2.toURL())) ++
-                      response.headers.get(Header.COUNT).map("count" → _).toMap
-                  ), context)
-                )
-              case other ⇒
-                throw InternalServerError(ErrorBody(ErrorCode.RESOURCE_IS_NOT_COLLECTION, Some(s"$hrl: ${other.getClass}")))
-            }
+        fetchResourceWithHeaders(hrl, context).map {
+          case (Lst(l), _) if l.isEmpty ⇒
+            None
+          case (Null, _) ⇒ None
+          case (lst: Lst, headers) ⇒
+            Some(
+              applySelector(Obj(
+                Map("top" → lst) ++
+                  headers.link.map(kv ⇒ kv._1 → Text(kv._2.toURL())) ++
+                  headers.get(Header.COUNT).map("count" → _).toMap
+              ), context)
+            )
+          case (other, _) ⇒
+            throw InternalServerError(ErrorBody(ErrorCode.RESOURCE_IS_NOT_COLLECTION, Some(s"$hrl: ${other.getClass}")))
         }
 
+
       case FetchFilter.EXPECTS_SINGLE_ITEM ⇒
-        hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
-          case response @ Ok(body: DynamicBody, _) ⇒
-            body.content match {
-              case Lst(l) if l.size == 1 ⇒ Some(applySelector(l.head, context))
-              case Lst(l) if l.isEmpty ⇒
-                throw NotFound(ErrorBody(ErrorCode.SINGLE_ITEM_NOT_FOUND, Some(s"$hrl")))
-              case Lst(_) ⇒
-                throw InternalServerError(ErrorBody(ErrorCode.SINGLE_ITEM_AMBIGUOUS, Some(s"$hrl")))
-              case o: Obj ⇒
-                throw InternalServerError(ErrorBody(ErrorCode.RESOURCE_IS_NOT_COLLECTION, Some(s"$hrl")))
-            }
+        fetchResource(hrl, context).map {
+          case Lst(l) if l.size == 1 ⇒ Some(applySelector(l.head, context))
+          case Lst(l) if l.isEmpty ⇒
+            throw NotFound(ErrorBody(ErrorCode.SINGLE_ITEM_NOT_FOUND, Some(s"$hrl")))
+          case Lst(_) ⇒
+            throw InternalServerError(ErrorBody(ErrorCode.SINGLE_ITEM_AMBIGUOUS, Some(s"$hrl")))
+          case _: Obj ⇒
+            throw InternalServerError(ErrorBody(ErrorCode.RESOURCE_IS_NOT_COLLECTION, Some(s"$hrl")))
         }
 
       case FetchFilter.EXPECTS_DOCUMENT ⇒
-        hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map {
-          case Ok(body: DynamicBody, _) ⇒
-            Some(applySelector(body.content, context))
+        fetchResource(hrl, context).map { resource =>
+          Some(applySelector(resource, context))
         }
+    }
+  }
+
+  protected def fetchResource(hrl: HRL, context: ExpressionEvaluatorContext)
+                             (implicit mcx: MessagingContext): Task[Value] = {
+    fetchResourceWithHeaders(hrl, context).map(_._1)
+  }
+
+  protected def fetchResourceWithHeaders(hrl: HRL, context: ExpressionEvaluatorContext)
+                                        (implicit mcx: MessagingContext): Task[(Value, ResponseHeaders)] = {
+    hyperbus.ask(DynamicRequest(hrl, Method.GET, EmptyBody)).map { r =>
+      val localized = if (annotation.localize) {
+        val acceptLanguage = context.requestContext.httpHeaders.get("accept-language").map(_.toString).getOrElse(defaultLocale)
+        val lr = LanguageRanges(acceptLanguage)
+        ValueI18N.localize(r.body.content, lr, postfix=postfix)
+      } else {
+        r.body.content
+      }
+      (localized, r.headers)
     }
   }
 

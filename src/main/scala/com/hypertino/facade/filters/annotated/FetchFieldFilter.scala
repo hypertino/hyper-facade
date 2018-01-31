@@ -18,6 +18,7 @@ import com.hypertino.facade.utils.{SelectField, SelectFields}
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.{BadRequest, ErrorBody, HRL, InternalServerError, MessagingContext}
 import com.hypertino.inflector.naming.{CamelCaseToSnakeCaseConverter, PlainConverter, SnakeCaseToCamelCaseConverter}
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import monix.eval.Task
 import monix.execution.Scheduler
@@ -31,20 +32,22 @@ case class FetchFieldAnnotation(
                                  @fieldName("if") predicate: Option[PreparedExpression],
                                  location: PreparedExpression,
                                  query: Map[String, PreparedExpression],
-                                 expects: String = FetchFilter.EXPECTS_DOCUMENT,   //todo: this should be enum
-                                 onError: String = FetchFilter.ON_ERROR_DEFAULT,   //todo: this should be enum
+                                 expects: String = FetchFilter.EXPECTS_DOCUMENT, //todo: this should be enum
+                                 onError: String = FetchFilter.ON_ERROR_DEFAULT, //todo: this should be enum
                                  default: Map[String, PreparedExpression] = Map("404" -> PreparedExpression("null")),
                                  stages: Set[FieldFilterStage] = Set(FieldFilterStageResponse, FieldFilterStageEvent),
                                  selector: Option[PreparedExpression] = None,
                                  always: Boolean = false,
-                                 iterateOn: Option[PreparedExpression] = None
-                          ) extends RamlFieldAnnotation with FetchAnnotationBase {
+                                 iterateOn: Option[PreparedExpression] = None,
+                                 localize: Boolean = true
+                               ) extends RamlFieldAnnotation with FetchAnnotationBase {
   def name: String = "fetch"
 }
 
 
 class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
                        protected val hyperbus: Hyperbus,
+                       protected val config: Config,
                        protected val expressionEvaluator: ExpressionEvaluator,
                        protected implicit val injector: Injector,
                        protected implicit val scheduler: Scheduler) extends FieldFilter with FetchFilterBase with Injectable with StrictLogging{
@@ -154,11 +157,12 @@ class FetchFieldFilter(protected val annotation: FetchFieldAnnotation,
 }
 
 class FetchFieldFilterFactory(hyperbus: Hyperbus,
+                              config: Config,
                               protected val predicateEvaluator: ExpressionEvaluator,
                               protected implicit val injector: Injector,
                               protected implicit val scheduler: Scheduler) extends RamlFieldFilterFactory {
   def createFieldFilter(fieldName: String, typeName: String, annotation: RamlFieldAnnotation): FieldFilter = {
-    new FetchFieldFilter(annotation.asInstanceOf[FetchFieldAnnotation], hyperbus, predicateEvaluator, injector, scheduler)
+    new FetchFieldFilter(annotation.asInstanceOf[FetchFieldAnnotation], hyperbus, config, predicateEvaluator, injector, scheduler)
   }
 
   override def createRamlAnnotation(name: String, value: Value): RamlFieldAnnotation = {

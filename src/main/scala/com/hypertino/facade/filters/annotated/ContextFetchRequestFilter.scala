@@ -15,6 +15,7 @@ import com.hypertino.facade.metrics.MetricKeys
 import com.hypertino.facade.model._
 import com.hypertino.hyperbus.Hyperbus
 import com.hypertino.hyperbus.model.HRL
+import com.typesafe.config.Config
 import monix.eval.Task
 import monix.execution.Scheduler
 
@@ -22,6 +23,7 @@ import scala.util.control.NonFatal
 
 class ContextFetchRequestFilter(protected val annotation: ContextFetchAnnotation,
                                 protected val hyperbus: Hyperbus,
+                                protected val config: Config,
                                 protected val expressionEvaluator: ExpressionEvaluator,
                                 protected implicit val scheduler: Scheduler) extends RequestFilter with FetchFilterBase {
 

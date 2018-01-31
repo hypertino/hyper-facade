@@ -15,6 +15,7 @@ import com.hypertino.facade.filter.model._
 import com.hypertino.facade.filter.parser.{ExpressionEvaluator, PreparedExpression}
 import com.hypertino.facade.raml._
 import com.hypertino.hyperbus.Hyperbus
+import com.typesafe.config.Config
 import monix.execution.Scheduler
 import scaldi.Injectable
 
@@ -25,6 +26,7 @@ trait FetchAnnotationBase extends RamlAnnotation {
   def onError: String //todo: this should be enum
   def selector: Option[PreparedExpression]
   def default: Map[String, PreparedExpression]
+  def localize: Boolean
 }
 
 case class ContextFetchAnnotation(
@@ -36,12 +38,14 @@ case class ContextFetchAnnotation(
                                    onError: String = FetchFilter.ON_ERROR_DEFAULT,      //todo: this should be enum
                                    default: Map[String, PreparedExpression] = Map("404" -> PreparedExpression("null")),
                                    selector: Option[PreparedExpression] = None,
-                                   iterateOn: Option[PreparedExpression] = None
+                                   iterateOn: Option[PreparedExpression] = None,
+                                   localize: Boolean = true
                                  ) extends RamlAnnotation with FetchAnnotationBase {
   def name: String = "context_fetch"
 }
 
 class ContextFetchFilterFactory(hyperbus: Hyperbus,
+                                config: Config,
                                 protected val predicateEvaluator: ExpressionEvaluator,
                                 protected implicit val scheduler: Scheduler) extends RamlFilterFactory with Injectable {
   override def createFilters(target: RamlFilterTarget): SimpleFilterChain = {
@@ -51,7 +55,7 @@ class ContextFetchFilterFactory(hyperbus: Hyperbus,
       case otherTarget ⇒ throw RamlConfigException(s"Annotation 'context_fetch' cannot be assigned to $otherTarget")
     }
     SimpleFilterChain(
-      requestFilters = Seq(new ContextFetchRequestFilter(fa, hyperbus, predicateEvaluator,scheduler)),
+      requestFilters = Seq(new ContextFetchRequestFilter(fa, hyperbus, config, predicateEvaluator,scheduler)),
       responseFilters = Seq.empty,
       eventFilters = Seq.empty
     )
